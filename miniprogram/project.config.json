@@ -1,0 +1,20 @@
+{
+  "description": "家庭教育讲师自学",
+  "packOptions": {
+    "ignore": [
+      { "type": "file", "value": "project.private.config.json" }
+    ]
+  },
+  "setting": {
+    "es6": true,
+    "minified": true,
+    "urlCheck": false,
+    "coverView": true,
+    "lazyloadPlaceholderEnable": false
+  },
+  "compileType": "miniprogram",
+  "libVersion": "3.5.5",
+  "appid": "touristappid",
+  "projectname": "family-edu-lecturer",
+  "condition": {}
+}

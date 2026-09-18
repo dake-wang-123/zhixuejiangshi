@@ -1,0 +1,47 @@
+{
+  "pages": [
+    "pages/index/index",
+    "pages/course/detail",
+    "pages/learn/index",
+    "pages/plan/index",
+    "pages/agent/index",
+    "pages/mine/index"
+  ],
+  "window": {
+    "navigationBarTitleText": "家庭教育讲师自学",
+    "navigationBarBackgroundColor": "#5C7A5A",
+    "navigationBarTextStyle": "white",
+    "backgroundColor": "#F6F1E8",
+    "backgroundTextStyle": "dark"
+  },
+  "tabBar": {
+    "custom": true,
+    "color": "#8A8175",
+    "selectedColor": "#5C7A5A",
+    "backgroundColor": "#FFFBF5",
+    "list": [
+      {
+        "pagePath": "pages/index/index",
+        "text": "课程"
+      },
+      {
+        "pagePath": "pages/learn/index",
+        "text": "学习"
+      },
+      {
+        "pagePath": "pages/plan/index",
+        "text": "教案"
+      },
+      {
+        "pagePath": "pages/agent/index",
+        "text": "智学"
+      },
+      {
+        "pagePath": "pages/mine/index",
+        "text": "我的"
+      }
+    ]
+  },
+  "style": "v2",
+  "sitemapLocation": "sitemap.json"
+}

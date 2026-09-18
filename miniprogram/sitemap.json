@@ -1,0 +1,8 @@
+{
+  "desc": "家庭教育讲师自学小程序",
+  "setting": {
+    "urlCheck": true,
+    "es6": true,
+    "minified": true
+  }
+}

@@ -1,0 +1,36 @@
+<view class="page">
+  <view class="hero">
+    <text class="eyebrow">LECTURER</text>
+    <text class="hero-title">我的</text>
+    <text class="hero-sub">微信静默登录后，可以维护讲师资料、查看会员，并给运营留言。</text>
+  </view>
+  <view class="error" wx:if="{{loginError}}">{{loginError}}</view>
+  <view class="card" wx:if="{{account}}">
+    <view class="title">{{account.username || '家庭教育讲师'}}</view>
+    <view class="muted">账号 {{account.id}}</view>
+    <view class="muted" wx:if="{{account.phoneNumber}}">手机 {{account.phoneNumber}}</view>
+  </view>
+  <view class="card" wx:else>
+    <view class="title">尚未登录</view>
+    <view class="desc">小程序启动时会调用 wx.login，把 code 交给 Zion 的 loginWithWechatMiniApp。</view>
+    <button class="btn" bindtap="onRelogin">重新登录</button>
+  </view>
+  <view class="card">
+    <view class="title">讲师资料</view>
+    <view class="label">从业年限</view>
+    <input class="field" type="number" placeholder="例如 8" value="{{educationYears}}" bindinput="onYears" />
+    <button class="btn" bindtap="onSaveProfile" disabled="{{saving}}">保存资料</button>
+  </view>
+  <view class="card">
+    <view class="title">会员</view>
+    <view class="desc" wx:if="{{membership}}">
+      {{membership.level || '会员'}} · {{membership.status}} · 到期 {{membership.expire_time}}
+    </view>
+    <view class="muted" wx:else>当前没有会员记录。上架课程里标了会员免费的，需要有效会员才能按免费价学习。</view>
+  </view>
+  <view class="card">
+    <view class="title">意见反馈</view>
+    <textarea class="area" placeholder="功能问题、课题建议、解析不准，都可以写在这里。" value="{{feedback}}" bindinput="onFeedback" maxlength="1000" auto-height></textarea>
+    <button class="btn btn-ghost" bindtap="onSendFeedback" disabled="{{sending}}">提交反馈</button>
+  </view>
+</view>

@@ -1,0 +1,18 @@
+.cats {
+  white-space: nowrap;
+  margin-bottom: 16rpx;
+}
+.cat {
+  display: inline-block;
+  padding: 10rpx 24rpx;
+  margin-right: 12rpx;
+  border-radius: 999rpx;
+  background: #F3EADF;
+  color: #6F675C;
+  font-size: 24rpx;
+}
+.cat.on {
+  background: #5C7A5A;
+  color: #fff;
+}
+.grow { flex: 1; min-width: 0; }

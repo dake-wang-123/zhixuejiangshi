@@ -1,0 +1,32 @@
+<view class="page">
+  <view class="hero">
+    <text class="eyebrow">FAMILY EDUCATION</text>
+    <text class="hero-title">家庭教育讲师自学</text>
+    <text class="hero-sub">选课学习、上传教案，智能体帮你拆结构、写摘要、推课题，再进入智学对话。</text>
+  </view>
+  <view class="error" wx:if="{{error}}">{{error}}</view>
+  <scroll-view scroll-x class="cats" wx:if="{{categories.length}}">
+    <view
+      class="cat {{activeCategory === item.id ? 'on' : ''}}"
+      wx:for="{{categories}}"
+      wx:key="id"
+      data-id="{{item.id}}"
+      bindtap="onCategory"
+    >{{item.name}}</view>
+  </scroll-view>
+  <view class="empty" wx:if="{{!loading && !visibleCourses.length}}">暂无已上架课程</view>
+  <view class="card row" wx:for="{{visibleCourses}}" wx:key="id" data-id="{{item.id}}" bindtap="onOpen">
+    <image class="cover" src="{{item.coverUrl}}" mode="aspectFill" wx:if="{{item.coverUrl}}"></image>
+    <view class="cover" wx:else></view>
+    <view class="grow">
+      <view class="title">{{item.title}}</view>
+      <view class="desc">{{item.description || '家庭教育讲师进阶课程'}}</view>
+      <view class="row" style="margin-top: 12rpx;">
+        <text class="chip" wx:if="{{item.is_recommended}}">推荐</text>
+        <text class="chip" wx:if="{{item.category_id}}">{{item.category_id.name}}</text>
+        <text class="price" wx:if="{{item.price > 0}}">¥{{item.price}}</text>
+        <text class="muted" wx:else>免费</text>
+      </view>
+    </view>
+  </view>
+</view>

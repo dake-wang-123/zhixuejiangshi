@@ -1,0 +1,7 @@
+{
+  "usingComponents": {
+    "custom-tab-bar": "/custom-tab-bar/index"
+  },
+  "enablePullDownRefresh": true,
+  "navigationBarTitleText": "选课学习"
+}

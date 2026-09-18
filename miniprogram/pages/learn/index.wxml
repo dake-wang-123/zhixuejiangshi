@@ -1,0 +1,19 @@
+<view class="page">
+  <view class="hero">
+    <text class="hero-title">学习进度</text>
+    <text class="hero-sub">已选择的课程会出现在这里。进度会写入学习记录。</text>
+  </view>
+  <view class="error" wx:if="{{error}}">{{error}}</view>
+  <view class="empty" wx:if="{{!loading && !list.length}}">还没有选课，去课程页挑一门吧</view>
+  <view class="card row" wx:for="{{list}}" wx:key="id">
+    <image class="cover" src="{{item.coverUrl}}" mode="aspectFill" wx:if="{{item.coverUrl}}"></image>
+    <view class="grow">
+      <view class="title">{{item.course.title}}</view>
+      <view class="muted">进度 {{item.percent || 0}}%</view>
+      <view class="row">
+        <button class="btn mini" size="mini" data-id="{{item.course.id}}" bindtap="onOpen">打开</button>
+        <button class="btn btn-ghost mini" size="mini" data-title="{{item.course.title}}" bindtap="onAsk">智学</button>
+      </view>
+    </view>
+  </view>
+</view>

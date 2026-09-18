@@ -1,0 +1,24 @@
+<view class="page chat-page">
+  <view class="hero">
+    <text class="hero-title">智学助手</text>
+    <text class="hero-sub">{{hint}}</text>
+  </view>
+  <view class="error" wx:if="{{error}}">{{error}}</view>
+  <scroll-view scroll-y class="thread" scroll-into-view="{{scrollInto}}" scroll-with-animation>
+    <view class="empty" wx:if="{{!messages.length}}">从课程或学习页点「问智学」，或在这里直接提问备课问题。</view>
+    <view
+      id="m-{{item.id}}"
+      class="bubble {{item.role === 'user' ? 'me' : 'bot'}}"
+      wx:for="{{messages}}"
+      wx:key="id"
+    >{{item.content}}</view>
+    <view class="muted" wx:if="{{sending}}">智学思考中…</view>
+  </scroll-view>
+  <view class="composer">
+    <textarea class="draft" placeholder="输入要请教的备课问题" value="{{draft}}" bindinput="onDraft" auto-height maxlength="2000" confirm-type="send" bindconfirm="onSend"></textarea>
+    <view class="row">
+      <button class="btn btn-ghost mini" size="mini" bindtap="onClear">清空</button>
+      <button class="btn mini" size="mini" bindtap="onSend" disabled="{{sending}}">发送</button>
+    </view>
+  </view>
+</view>

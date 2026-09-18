@@ -1,0 +1,38 @@
+<view class="page">
+  <view class="error" wx:if="{{error}}">{{error}}</view>
+  <image class="banner" src="{{coverUrl}}" mode="aspectFill" wx:if="{{coverUrl}}"></image>
+  <view class="card" wx:if="{{course}}">
+    <view class="title">{{course.title}}</view>
+    <view class="desc">{{course.description || ''}}</view>
+    <view class="row" style="margin-top: 16rpx;">
+      <text class="chip" wx:if="{{course.category_id}}">{{course.category_id.name}}</text>
+      <text class="chip" wx:if="{{course.topic}}">{{course.topic.name}}</text>
+      <text class="chip" wx:if="{{course.direction}}">{{course.direction.name}}</text>
+      <text class="price" wx:if="{{course.price > 0}}">¥{{course.price}}</text>
+      <text class="muted" wx:else>免费学习</text>
+    </view>
+    <button class="btn" bindtap="onEnroll" wx:if="{{!enrolled}}">选择这门课</button>
+    <block wx:else>
+      <view class="muted" style="margin-top: 16rpx;">当前进度 {{percent}}%</view>
+      <view class="row wrap">
+        <button class="btn btn-ghost mini" size="mini" data-percent="25" bindtap="onProgress">25%</button>
+        <button class="btn btn-ghost mini" size="mini" data-percent="50" bindtap="onProgress">50%</button>
+        <button class="btn btn-ghost mini" size="mini" data-percent="75" bindtap="onProgress">75%</button>
+        <button class="btn mini" size="mini" data-percent="100" bindtap="onProgress">学完</button>
+      </view>
+      <button class="btn" bindtap="onLearn">返回学习列表</button>
+    </block>
+    <button class="btn btn-ghost" bindtap="onAsk">问智学助手</button>
+  </view>
+  <view class="card" wx:if="{{analysis}}">
+    <view class="title">智能体解析</view>
+    <view class="desc" wx:if="{{analysis.summaryText}}">{{analysis.summaryText}}</view>
+    <view class="chapter" wx:for="{{analysis.chapters}}" wx:key="title">
+      <view class="title">{{item.title}}</view>
+      <view class="desc" wx:if="{{item.detail}}">{{item.detail}}</view>
+    </view>
+    <view wx:if="{{analysis.tags.length}}">
+      <text class="chip" wx:for="{{analysis.tags}}" wx:key="*this">{{item}}</text>
+    </view>
+  </view>
+</view>

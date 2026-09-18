@@ -1,0 +1,37 @@
+<view class="page">
+  <view class="hero">
+    <text class="eyebrow">LESSON PLAN</text>
+    <text class="hero-title">上传教案</text>
+    <text class="hero-sub">文件会存到课程的原始文件。粘贴全文后，结构提取、摘要、标签三个智能体会依次解析，结果写入 AI 解析字段。</text>
+  </view>
+  <view class="error" wx:if="{{error}}">{{error}}</view>
+  <view class="card">
+    <view class="label">教案标题</view>
+    <input class="field" placeholder="例如：亲子沟通工作坊第 3 讲" value="{{title}}" bindinput="onTitle" />
+    <view class="label">教案文件</view>
+    <button class="btn btn-ghost" bindtap="onChoose">从聊天记录选择文件</button>
+    <view class="muted" wx:if="{{fileName}}">已选 {{fileName}}</view>
+    <view class="label">教案全文（用于智能体解析）</view>
+    <textarea class="area" placeholder="粘贴 TXT / Markdown 全文。PDF、PPT 请先转成文字再贴到这里。" value="{{text}}" bindinput="onText" maxlength="20000" auto-height></textarea>
+    <view class="muted" wx:if="{{progress}}">{{progress}}</view>
+    <button class="btn" bindtap="onSubmit" disabled="{{submitting}}">{{submitting ? '提交中…' : '上传并解析'}}</button>
+  </view>
+  <view class="section-title">我上传的教案</view>
+  <view class="empty" wx:if="{{!loading && !plans.length}}">还没有讲师教案</view>
+  <view class="card" wx:for="{{plans}}" wx:key="id">
+    <view class="title">{{item.title}}</view>
+    <view class="row" style="margin-top: 12rpx;">
+      <text class="chip">{{item.status}}</text>
+      <text class="chip" wx:if="{{item.topic}}">{{item.topic.name}}</text>
+    </view>
+    <view class="desc" wx:if="{{item.view.summaryText}}">{{item.view.summaryText}}</view>
+    <view class="muted" wx:elif="{{!item.hasAnalysis}}">尚未解析。粘贴全文后点「重新解析」。</view>
+    <view wx:if="{{item.view.tags.length}}">
+      <text class="chip" wx:for="{{item.view.tags}}" wx:for-item="tag" wx:key="*this">{{tag}}</text>
+    </view>
+    <view class="row">
+      <button class="btn mini" size="mini" data-id="{{item.id}}" bindtap="onOpen">查看</button>
+      <button class="btn btn-ghost mini" size="mini" data-id="{{item.id}}" bindtap="onReparse">重新解析</button>
+    </view>
+  </view>
+</view>

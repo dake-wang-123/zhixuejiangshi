@@ -58,7 +58,14 @@ Page({
         loading: false
       })
       return getImageUrl(course.cover_id, app.getToken()).then((url) => this.setData({ coverUrl: url }))
-    }).catch((err) => this.setData({ loading: false, error: err.message || '加载失败' }))
+    }).catch((err) => this.setData({ loading: false, error: this.friendlyError(err) }))
+  },
+  friendlyError(err) {
+    const msg = (err && err.message) || '加载失败'
+    if (msg.indexOf('wechat id config') >= 0) {
+      return 'Zion 尚未配置微信小程序 AppID，请在编辑器「登录设置 / 微信」中绑定后重试。'
+    }
+    return msg
   },
   onEnroll() {
     const account = app.globalData.account

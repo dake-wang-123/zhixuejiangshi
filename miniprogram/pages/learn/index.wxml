@@ -4,6 +4,7 @@
     <text class="hero-sub">已选择的课程会出现在这里。进度会写入学习记录。</text>
   </view>
   <view class="error" wx:if="{{error}}">{{error}}</view>
+  <view class="empty" wx:if="{{loading}}">正在读取学习记录…</view>
   <view class="empty" wx:if="{{!loading && !list.length}}">还没有选课，去课程页挑一门吧</view>
   <view class="card row" wx:for="{{list}}" wx:key="id">
     <image class="cover" src="{{item.coverUrl}}" mode="aspectFill" wx:if="{{item.coverUrl}}"></image>

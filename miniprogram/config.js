@@ -7,11 +7,11 @@ module.exports = {
   statusDraft: '待审核',
   sourceLecturer: '讲师上传',
   sourceAdmin: '管理员上传',
-  asyncFlowId: '28939557-ae3e-44e0-b6e6-b3cbec120a43',
+  asyncFlowId: '8e640419-2243-41b5-92c4-0dd349b97f2d',
   pptFlowId: 'c46e09e4-fd97-4027-b27b-87d6cd5b8a63',
   cozeTpaId: 'mu6ckpzl',
-  // 在 Coze 控制台复制 Bot ID 填到这里。智学 TPA 已指向 https://api.coze.cn/v3/chat
-  cozeBotId: '',
+  cozeMessageTpaId: 'r43leo7de',
+  cozeBotId: '7683760370368380964',
   agents: {
     structure: {
       id: 'p9abeup2h',

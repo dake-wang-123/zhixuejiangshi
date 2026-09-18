@@ -17,6 +17,7 @@
     <button class="btn" bindtap="onSubmit" disabled="{{submitting}}">{{submitting ? '提交中…' : '上传并解析'}}</button>
   </view>
   <view class="section-title">我上传的教案</view>
+  <view class="empty" wx:if="{{loading}}">正在读取教案…</view>
   <view class="empty" wx:if="{{!loading && !plans.length}}">还没有讲师教案</view>
   <view class="card" wx:for="{{plans}}" wx:key="id">
     <view class="title">{{item.title}}</view>

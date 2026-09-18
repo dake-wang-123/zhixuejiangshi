@@ -5,6 +5,7 @@
     <text class="hero-sub">选课学习、上传教案，智能体帮你拆结构、写摘要、推课题，再进入智学对话。</text>
   </view>
   <view class="error" wx:if="{{error}}">{{error}}</view>
+  <view class="empty" wx:if="{{loading}}">正在加载课程…</view>
   <scroll-view scroll-x class="cats" wx:if="{{categories.length}}">
     <view
       class="cat {{activeCategory === item.id ? 'on' : ''}}"

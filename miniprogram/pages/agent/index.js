@@ -21,8 +21,8 @@ Page({
     this.setData({
       messages: messages,
       hint: config.cozeBotId
-        ? '对话走 Zion「异步」流程调用 Coze 智学。'
-        : '请在 miniprogram/config.js 填入 Coze Bot ID，并在 Zion 编辑器把「异步」流程的智学 TPA 请求体绑好。'
+        ? '对话走 Zion「智学对话」：先创建 Coze 会话，再轮询消息列表，把助手回复带回小程序。'
+        : '请在 miniprogram/config.js 填入 Coze Bot ID。'
     })
     const seed = wx.getStorageSync('agentSeed')
     if (seed) {
@@ -95,8 +95,11 @@ Page({
     if (msg.indexOf('operation_mu6ckpzl') >= 0 || msg.indexOf('Cannot query field') >= 0) {
       return '智学 TPA 尚未同步到运行时。请在 Zion 编辑器检查「智学」接口并同步后端。'
     }
+    if (msg.indexOf('ACTION_FLOW_NOT_FOUND') >= 0 || msg.indexOf('Action flow not found') >= 0) {
+      return '智学对话流程尚未同步到运行时。请在 Zion 执行「同步后端」后再试。'
+    }
     if (msg.indexOf('Did not provide value') >= 0 || msg.indexOf('required field') >= 0) {
-      return '「异步」流程还没有绑好智学请求体。请在 Zion 把 Authorization、Content-Type 和 body 绑到 Coze /v3/chat。'
+      return '智学请求体还没有绑完整。请检查 Actionflow「智学对话」的 Authorization 与 body。'
     }
     return msg
   }

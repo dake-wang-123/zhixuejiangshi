@@ -53,13 +53,15 @@ function formatAnalysis(raw) {
   const structure = asObject(analysis.structure) || analysis
   const summary = asObject(analysis.summary) || analysis
   const tags = asObject(analysis.tags) || analysis
-  const chapters = toList(structure.chapters || structure.sections || structure.outline)
+  const chapters = toList(
+    summary.chapter_summaries || structure.chapters || structure.sections || structure.outline
+  )
   const tagItems = toList(tags.tags || tags.topics || tags.labels || tags.recommended_tags)
   return {
     summaryText: firstText(summary, ['summary', 'abstract', 'overview', 'text', 'content', 'raw']),
     chapters: chapters.map((item, index) => ({
       title: chapterTitle(item, index),
-      detail: typeof item === 'object' ? (item.summary || item.description || item.content || '') : ''
+      detail: typeof item === 'object' ? (item.summary || item.description || item.content || (item.sections ? item.sections.join(' / ') : '')) : ''
     })),
     tags: tagItems.map(tagLabel).filter(Boolean),
     rawPreview: typeof raw === 'string' ? raw : JSON.stringify(analysis, null, 2)

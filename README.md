@@ -1,6 +1,6 @@
 # Zion no-code workspace
 
-This project is set up to build and change [Zion](https://functorz.com) apps from Cursor. It vendors the official [`zion-nocode` plugin](https://github.com/functorz-tech/zion-nocode-plugin) (v2.7.7) so Cloud Agents and local Cursor both get the `zion-platform` skill and the `zion` MCP server.
+This project is set up to build and change [Zion](https://functorz.com) apps from Cursor. It vendors the official [`zion-nocode` plugin](https://github.com/functorz-tech/zion-nocode-plugin) (v2.7.7) so Cloud Agents and local Cursor both get the `zion-platform` skill and the `zion` MCP server, plus the [`zion-aicoding-rules`](https://github.com/functorz-tech/zion-aicoding-rules) Cursor rules for custom frontends that call Zion’s GraphQL API.
 
 You design the data model, UI, action flows, permissions, and bindings on Zion’s hosted backend. This repo holds the plugin, not the app runtime.
 
@@ -12,6 +12,7 @@ You design the data model, UI, action flows, permissions, and bindings on Zion�
 | `.cursor/mcp.json` | Project MCP server: `npx -y zion-mcp@2.7.7 mcp` |
 | `.cursor/plugins/zion-nocode` | Full plugin copy (skills + Cursor manifest) |
 | `.cursor/rules/zion-platform.mdc` | Always-on reminder to load the skill for Zion work |
+| `.cursor/rules/*.mdc` | [zion-aicoding-rules](https://github.com/functorz-tech/zion-aicoding-rules) — GraphQL BaaS, UI, payments, mini program, Zeabur |
 
 ## Prerequisites
 
@@ -83,3 +84,17 @@ git -C /tmp/zion-nocode-plugin rev-parse HEAD > .cursor/plugins/zion-nocode.revi
 ```
 
 Keep the `zion-mcp@…` version in `.cursor/mcp.json` and in the skill’s CLI recipes in sync with `plugin/.cursor-plugin/plugin.json`.
+
+## Cursor rules (frontend + GraphQL)
+
+The 12 `.mdc` files from [`zion-aicoding-rules`](https://github.com/functorz-tech/zion-aicoding-rules) live in `.cursor/rules/` (kept next to `zion-platform.mdc`). They tell Cursor how to call Zion’s GraphQL BaaS from a custom frontend: Apollo setup, database CRUD, Actionflows, TPA, AI agents, payments, asset upload, UI, Zeabur, and WeChat mini programs.
+
+Refresh:
+
+```bash
+git clone --depth 1 https://github.com/functorz-tech/zion-aicoding-rules.git /tmp/zion-aicoding-rules
+cp -a /tmp/zion-aicoding-rules/*.mdc .cursor/rules/
+git -C /tmp/zion-aicoding-rules rev-parse HEAD > /tmp/zion-aicoding-rules.sha
+```
+
+Do not overwrite `.cursor/rules/zion-platform.mdc` or `.cursor/rules/SOURCE.md`.

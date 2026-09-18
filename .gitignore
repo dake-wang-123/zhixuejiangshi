@@ -1,0 +1,4 @@
+.zion-mcp/
+node_modules/
+agent-tools/
+.DS_Store

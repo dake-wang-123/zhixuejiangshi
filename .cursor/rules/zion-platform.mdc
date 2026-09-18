@@ -1,0 +1,10 @@
+---
+description: Load the Zion no-code plugin before any Zion app work
+alwaysApply: true
+---
+
+This workspace vendors the [Zion no-code plugin](https://github.com/functorz-tech/zion-nocode-plugin) (`zion-nocode` 2.7.7).
+
+For any Zion app task — data model, UI, action flows, permissions, payments, data bindings, runtime logs, or deploy — read `.cursor/skills/zion-platform/SKILL.md` first and follow it.
+
+Always invoke the CLI as `npx -y zion-mcp@2.7.7 …` (never a bare `zion-mcp` on PATH). If a command fails with “Not authenticated”, tell the user to run `npx -y zion-mcp@2.7.7 login` in a local terminal (it opens a browser and stores the token in `~/.zion-mcp`).

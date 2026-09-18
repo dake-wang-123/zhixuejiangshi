@@ -21,7 +21,7 @@ Page({
     this.setData({
       messages: messages,
       hint: config.cozeBotId
-        ? '对话走 Zion「智学对话」。若提示 4101：到 coze.cn 新建 pat_ 开头的个人访问令牌，勾选对话权限并授权该 Bot 所在空间，填进 coze_api_key 后同步后端。'
+        ? '对话走 Zion「智学对话」。令牌、Bot ID 和消息都在服务端发给 Coze，小程序只提交问题和会话 ID。'
         : '请在 miniprogram/config.js 填入 Coze Bot ID。'
     })
     const seed = wx.getStorageSync('agentSeed')

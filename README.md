@@ -48,11 +48,12 @@ https://zion-app.functorz.com/zero/PO76RBe9KX0/api/graphql-v2
    - 授权工作空间必须包含当前 Bot
    - 只把令牌填进 Zion 项目密钥，不要加 `Bearer `，不要发到聊天里
    - 保存后 **同步后端**
-3. Actionflow **智学对话**（异步，超时 120 秒）已同步。组装节点会去掉重复的 `Bearer` 前缀。
+3. Actionflow **智学对话**（异步，超时 120 秒）已同步。组装节点会去掉重复的 `Bearer` 前缀，并在 Run Code 里用 `callThirdPartyApi` 发送 OBJECT 请求体（`bot_id` 为 TEXT，`additional_messages` 为一条 user 文本）。
    - 入参：`user_message` / `user_id` / `conversation_id` / `bot_id`
-   - 节点：组装请求体 → TPA **智学** `mu6ckpzl` → Run Code **轮询智学回复**（TPA **智学消息** `r43leo7de`）
+   - 节点：组装并调用智学 → Run Code **轮询智学回复**（TPA **智学消息** `r43leo7de`）
    - 输出：`reply_content`、`conversation_id`、`raw`（chat id）
-4. Coze `4100` 是令牌本身无效；`4101` 是令牌没有访问该 Bot / 接口的权限。流程会把说明写进 `reply_content`。
+4. Coze `4100` 是令牌本身无效；`4101` 是令牌没有访问该 Bot / 接口的权限。Bot 未发布到 **Agent As API** 时，流程会提示去 coze.cn 发布。
+5. 最近一次运行时：任务 `1150000000000012` COMPLETED，返回亲子倾听要点正文（已过滤 verbose 调试 JSON）。
 
 ## 数据约定
 
@@ -71,7 +72,7 @@ https://zion-app.functorz.com/zero/PO76RBe9KX0/api/graphql-v2
 | 权限 | 登录用户：课程/学习记录/资料/反馈有行列条件；匿名无表权限，且已关掉 Actionflow / TPA / ZAI 的 allowAll。CLI 只能以管理员跑查询，不能代替登录用户验收。 |
 | 上传 | `filePresignedUrl` 能拿到 fileId 和 PUT 地址。小程序用 MD5 + 预签名 PUT。 |
 | ZAI 解析 | 三个智能体均 COMPLETED。课程详情会展示摘要、章节、标签、推荐课题和专业方向。 |
-| 智学 | 流程已上线。密钥已发出，Coze 仍返回 **4101**（令牌无效或没有对话/工作空间权限）。小程序会提示去 coze.cn 新建 `pat_` 令牌。 |
+| 智学 | 已接通。`bot_id` 以字符串发送，Coze 返回会话与助手正文。任务 `1150000000000012` 回复：「亲子倾听的核心要点是放下评判与说教欲…」 |
 | 资料 | `user_profile` 可查。upsert 走 `user_profile_user_id_key`。 |
 | 体验版 | `wechat deploy --dryRun` 应无异常跳过。实际上传需要 Zion 完成微信第三方平台授权（当前 `hasGrantedThirdPartyAuthorization: false`）。 |
 
@@ -79,7 +80,7 @@ https://zion-app.functorz.com/zero/PO76RBe9KX0/api/graphql-v2
 
 - 编辑器微信端原先「生成PPT」按钮指向已删除 TPA 的校验错误已清除，`schema validate` 目前无稳定错误。
 - 课程表里仍有早期调试行（标题为 `1` 的已上架课、空的学习记录）。可在数据表里自行删除。示例课是 `id = 5`。
-- 验证留下了未实际上传的文件资源、ZAI 会话 `2`–`5`、智学任务 `1150000000000001`–`1150000000000008`，可删。
+- 验证留下了未实际上传的文件资源、ZAI 会话 `2`–`5`、智学任务 `1150000000000001`–`1150000000000012`，可删。
 
 ## Zion CLI（改后端时）
 

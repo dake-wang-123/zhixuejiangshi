@@ -133,7 +133,7 @@ function extractReply(row) {
   let reply = output.reply_content || output.reply || data.content || ''
   if (reply === 'Success' || reply === 'success') reply = ''
   if (!reply && Array.isArray(messages)) {
-    const assistant = messages.filter((item) => item && (item.role === 'assistant' || item.type === 'answer'))
+    const assistant = messages.filter((item) => item && item.role === 'assistant' && item.type !== 'verbose' && item.type !== 'follow_up')
     const last = assistant[assistant.length - 1] || messages[messages.length - 1]
     if (last) reply = last.content || last.text || ''
     if (reply && typeof reply === 'object') reply = JSON.stringify(reply)
@@ -141,6 +141,9 @@ function extractReply(row) {
   if (!reply && typeof data === 'string' && data !== 'Success') reply = data
   if (!reply && output.msg && output.code && output.code !== 0) {
     reply = '智学错误：' + output.msg
+  }
+  if (reply && reply.indexOf('\n{"msg_type"') >= 0) {
+    reply = reply.split('\n{"msg_type"')[0]
   }
   const conversationId = output.conversation_id || data.conversation_id || ''
   const chatId = output.raw || data.id || output.id || ''

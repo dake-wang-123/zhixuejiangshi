@@ -21,7 +21,7 @@ Page({
     this.setData({
       messages: messages,
       hint: config.cozeBotId
-        ? '对话走 Zion「智学对话」。密钥无效时：在编辑器项目密钥 coze_api_key 只填 Coze 个人访问令牌（不要加 Bearer），保存后同步后端。'
+        ? '对话走 Zion「智学对话」。若提示 4101：到 coze.cn 新建 pat_ 开头的个人访问令牌，勾选对话权限并授权该 Bot 所在空间，填进 coze_api_key 后同步后端。'
         : '请在 miniprogram/config.js 填入 Coze Bot ID。'
     })
     const seed = wx.getStorageSync('agentSeed')
@@ -98,8 +98,8 @@ Page({
     if (msg.indexOf('operation_mu6ckpzl') >= 0 || msg.indexOf('Cannot query field') >= 0) {
       return '智学 TPA 尚未同步到运行时。请在 Zion 编辑器检查「智学」接口并同步后端。'
     }
-    if (msg.indexOf('密钥无效') >= 0 || msg.indexOf('4101') >= 0) {
-      return '智学密钥无效。请在 Zion 项目密钥 coze_api_key 只填 Coze 个人访问令牌（不要加 Bearer），保存后执行同步后端。'
+    if (msg.indexOf('密钥无效') >= 0 || msg.indexOf('4101') >= 0 || msg.indexOf('4100') >= 0) {
+      return '智学令牌被 Coze 拒绝。请到 coze.cn 新建 pat_ 开头的个人访问令牌，勾选对话权限，授权该 Bot 所在工作空间，填进 Zion 项目密钥 coze_api_key（不要加 Bearer）后同步后端。'
     }
     if (msg.indexOf('ACTION_FLOW_NOT_FOUND') >= 0 || msg.indexOf('Action flow not found') >= 0) {
       return '智学对话流程尚未同步到运行时。请在 Zion 执行「同步后端」后再试。'

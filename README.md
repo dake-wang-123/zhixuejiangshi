@@ -42,16 +42,17 @@ https://zion-app.functorz.com/zero/PO76RBe9KX0/api/graphql-v2
 智学：
 
 1. Coze Bot ID 写在 `miniprogram/config.js` 的 `cozeBotId`。组装节点用字符串发送，避免 19 位 ID 被 JSON 数字四舍五入。
-2. 项目密钥 `coze_api_key`（`mu6ctbb0`）只在服务端 TPA / Run Code 里使用。请到 Zion 编辑器 → 项目密钥，把值换成 [Coze 个人访问令牌](https://www.coze.cn/open/oauth/pats)：
-   - 只填令牌本身，不要加 `Bearer `
-   - 令牌需要能调用该 Bot
-   - 保存后必须 **同步后端**
-   - 不要把令牌发到聊天里
-3. Actionflow **智学对话**（异步，超时 120 秒）已同步到运行时 `AVdAjzRlj6L`：
+2. 项目密钥 `coze_api_key`（`mu6ctbb0`）只在服务端使用。请到 [Coze 个人访问令牌](https://www.coze.cn/open/oauth/pats) 新建 PAT：
+   - 令牌一般以 `pat_` 开头
+   - 勾选 **对话 / Chat** 权限
+   - 授权工作空间必须包含当前 Bot
+   - 只把令牌填进 Zion 项目密钥，不要加 `Bearer `，不要发到聊天里
+   - 保存后 **同步后端**
+3. Actionflow **智学对话**（异步，超时 120 秒）已同步。组装节点会去掉重复的 `Bearer` 前缀。
    - 入参：`user_message` / `user_id` / `conversation_id` / `bot_id`
    - 节点：组装请求体 → TPA **智学** `mu6ckpzl` → Run Code **轮询智学回复**（TPA **智学消息** `r43leo7de`）
    - 输出：`reply_content`、`conversation_id`、`raw`（chat id）
-4. 密钥无效时，流程会把说明写进 `reply_content`。同步后端后再次调用仍是 Coze `4101`，说明运行时读到的密钥仍不被 Coze 接受。
+4. Coze `4100` 是令牌本身无效；`4101` 是令牌没有访问该 Bot / 接口的权限。流程会把说明写进 `reply_content`。
 
 ## 数据约定
 
@@ -70,15 +71,15 @@ https://zion-app.functorz.com/zero/PO76RBe9KX0/api/graphql-v2
 | 权限 | 登录用户：课程/学习记录/资料/反馈有行列条件；匿名无表权限，且已关掉 Actionflow / TPA / ZAI 的 allowAll。CLI 只能以管理员跑查询，不能代替登录用户验收。 |
 | 上传 | `filePresignedUrl` 能拿到 fileId 和 PUT 地址。小程序用 MD5 + 预签名 PUT。 |
 | ZAI 解析 | 三个智能体均 COMPLETED。课程详情会展示摘要、章节、标签、推荐课题和专业方向。 |
-| 智学 | 流程已上线（`AVdAjzRlj6L`）。Coze 仍返回 4101（密钥无效），小程序会显示更换 `coze_api_key` 的说明。 |
+| 智学 | 流程已上线。密钥已发出，Coze 仍返回 **4101**（令牌无效或没有对话/工作空间权限）。小程序会提示去 coze.cn 新建 `pat_` 令牌。 |
 | 资料 | `user_profile` 可查。upsert 走 `user_profile_user_id_key`。 |
 | 体验版 | `wechat deploy --dryRun` 应无异常跳过。实际上传需要 Zion 完成微信第三方平台授权（当前 `hasGrantedThirdPartyAuthorization: false`）。 |
 
 ## 已知缺口（需在 Zion 编辑器处理）
 
-- 编辑器微信端「学习」页按钮 `mu3flt0p`（生成PPT）仍指向已删除的 TPA，组件工具只能改 WEB 客户端，所以常规 `project sync-backend` 会被它拦住。后端同步使用了允许校验错误。不影响本仓库原生小程序。若要清掉错误：在编辑器切到微信客户端，删掉该按钮的 API 调用。
+- 编辑器微信端原先「生成PPT」按钮指向已删除 TPA 的校验错误已清除，`schema validate` 目前无稳定错误。
 - 课程表里仍有早期调试行（标题为 `1` 的已上架课、空的学习记录）。可在数据表里自行删除。示例课是 `id = 5`。
-- 验证留下了未实际上传的文件资源、ZAI 会话 `2`–`5`、智学任务 `1150000000000001`–`1150000000000006`，可删。
+- 验证留下了未实际上传的文件资源、ZAI 会话 `2`–`5`、智学任务 `1150000000000001`–`1150000000000008`，可删。
 
 ## Zion CLI（改后端时）
 
@@ -87,7 +88,7 @@ npx -y zion-mcp@2.7.7 login
 npx -y zion-mcp@2.7.7 project set-current --projectExId PO76RBe9KX0
 npx -y zion-mcp@2.7.7 schema load
 npx -y zion-mcp@2.7.7 schema validate
-npx -y zion-mcp@2.7.7 project sync-backend --allowValidationErrors
+npx -y zion-mcp@2.7.7 project sync-backend
 ```
 
 本仓库还 vendored 了 Cursor 插件 `zion-nocode`（v2.7.7）和 `zion-aicoding-rules`。OAuth 凭证只存在本机 `~/.zion-mcp`，不要提交。

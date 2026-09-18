@@ -94,7 +94,7 @@ https://zion-app.functorz.com/zero/PO76RBe9KX0/api/graphql-v2
 | 上传 | `filePresignedUrl` 能拿到 fileId 和 PUT 地址。小程序用 MD5 + 预签名 PUT。 |
 | ZAI 解析 | 三个智能体均 COMPLETED。课程详情会展示摘要、章节、标签、推荐课题和专业方向。 |
 | 智学 | 已接通。`bot_id` 以字符串发送，Coze 返回会话与助手正文。任务 `1150000000000012` 回复：「亲子倾听的核心要点是放下评判与说教欲…」 |
-| PPT 生成 | 表 `ppt_record`、异步流程 **PPT生成**、TPA **PPT生成** / **PPT导出** 已配置。需同步后端后用真机/开发者工具走一遍；智谱侧依赖 `ppt-api-key` 与 GLM PPT Agent 额度。 |
+| PPT 生成 | 链路已通。任务 `1150000000000015` COMPLETED：智学写出完整 Markdown 大纲并写入 `ppt_record` id `3`。智谱 GLM PPT Agent 返回账户余额不足，故 `file_url` 仍为空。给 `ppt-api-key` 对应智谱账号充值后即可出片并展示下载。 |
 | 资料 | `user_profile` 可查。upsert 走 `user_profile_user_id_key`。 |
 | 体验版 | `wechat deploy --dryRun` 应无异常跳过。实际上传需要 Zion 完成微信第三方平台授权（当前 `hasGrantedThirdPartyAuthorization: false`）。 |
 
@@ -102,7 +102,8 @@ https://zion-app.functorz.com/zero/PO76RBe9KX0/api/graphql-v2
 
 - 编辑器微信端原先「生成PPT」按钮指向已删除 TPA 的校验错误已清除，`schema validate` 目前无稳定错误。
 - 课程表里仍有早期调试行（标题为 `1` 的已上架课、空的学习记录）。可在数据表里自行删除。示例课是 `id = 5`。
-- 验证留下了未实际上传的文件资源、ZAI 会话 `2`–`5`、智学任务 `1150000000000001`–`1150000000000012`，可删。
+- 验证留下了未实际上传的文件资源、ZAI 会话 `2`–`5`、智学任务 `1150000000000001`–`1150000000000015`、PPT 记录 `1`–`3`，可删。
+- 智谱 `ppt-api-key` 当前余额不足，充值后重新点「生成课件」才会写入 `file_url`。请把智谱文件域名加入微信 downloadFile 合法域名。
 
 ## Zion CLI（改后端时）
 

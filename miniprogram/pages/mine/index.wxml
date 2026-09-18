@@ -29,6 +29,15 @@
     <view class="muted" wx:else>当前没有会员记录。上架课程里标了会员免费的，需要有效会员才能按免费价学习。</view>
   </view>
   <view class="card">
+    <view class="title">我的课件</view>
+    <view class="muted" wx:if="{{!ppts.length}}">还没有生成过 PPT。可从教案或课程详情进入。</view>
+    <view wx:for="{{ppts}}" wx:key="id" class="ppt-row">
+      <view class="desc">{{item.title}} · {{item.status}}</view>
+      <button class="btn mini" size="mini" wx:if="{{item.file_url}}" data-url="{{item.file_url}}" bindtap="onOpenPpt">下载</button>
+    </view>
+    <button class="btn btn-ghost" bindtap="onAllPpts">生成 / 查看全部课件</button>
+  </view>
+  <view class="card">
     <view class="title">意见反馈</view>
     <textarea class="area" placeholder="功能问题、课题建议、解析不准，都可以写在这里。" value="{{feedback}}" bindinput="onFeedback" maxlength="1000" auto-height></textarea>
     <button class="btn btn-ghost" bindtap="onSendFeedback" disabled="{{sending}}">提交反馈</button>

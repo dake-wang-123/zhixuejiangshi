@@ -24,6 +24,7 @@
       <button class="btn" bindtap="onLearn">返回学习列表</button>
     </block>
     <button class="btn btn-ghost" bindtap="onAsk">问智学助手</button>
+    <button class="btn btn-ghost" bindtap="onMakePpt">生成课件 PPT</button>
   </view>
   <view class="card" wx:if="{{analysis}}">
     <view class="title">智能体解析</view>

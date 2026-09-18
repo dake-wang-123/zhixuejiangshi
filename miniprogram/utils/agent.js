@@ -92,27 +92,31 @@ function parseJson(raw) {
   }
 }
 
-function invokeAsyncFlow(args, token) {
+function invokeAsyncFlow(args, token, flowId) {
   const query = `mutation RunAsync($args: Json!, $actionFlowId: String!) {
     fz_create_action_flow_task(actionFlowId: $actionFlowId, args: $args)
   }`
-  return graphqlRequest(query, { args: args, actionFlowId: config.asyncFlowId }, token)
+  return graphqlRequest(query, { args: args, actionFlowId: flowId || config.asyncFlowId }, token)
     .then((data) => data.fz_create_action_flow_task)
 }
 
-function pollFlowTask(taskId, token) {
+function pollFlowTask(taskId, token, options) {
+  const opts = options || {}
   const query = `query FlowResult($taskId: Long!) {
     fz_action_flow_result(taskId: $taskId) { output status }
   }`
-  const max = 80
+  const max = opts.maxAttempts || 80
+  const interval = opts.intervalMs || 1500
+  const timeoutMessage = opts.timeoutMessage || '智学任务超时。请确认 Zion 已同步「智学对话」流程，且 Coze Bot 可响应。'
   let attempts = 0
   function once() {
     attempts += 1
     return graphqlRequest(query, { taskId: taskId }, token).then((data) => {
       const row = data.fz_action_flow_result || {}
+      if (typeof opts.onTick === 'function') opts.onTick(row, attempts)
       if (row.status === 'COMPLETED' || row.status === 'FAILED') return row
-      if (attempts >= max) throw new Error('智学任务超时。请确认 Zion 已同步「智学对话」流程，且 Coze Bot 可响应。')
-      return new Promise((resolve) => setTimeout(() => resolve(once()), 1500))
+      if (attempts >= max) throw new Error(timeoutMessage)
+      return new Promise((resolve) => setTimeout(() => resolve(once()), interval))
     })
   }
   return once()
@@ -179,9 +183,94 @@ function chatWithCoze(message, userId, conversationId, token) {
   })
 }
 
+function parseFlowOutput(row) {
+  let output = row && row.output
+  if (output == null) return {}
+  if (typeof output === 'string') {
+    try {
+      output = JSON.parse(output)
+    } catch (e) {
+      return { raw: output }
+    }
+  }
+  return output.data || output
+}
+
+function generatePpt(payload, token, onProgress) {
+  const args = {
+    lecture_content: String((payload && payload.lecture_content) || '').slice(0, 16000),
+    title: String((payload && payload.title) || '家庭教育课件').slice(0, 80),
+    course_id: payload && payload.course_id ? String(payload.course_id) : '',
+    user_id: payload && payload.user_id ? String(payload.user_id) : '',
+    bot_id: config.cozeBotId
+  }
+  if (!args.lecture_content.trim()) {
+    return Promise.reject(new Error('请先填写讲课稿或选择一门有内容的课程'))
+  }
+  if (typeof onProgress === 'function') onProgress('正在提交 PPT 任务…')
+  return invokeAsyncFlow(args, token, config.pptFlowId).then((taskId) => {
+    if (typeof onProgress === 'function') onProgress('智学正在写大纲，随后会调用 PPT 接口…')
+    return pollFlowTask(taskId, token, {
+      maxAttempts: 90,
+      intervalMs: 2000,
+      timeoutMessage: 'PPT 生成超时。流程包含智学大纲和智谱出片，通常需要一两分钟。',
+      onTick: function (row) {
+        if (typeof onProgress !== 'function') return
+        if (row.status === 'PROCESSING' || row.status === 'CREATED') {
+          onProgress('正在生成课件，请稍候…')
+        }
+      }
+    })
+  }).then((row) => {
+    if (row.status === 'FAILED') {
+      throw new Error('PPT 流程失败。请确认 Zion 已同步「PPT生成」，且 coze_api_key、ppt-api-key 有效。')
+    }
+    const output = parseFlowOutput(row)
+    const status = output.status || ''
+    const errorMessage = output.error_message || output.errorMessage || ''
+    if (status === '失败' || (errorMessage && !output.file_url)) {
+      throw new Error(errorMessage || 'PPT 生成失败')
+    }
+    return {
+      fileUrl: output.file_url || output.fileUrl || '',
+      recordId: output.record_id || output.recordId || '',
+      status: status || '已完成',
+      outline: output.outline || '',
+      errorMessage: errorMessage,
+      glmConversationId: output.glm_conversation_id || '',
+      cozeConversationId: output.coze_conversation_id || ''
+    }
+  })
+}
+
+function openPptUrl(url) {
+  if (!url) {
+    wx.showToast({ title: '还没有可下载的文件', icon: 'none' })
+    return
+  }
+  wx.setClipboardData({
+    data: url,
+    success: () => wx.showToast({ title: '链接已复制', icon: 'none' })
+  })
+  wx.downloadFile({
+    url: url,
+    success: (res) => {
+      if (res.statusCode === 200 && res.tempFilePath) {
+        wx.openDocument({
+          filePath: res.tempFilePath,
+          showMenu: true,
+          fail: () => {}
+        })
+      }
+    }
+  })
+}
+
 module.exports = {
   runAgent: runAgent,
   parseLessonPlan: parseLessonPlan,
   chatWithCoze: chatWithCoze,
+  generatePpt: generatePpt,
+  openPptUrl: openPptUrl,
   parseJson: parseJson
 }

@@ -11,17 +11,21 @@
 }
 .area {
   width: 100%;
-  min-height: 180rpx;
+  min-height: 260rpx;
   background: #F6F1E8;
   border-radius: 16rpx;
   padding: 18rpx 20rpx;
   font-size: 26rpx;
   box-sizing: border-box;
 }
+.section-title {
+  margin: 12rpx 8rpx 20rpx;
+  font-size: 30rpx;
+  font-weight: 650;
+}
 .mini { margin-right: 12rpx; }
-.ppt-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-top: 12rpx;
+.wrap { flex-wrap: wrap; }
+.desc {
+  max-height: 220rpx;
+  overflow: hidden;
 }

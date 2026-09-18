@@ -1,7 +1,7 @@
 const app = getApp()
 const { graphqlRequest, eqBigint, andWhere } = require('../../utils/graphql.js')
 const { getImageUrl } = require('../../utils/upload.js')
-const { formatAnalysis } = require('../../utils/analysis.js')
+const { formatAnalysis, lectureTextFromCourse } = require('../../utils/analysis.js')
 
 Page({
   data: {
@@ -124,5 +124,18 @@ Page({
     const title = this.data.course ? this.data.course.title : ''
     wx.setStorageSync('agentSeed', '我想学习课程《' + title + '》，请按讲师自学路径带我过一遍要点。')
     wx.switchTab({ url: '/pages/agent/index' })
+  },
+  onMakePpt() {
+    const course = this.data.course
+    if (!course) return
+    const text = lectureTextFromCourse(course, this.data.analysis)
+    if (!text) {
+      wx.showToast({ title: '这门课还没有可生成课件的内容', icon: 'none' })
+      return
+    }
+    wx.setStorageSync('pptSeed', text)
+    wx.navigateTo({
+      url: '/pages/ppt/index?title=' + encodeURIComponent(course.title || '') + '&courseId=' + course.id
+    })
   }
 })

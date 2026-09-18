@@ -9,6 +9,8 @@ module.exports = {
   sourceAdmin: '管理员上传',
   asyncFlowId: '8e640419-2243-41b5-92c4-0dd349b97f2d',
   pptFlowId: 'c46e09e4-fd97-4027-b27b-87d6cd5b8a63',
+  pptGenerateTpaId: 'yv04e96e8',
+  pptExportTpaId: 'hgf937snh',
   cozeTpaId: 'mu6ckpzl',
   cozeMessageTpaId: 'r43leo7de',
   cozeBotId: '7683760370368380964',

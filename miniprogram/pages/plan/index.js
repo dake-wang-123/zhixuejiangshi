@@ -3,7 +3,7 @@ const config = require('../../config.js')
 const { graphqlRequest, eqBigint } = require('../../utils/graphql.js')
 const { uploadFile } = require('../../utils/upload.js')
 const { parseLessonPlan } = require('../../utils/agent.js')
-const { formatAnalysis } = require('../../utils/analysis.js')
+const { formatAnalysis, lectureTextFromCourse } = require('../../utils/analysis.js')
 
 const MY_PLANS = `
   query MyPlans($where: course_bool_exp) {
@@ -207,5 +207,31 @@ Page({
   },
   onOpen(e) {
     wx.navigateTo({ url: '/pages/course/detail?id=' + e.currentTarget.dataset.id })
+  },
+  onMakePpt() {
+    const title = (this.data.title || '').trim()
+    const text = (this.data.text || '').trim()
+    if (!text) {
+      wx.showToast({ title: '请先粘贴讲课稿全文', icon: 'none' })
+      return
+    }
+    wx.setStorageSync('pptSeed', text)
+    wx.navigateTo({
+      url: '/pages/ppt/index?title=' + encodeURIComponent(title || '家庭教育课件')
+    })
+  },
+  onPlanPpt(e) {
+    const id = e.currentTarget.dataset.id
+    const plan = (this.data.plans || []).find((item) => String(item.id) === String(id))
+    if (!plan) return
+    const text = (this.data.text || '').trim() || lectureTextFromCourse(plan, plan.view)
+    if (!text) {
+      wx.showToast({ title: '这条教案还没有可生成课件的正文', icon: 'none' })
+      return
+    }
+    wx.setStorageSync('pptSeed', text)
+    wx.navigateTo({
+      url: '/pages/ppt/index?title=' + encodeURIComponent(plan.title || '') + '&courseId=' + plan.id
+    })
   }
 })

@@ -1,5 +1,6 @@
 const app = getApp()
 const { graphqlRequest, eqBigint } = require('../../utils/graphql.js')
+const { openPptUrl } = require('../../utils/agent.js')
 
 Page({
   data: {
@@ -7,6 +8,7 @@ Page({
     loginError: '',
     educationYears: '',
     membership: null,
+    ppts: [],
     feedback: '',
     saving: false,
     sending: false
@@ -46,24 +48,29 @@ Page({
     const token = app.getToken()
     if (!account.id) return Promise.resolve()
     const q = `
-      query Mine($profileWhere: user_profile_bool_exp, $memberWhere: user_membership_bool_exp) {
+      query Mine($profileWhere: user_profile_bool_exp, $memberWhere: user_membership_bool_exp, $pptWhere: ppt_record_bool_exp) {
         user_profile(where: $profileWhere, limit: 1) {
           id education_years
         }
         user_membership(where: $memberWhere, limit: 1, order_by: { expire_time: desc }) {
           id expire_time status level
         }
+        ppt_record(where: $pptWhere, order_by: { created_at: desc }, limit: 8) {
+          id title status file_url created_at
+        }
       }
     `
     return graphqlRequest(q, {
       profileWhere: eqBigint('user_id', account.id),
-      memberWhere: eqBigint('user_id', account.id)
+      memberWhere: eqBigint('user_id', account.id),
+      pptWhere: eqBigint('user_id', account.id)
     }, token).then((data) => {
       const profile = (data.user_profile || [])[0]
       const membership = (data.user_membership || [])[0] || null
       this.setData({
         educationYears: profile && profile.education_years != null ? String(profile.education_years) : '',
-        membership: membership
+        membership: membership,
+        ppts: data.ppt_record || []
       })
     }).catch(() => {})
   },
@@ -131,6 +138,12 @@ Page({
       this.setData({ sending: false })
       wx.showToast({ title: err.message || '提交失败', icon: 'none' })
     })
+  },
+  onOpenPpt(e) {
+    openPptUrl(e.currentTarget.dataset.url)
+  },
+  onAllPpts() {
+    wx.navigateTo({ url: '/pages/ppt/index' })
   },
   onRelogin() {
     app.relLogin().then(() => this.refresh()).catch(() => this.refresh())

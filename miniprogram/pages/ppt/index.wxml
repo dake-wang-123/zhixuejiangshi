@@ -1,0 +1,34 @@
+<view class="page">
+  <view class="hero">
+    <text class="eyebrow">SLIDES</text>
+    <text class="hero-title">生成课件 PPT</text>
+    <text class="hero-sub">把讲课稿或课程要点交给智学写大纲，再调用智谱 PPT 接口出片。完成后会写入 PPT 记录，并在这里给出下载入口。</text>
+  </view>
+  <view class="error" wx:if="{{error}}">{{error}}</view>
+  <view class="card">
+    <view class="label">课件标题</view>
+    <input class="field" placeholder="例如：亲子倾听工作坊" value="{{title}}" bindinput="onTitle" />
+    <view class="label">讲课稿 / 课程信息</view>
+    <textarea class="area" placeholder="粘贴讲课稿全文，或从课程详情带入解析结果。" value="{{text}}" bindinput="onText" maxlength="16000" auto-height></textarea>
+    <view class="muted" wx:if="{{progress}}">{{progress}}</view>
+    <button class="btn" bindtap="onSubmit" disabled="{{submitting}}">{{submitting ? '生成中…' : '生成课件'}}</button>
+  </view>
+  <view class="section-title">我的课件</view>
+  <view class="empty" wx:if="{{loading}}">正在读取 PPT 记录…</view>
+  <view class="empty" wx:if="{{!loading && !records.length}}">还没有生成过课件</view>
+  <view class="card" wx:for="{{records}}" wx:key="id">
+    <view class="title">{{item.title}}</view>
+    <view class="row" style="margin-top: 12rpx;">
+      <text class="chip" wx:if="{{item.status === '已完成'}}">{{item.status}}</text>
+      <text class="chip chip-warn" wx:else>{{item.status}}</text>
+    </view>
+    <view class="desc" wx:if="{{item.outline}}">{{item.outline}}</view>
+    <view class="error" wx:if="{{item.error_message}}">{{item.error_message}}</view>
+    <view class="muted">{{item.created_at}}</view>
+    <view class="row wrap" wx:if="{{item.file_url}}">
+      <button class="btn mini" size="mini" data-url="{{item.file_url}}" bindtap="onOpen">打开 / 下载</button>
+      <button class="btn btn-ghost mini" size="mini" data-url="{{item.file_url}}" bindtap="onCopy">复制链接</button>
+    </view>
+    <view class="muted" wx:else>还没有文件地址。失败记录请改讲课稿后重新生成。</view>
+  </view>
+</view>

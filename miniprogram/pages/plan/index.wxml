@@ -2,7 +2,7 @@
   <view class="hero">
     <text class="eyebrow">LESSON PLAN</text>
     <text class="hero-title">上传教案</text>
-    <text class="hero-sub">文件会存到课程的原始文件。粘贴全文后，结构提取、摘要、标签三个智能体会依次解析，结果写入 AI 解析字段。</text>
+    <text class="hero-sub">文件会存到课程的原始文件。粘贴全文后，结构提取、摘要、标签三个智能体会依次解析；也可以把同一段讲课稿生成课件 PPT。</text>
   </view>
   <view class="error" wx:if="{{error}}">{{error}}</view>
   <view class="card">
@@ -15,6 +15,7 @@
     <textarea class="area" placeholder="粘贴 TXT / Markdown 全文。PDF、PPT 请先转成文字再贴到这里。" value="{{text}}" bindinput="onText" maxlength="20000" auto-height></textarea>
     <view class="muted" wx:if="{{progress}}">{{progress}}</view>
     <button class="btn" bindtap="onSubmit" disabled="{{submitting}}">{{submitting ? '提交中…' : '上传并解析'}}</button>
+    <button class="btn btn-ghost" bindtap="onMakePpt" disabled="{{submitting}}">用当前全文生成课件</button>
   </view>
   <view class="section-title">我上传的教案</view>
   <view class="empty" wx:if="{{loading}}">正在读取教案…</view>
@@ -33,9 +34,10 @@
     <view wx:if="{{item.view.tags.length}}">
       <text class="chip" wx:for="{{item.view.tags}}" wx:for-item="tag" wx:key="*this">{{tag}}</text>
     </view>
-    <view class="row">
+    <view class="row wrap">
       <button class="btn mini" size="mini" data-id="{{item.id}}" bindtap="onOpen">查看</button>
       <button class="btn btn-ghost mini" size="mini" data-id="{{item.id}}" bindtap="onReparse">重新解析</button>
+      <button class="btn btn-ghost mini" size="mini" data-id="{{item.id}}" bindtap="onPlanPpt">生成课件</button>
     </view>
   </view>
 </view>

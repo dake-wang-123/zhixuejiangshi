@@ -4,6 +4,7 @@
     "pages/course/detail",
     "pages/learn/index",
     "pages/plan/index",
+    "pages/ppt/index",
     "pages/agent/index",
     "pages/mine/index"
   ],

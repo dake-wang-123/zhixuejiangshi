@@ -1,6 +1,6 @@
 # 家庭教育讲师自学小程序
 
-原生微信小程序，对接 Zion 项目 `PO76RBe9KX0`（家庭教育讲师智学伴练）的 GraphQL BaaS：选课学习、上传教案、三个解析智能体、Coze「智学」对话。
+原生微信小程序，对接 Zion 项目 `PO76RBe9KX0`（家庭教育讲师智学伴练）的 GraphQL BaaS：选课学习、上传教案、三个解析智能体、Coze「智学」对话、课件 PPT 生成。
 
 这不是 Web 应用，不能用 Vercel 发布。用微信开发者工具导入 `miniprogram/`。体验版上传需要 Zion 已授权微信第三方平台。
 
@@ -10,9 +10,10 @@
 | --- | --- |
 | 课程 | 读取已上架课程，按课程分类筛选 |
 | 学习 | 当前用户的 `study_record`，可回详情改进度 |
-| 教案 | 上传文件到 `course.original_file`，粘贴全文后串联三个 ZAI，写回 `ai_analysis` |
+| 教案 | 上传文件到 `course.original_file`，粘贴全文后串联三个 ZAI，写回 `ai_analysis`；可把讲课稿生成课件 |
 | 智学 | 异步 Actionflow **智学对话** `8e640419-2243-41b5-92c4-0dd349b97f2d`：POST Coze `/v3/chat`，再轮询 **智学消息** TPA |
-| 我的 | 微信静默登录、从业年限、会员、意见反馈 |
+| 课件 | 独立页 `pages/ppt/index`：智学写 PPT 大纲 → 智谱 GLM PPT Agent 出片 → 写入 `ppt_record.file_url`，页面提供打开/复制下载 |
+| 我的 | 微信静默登录、从业年限、会员、意见反馈、最近课件下载 |
 
 ## 本地运行
 
@@ -55,6 +56,26 @@ https://zion-app.functorz.com/zero/PO76RBe9KX0/api/graphql-v2
 4. Coze `4100` 是令牌本身无效；`4101` 是令牌没有访问该 Bot / 接口的权限。Bot 未发布到 **Agent As API** 时，流程会提示去 coze.cn 发布。
 5. 最近一次运行时：任务 `1150000000000012` COMPLETED，返回亲子倾听要点正文（已过滤 verbose 调试 JSON）。
 
+## 课件 PPT
+
+入口：教案页「用当前全文生成课件」、教案卡片「生成课件」、课程详情「生成课件 PPT」、我的「生成 / 查看全部课件」。
+
+服务端异步 Actionflow **PPT生成** `c46e09e4-fd97-4027-b27b-87d6cd5b8a63`（超时 180 秒）：
+
+1. 输入节点接收 `lecture_content` / `title` / `course_id` / `user_id` / `bot_id`。
+2. Run Code 先往 `ppt_record` 插入一条 `生成中` 记录，再调用智学 TPA `mu6ckpzl` 生成 Markdown 大纲（`# 标题 / ## 章节 / ### 页面 / - 要点`）。
+3. 轮询智学消息 TPA `r43leo7de` 拿到大纲正文。
+4. 把大纲发给智谱 GLM PPT Agent：TPA **PPT生成** `yv04e96e8` → `POST https://open.bigmodel.cn/api/v1/agents`（`agent_id=slides_glm_agent`）。
+5. TPA **PPT导出** `hgf937snh` → `POST https://open.bigmodel.cn/api/v1/agents/conversation/`，取 `file_url`。
+6. 把 `file_url`、大纲、状态写回 `ppt_record`，流程输出同样字段给小程序展示下载入口。
+
+项目密钥：
+
+- `coze_api_key`：智学 PAT（与智学对话共用）
+- `ppt-api-key`：智谱 API Key。不要把 Key 发到聊天里；只填进 Zion 密钥后同步后端
+
+下载：小程序会复制文件链接，并尝试 `wx.downloadFile` + `wx.openDocument`。请把智谱返回的文件域名加入微信「downloadFile 合法域名」。登录用户只能看自己的 `ppt_record`（`创建人_id` = 当前用户）。
+
 ## 数据约定
 
 - 教案不是独立表，而是课程的 `original_file` + `ai_analysis`。讲师上传 `source_type = 讲师上传`，解析中为 `解析中`，解析完为 `待审核`。
@@ -73,6 +94,7 @@ https://zion-app.functorz.com/zero/PO76RBe9KX0/api/graphql-v2
 | 上传 | `filePresignedUrl` 能拿到 fileId 和 PUT 地址。小程序用 MD5 + 预签名 PUT。 |
 | ZAI 解析 | 三个智能体均 COMPLETED。课程详情会展示摘要、章节、标签、推荐课题和专业方向。 |
 | 智学 | 已接通。`bot_id` 以字符串发送，Coze 返回会话与助手正文。任务 `1150000000000012` 回复：「亲子倾听的核心要点是放下评判与说教欲…」 |
+| PPT 生成 | 表 `ppt_record`、异步流程 **PPT生成**、TPA **PPT生成** / **PPT导出** 已配置。需同步后端后用真机/开发者工具走一遍；智谱侧依赖 `ppt-api-key` 与 GLM PPT Agent 额度。 |
 | 资料 | `user_profile` 可查。upsert 走 `user_profile_user_id_key`。 |
 | 体验版 | `wechat deploy --dryRun` 应无异常跳过。实际上传需要 Zion 完成微信第三方平台授权（当前 `hasGrantedThirdPartyAuthorization: false`）。 |
 

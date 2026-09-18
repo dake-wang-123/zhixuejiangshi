@@ -74,7 +74,27 @@ function formatAnalysis(raw) {
   }
 }
 
+function lectureTextFromCourse(course, analysis) {
+  const item = course || {}
+  const view = analysis || formatAnalysis(item.ai_analysis) || {}
+  const parts = []
+  if (item.title) parts.push('课程标题：' + item.title)
+  if (item.description) parts.push(item.description)
+  if (view.summaryText) parts.push('摘要：' + view.summaryText)
+  if (view.direction) parts.push('专业方向：' + view.direction)
+  ;(view.chapters || []).forEach((chapter, index) => {
+    const title = chapter.title || ('第 ' + (index + 1) + ' 章')
+    parts.push(title + (chapter.detail ? '\n' + chapter.detail : ''))
+  })
+  if (view.tags && view.tags.length) parts.push('标签：' + view.tags.join('、'))
+  ;(view.topics || []).forEach((topic) => {
+    if (topic && topic.name) parts.push('课题：' + topic.name + (topic.reason ? '（' + topic.reason + '）' : ''))
+  })
+  return parts.join('\n\n').slice(0, 16000)
+}
+
 module.exports = {
   asObject: asObject,
-  formatAnalysis: formatAnalysis
+  formatAnalysis: formatAnalysis,
+  lectureTextFromCourse: lectureTextFromCourse
 }

@@ -34,7 +34,10 @@ Page({
   friendlyError(err) {
     const msg = (err && err.message) || '登录失败'
     if (msg.indexOf('wechat id config') >= 0) {
-      return 'Zion 尚未配置微信小程序 AppID。打开 Zion 编辑器 → 登录设置 → 微信，填入小程序 AppID 与 AppSecret 后，重新编译即可静默登录。'
+      return 'Zion 读不到微信小程序配置。请核对编辑器「登录设置 / 微信」里的 AppID、AppSecret 是否与微信开发者工具一致。'
+    }
+    if (msg.indexOf('invalid code') >= 0 || msg.indexOf('FAILED_TO_GET_MINI_APP_SESSION_KEY') >= 0) {
+      return '微信登录 code 无效。请用微信开发者工具打开本小程序，确保 AppID 为 wx0277d4abe92dd8a3 后再试。'
     }
     return msg
   },

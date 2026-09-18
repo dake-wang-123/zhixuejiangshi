@@ -44,7 +44,10 @@ Page({
   friendlyError(err) {
     const msg = (err && err.message) || '加载失败'
     if (msg.indexOf('wechat id config') >= 0) {
-      return 'Zion 尚未配置微信小程序 AppID，请在编辑器「登录设置 / 微信」中绑定后重试。'
+      return 'Zion 读不到微信小程序配置。请核对编辑器「登录设置 / 微信」与微信开发者工具 AppID 是否一致。'
+    }
+    if (msg.indexOf('invalid code') >= 0 || msg.indexOf('FAILED_TO_GET_MINI_APP_SESSION_KEY') >= 0) {
+      return '微信登录 code 无效，请用微信开发者工具打开本小程序后再试。'
     }
     return msg
   },

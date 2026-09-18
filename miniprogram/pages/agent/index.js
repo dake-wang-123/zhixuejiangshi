@@ -21,7 +21,7 @@ Page({
     this.setData({
       messages: messages,
       hint: config.cozeBotId
-        ? '对话走 Zion「智学对话」：先创建 Coze 会话，再轮询消息列表，把助手回复带回小程序。'
+        ? '对话走 Zion「智学对话」。若提示密钥无效，到编辑器项目密钥 coze_api_key 换成 Coze 个人访问令牌。'
         : '请在 miniprogram/config.js 填入 Coze Bot ID。'
     })
     const seed = wx.getStorageSync('agentSeed')
@@ -90,10 +90,16 @@ Page({
   friendlyError(err) {
     const msg = (err && err.message) || '智学调用失败'
     if (msg.indexOf('wechat id config') >= 0) {
-      return '请先在 Zion 配置微信小程序 AppID，完成静默登录后再对话。'
+      return 'Zion 读不到微信小程序配置。请核对编辑器「登录设置 / 微信」与微信开发者工具 AppID 是否一致。'
+    }
+    if (msg.indexOf('invalid code') >= 0 || msg.indexOf('FAILED_TO_GET_MINI_APP_SESSION_KEY') >= 0) {
+      return '微信登录 code 无效，请用微信开发者工具打开本小程序后再试。'
     }
     if (msg.indexOf('operation_mu6ckpzl') >= 0 || msg.indexOf('Cannot query field') >= 0) {
       return '智学 TPA 尚未同步到运行时。请在 Zion 编辑器检查「智学」接口并同步后端。'
+    }
+    if (msg.indexOf('密钥无效') >= 0 || msg.indexOf('4101') >= 0) {
+      return '智学密钥无效。请在 Zion 项目密钥 coze_api_key 填入 Coze 控制台的个人访问令牌。'
     }
     if (msg.indexOf('ACTION_FLOW_NOT_FOUND') >= 0 || msg.indexOf('Action flow not found') >= 0) {
       return '智学对话流程尚未同步到运行时。请在 Zion 执行「同步后端」后再试。'

@@ -49,9 +49,9 @@ Page({
       return graphqlRequest(MY_PLANS, { where: eqBigint('uploader_id', account.id) }, app.getToken())
     }).then((data) => {
       const plans = (data.course || []).map((item) => {
-        const view = formatAnalysis(item.ai_analysis) || { summaryText: '', chapters: [], tags: [] }
+        const view = formatAnalysis(item.ai_analysis) || { summaryText: '', chapters: [], tags: [], topics: [], direction: '' }
         item.view = view
-        item.hasAnalysis = !!(view.summaryText || (view.chapters && view.chapters.length) || (view.tags && view.tags.length))
+        item.hasAnalysis = !!(view.summaryText || (view.chapters && view.chapters.length) || (view.tags && view.tags.length) || (view.topics && view.topics.length))
         return item
       })
       this.setData({ plans: plans, loading: false })

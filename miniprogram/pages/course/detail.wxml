@@ -32,8 +32,15 @@
       <view class="title">{{item.title}}</view>
       <view class="desc" wx:if="{{item.detail}}">{{item.detail}}</view>
     </view>
+    <view wx:if="{{analysis.direction}}">
+      <text class="chip">{{analysis.direction}}</text>
+    </view>
     <view wx:if="{{analysis.tags.length}}">
       <text class="chip" wx:for="{{analysis.tags}}" wx:key="*this">{{item}}</text>
+    </view>
+    <view class="chapter" wx:for="{{analysis.topics}}" wx:key="name">
+      <view class="title">课题 · {{item.name}}</view>
+      <view class="desc" wx:if="{{item.reason}}">{{item.reason}}</view>
     </view>
   </view>
 </view>

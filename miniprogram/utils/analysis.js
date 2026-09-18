@@ -56,7 +56,8 @@ function formatAnalysis(raw) {
   const chapters = toList(
     summary.chapter_summaries || structure.chapters || structure.sections || structure.outline
   )
-  const tagItems = toList(tags.tags || tags.topics || tags.labels || tags.recommended_tags)
+  const tagItems = toList(tags.tags || tags.labels || tags.recommended_tags)
+  const topicItems = toList(tags.topics)
   return {
     summaryText: firstText(summary, ['summary', 'abstract', 'overview', 'text', 'content', 'raw']),
     chapters: chapters.map((item, index) => ({
@@ -64,6 +65,11 @@ function formatAnalysis(raw) {
       detail: typeof item === 'object' ? (item.summary || item.description || item.content || (item.sections ? item.sections.join(' / ') : '')) : ''
     })),
     tags: tagItems.map(tagLabel).filter(Boolean),
+    topics: topicItems.map((item) => ({
+      name: tagLabel(item) || (typeof item === 'object' ? item.name : '') || '',
+      reason: typeof item === 'object' ? (item.reason || item.description || '') : ''
+    })).filter((item) => item.name),
+    direction: firstText(tags, ['direction', 'major', 'field']) || firstText(summary, ['direction']) || '',
     rawPreview: typeof raw === 'string' ? raw : JSON.stringify(analysis, null, 2)
   }
 }

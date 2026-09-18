@@ -27,6 +27,9 @@
     </view>
     <view class="desc" wx:if="{{item.view.summaryText}}">{{item.view.summaryText}}</view>
     <view class="muted" wx:elif="{{!item.hasAnalysis}}">尚未解析。粘贴全文后点「重新解析」。</view>
+    <view wx:if="{{item.view.direction}}">
+      <text class="chip">{{item.view.direction}}</text>
+    </view>
     <view wx:if="{{item.view.tags.length}}">
       <text class="chip" wx:for="{{item.view.tags}}" wx:for-item="tag" wx:key="*this">{{tag}}</text>
     </view>

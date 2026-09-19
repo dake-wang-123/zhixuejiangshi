@@ -9,8 +9,8 @@
         <text class="hero-title">家庭教育讲师自学</text>
       </view>
     </view>
-        <text class="hero-sub">目录固定六张分类表。课程标题来自扣子智能体，按年龄段写入对应分类。</text>
-        <text class="hero-meta" wx:if="{{!loading}}">已上架 {{totalCount}} 门 · {{categoryCount}} 个分类</text>
+    <text class="hero-sub">目录固定六张分类表。课程标题来自扣子智能体，按年龄段写入对应分类。</text>
+    <text class="hero-meta" wx:if="{{!loading}}">已上架 {{totalCount}} 门 · {{categoryCount}} 个分类</text>
   </view>
   <view class="error" wx:if="{{error}}">{{error}}</view>
   <view class="empty" wx:if="{{loading}}">

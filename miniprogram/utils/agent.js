@@ -1,5 +1,6 @@
 const config = require('../config.js')
 const { graphqlRequest } = require('./graphql.js')
+const { stripFollowUps } = require('./session.js')
 
 function createConversation(zaiConfigId, inputArgs, token) {
   const query = `mutation CreateZai($inputArgs: Map_String_ObjectScalar!, $zaiConfigId: String!) {
@@ -137,7 +138,11 @@ function extractReply(row) {
   let reply = output.reply_content || output.reply || data.content || ''
   if (reply === 'Success' || reply === 'success') reply = ''
   if (!reply && Array.isArray(messages)) {
-    const assistant = messages.filter((item) => item && item.role === 'assistant' && item.type !== 'verbose' && item.type !== 'follow_up')
+    const assistant = messages.filter((item) => {
+      if (!item || item.role !== 'assistant') return false
+      const typ = item.type || 'answer'
+      return typ !== 'verbose' && typ !== 'follow_up' && typ !== 'function_call' && typ !== 'tool_response' && typ !== 'tool_output'
+    })
     const last = assistant[assistant.length - 1] || messages[messages.length - 1]
     if (last) reply = last.content || last.text || ''
     if (reply && typeof reply === 'object') reply = JSON.stringify(reply)
@@ -154,15 +159,29 @@ function extractReply(row) {
   if (!reply && (conversationId || chatId)) {
     reply = '智学已受理，但还没有拿到助手文本。请稍后再发「继续」。'
   }
+  const split = stripFollowUps(reply || '')
+  let followUps = split.followUps || []
+  if (Array.isArray(messages)) {
+    messages.forEach((item) => {
+      if (item && item.type === 'follow_up' && typeof item.content === 'string' && item.content.trim()) {
+        followUps.push(item.content.trim())
+      }
+    })
+  }
+  const unique = []
+  followUps.forEach((item) => {
+    if (unique.indexOf(item) < 0) unique.push(item)
+  })
   return {
-    reply: reply || '',
+    reply: split.reply || '',
+    followUps: unique,
     conversationId: conversationId,
     chatId: chatId
   }
 }
 
 function needsPoll(reply) {
-  const text = String(reply || '')
+  const text = String(reply || '').replace(/__FOLLOW_UPS__[\s\S]*$/, '').trim()
   return !text || text.indexOf('仍在生成中') >= 0 || text.indexOf('请稍后再发') >= 0
 }
 
@@ -200,7 +219,7 @@ function chatWithCoze(message, userId, conversationId, token) {
     return extracted
   }).then((extracted) => {
     if (!extracted.reply || needsPoll(extracted.reply)) {
-      throw new Error('智学还在生成这一节，请稍后再点「继续本节」。')
+      throw new Error('智学还在生成回复，请稍后再试。')
     }
     return extracted
   })

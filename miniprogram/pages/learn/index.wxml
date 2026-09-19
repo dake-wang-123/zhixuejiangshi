@@ -9,7 +9,7 @@
         <text class="hero-title">学习进度</text>
       </view>
     </view>
-    <text class="hero-sub">点一门课就进入智学课堂。顶部红格是未完成环节，变绿代表这一节已经按智学走完。</text>
+    <text class="hero-sub">点一门课就进入智学课堂。环节和追问都来自扣子智能体，顶部红格未完成、绿格已完成。</text>
   </view>
   <view class="error" wx:if="{{error}}">{{error}}</view>
   <view class="empty" wx:if="{{loading}}">
@@ -38,7 +38,8 @@
       </view>
       <view class="grow">
         <view class="title">{{item.displayTitle}}</view>
-        <view class="muted">第 {{item.currentIndex + 1}} / {{item.stepCount}} 节 · {{item.stepTitle}}</view>
+        <view class="muted" wx:if="{{item.stepCount}}">第 {{item.currentIndex + 1}} / {{item.stepCount}} 环节 · {{item.stepTitle}}</view>
+        <view class="muted" wx:else>{{item.stepTitle}}</view>
         <view class="progress-line">
           <view class="fill" style="width: {{item.percent}}%;"></view>
         </view>

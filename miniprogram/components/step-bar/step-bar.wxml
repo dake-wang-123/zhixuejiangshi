@@ -1,7 +1,7 @@
 <view class="step-bar">
   <view class="meta">
-    <text class="meta-strong">{{finished ? '已学完' : ('第 ' + (current + 1) + ' / ' + steps.length + ' 节')}}</text>
-    <text class="meta-muted">{{completedCount}} 节完成</text>
+    <text class="meta-strong">{{finished ? '已学完' : ('第 ' + (current + 1) + ' / ' + steps.length + ' 环节')}}</text>
+    <text class="meta-muted">{{completedCount}} 环节完成</text>
   </view>
   <view class="segments">
     <view

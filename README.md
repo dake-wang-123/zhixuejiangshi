@@ -9,7 +9,7 @@
 | Tab | 做什么 |
 | --- | --- |
 | 课程 | 固定展示六张分类表（0-3 / 3-6 / 6-12 / 12-15 / 15-18 / 父母国学修养）。标题来自扣子智能体知识库，按分类写入 `course` |
-| 学习 | 已选课程的智学进度。红格未完成，绿格已完成。点「继续智学」回到当前环节 |
+| 学习 | 已选课程的智学进度。红格未完成，绿格已完成。点「继续智学」回到该课对话 |
 | 教案 | 上传文件到 `course.original_file`，粘贴全文后串联三个 ZAI，写回 `ai_analysis`；可把讲课稿生成课件 |
 | 智学 | 异步 Actionflow **智学对话** `8e640419-2243-41b5-92c4-0dd349b97f2d`：POST Coze `/v3/chat`，再轮询 **智学消息** TPA |
 | 课件 | 独立页 `pages/ppt/index`：智学写 PPT 大纲 → 智谱 GLM PPT Agent 出片 → 写入 `ppt_record.file_url`，页面提供打开/复制下载 |
@@ -50,7 +50,7 @@ https://zion-app.functorz.com/zero/PO76RBe9KX0/api/graphql-v2
    - 授权工作空间必须包含当前 Bot
    - 只把令牌填进 Zion 项目密钥，不要加 `Bearer `，不要发到聊天里
    - 保存后 **同步后端**
-3. Actionflow **智学对话**（异步，超时 180 秒）已同步。组装节点会去掉重复的 `Bearer` 前缀，并在 Run Code 里用 `callThirdPartyApi` 发送 OBJECT 请求体（`bot_id` 为 TEXT，`additional_messages` 为一条 user 文本）。轮询节点会等到 Coze 真正写出 `answer` 再返回。
+3. Actionflow **智学对话**（异步，超时 180 秒）已同步。组装节点会去掉重复的 `Bearer` 前缀，并在 Run Code 里用 `callThirdPartyApi` 发送 OBJECT 请求体（`bot_id` 为 TEXT，`additional_messages` 为一条 user 文本）。轮询节点会等到 Coze 写出助手正文，并收集 `follow_up` 追问建议（用 `__FOLLOW_UPS__` JSON 附在回复末尾，小程序拆成建议按钮）。
    - 入参：`user_message` / `user_id` / `conversation_id` / `bot_id`
    - 节点：组装并调用智学 → Run Code **轮询智学回复**（TPA **智学消息** `r43leo7de`）
    - 输出：`reply_content`、`conversation_id`、`raw`（chat id）
@@ -82,7 +82,7 @@ https://zion-app.functorz.com/zero/PO76RBe9KX0/api/graphql-v2
 - 教案不是独立表，而是课程的 `original_file` + `ai_analysis`。讲师上传 `source_type = 讲师上传`，解析中为 `解析中`，解析完为 `待审核`。
 - 上架课由管理员把 `status` 改为 `已上架`。登录用户可读「已上架 **或** 自己上传」的课程；课程 Tab 客户端再筛一层已上架。
 - 课程目录优先展示智能体写出的 `course_name` / `课程名称`。首页始终渲染 6 张分类表，空分类显示「该分类暂无课程」。扣子知识库的 60 门课已按分类写入 `course`（每类 10 门，`status = 已上架`，`source_type = 管理员上传`）。教案解析成功后，也会把该名称写回 `course.title`。
-- 点课程即进入智学课堂。顶部进度条一节一个环节：红色未完成，完成后变绿。必须按智学当前节引导走完才能进下一节。环节目录由扣子当场排出，进度写入 `study_record.progress`。
+- 点课程即进入智学课堂。学习过程是扣子智能体的薄客户端：开场只发「开始学习《课名》」，正文、追问建议都按智能体原样展示，小程序不自拟环节或话术。智学若列出环节，顶部进度条红格未完成、绿格已完成。输入框支持按住麦克风把语音转成文字。进度写入 `study_record.progress`。
 - 登录用户可插入自己的课程、学习记录、用户资料、反馈；匿名角色没有任何表权限，也不能调用 Actionflow / TPA / ZAI。
 - 课程分类字段在 GraphQL 里是关系对象 `category_id { id name }`，不是标量外键。
 - 资料 upsert 约束名：`user_profile_user_id_key`。反馈外键写入 `user_id_id`。

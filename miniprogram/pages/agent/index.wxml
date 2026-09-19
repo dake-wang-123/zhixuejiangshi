@@ -17,7 +17,7 @@
       <view class="empty-icon">
         <ui-icon name="chat" size="48" color="#8A8175"></ui-icon>
       </view>
-      先去课程目录点一门课，按智学环节上课。这里适合问临时的话术或案例，不计入课程进度。
+      先去课程目录点一门课，按智学自己的流程上课。这里适合问临时的话术或案例，不计入课程进度。
     </view>
     <view
       id="m-{{item.id}}"
@@ -25,13 +25,42 @@
       wx:for="{{messages}}"
       wx:key="id"
     >{{item.content}}</view>
+    <view class="follow-wrap" wx:if="{{followUps.length && !sending}}">
+      <view class="muted">智学建议</view>
+      <view
+        class="follow"
+        wx:for="{{followUps}}"
+        wx:key="*this"
+        data-text="{{item}}"
+        bindtap="onFollow"
+      >{{item}}</view>
+    </view>
     <view class="muted thinking" wx:if="{{sending}}">
       <ui-icon name="spark" size="28" color="#8A8175"></ui-icon>
       <text>智学思考中…</text>
     </view>
   </scroll-view>
   <view class="composer">
-    <textarea class="draft" placeholder="输入要请教的备课问题" value="{{draft}}" bindinput="onDraft" auto-height maxlength="2000" confirm-type="send" bindconfirm="onSend"></textarea>
+    <view class="draft-row">
+      <textarea
+        class="draft"
+        placeholder="{{recording ? '正在听，松手后转成文字' : '输入或按住右侧麦克风说话'}}"
+        value="{{draft}}"
+        bindinput="onDraft"
+        auto-height
+        maxlength="2000"
+        confirm-type="send"
+        bindconfirm="onSend"
+      ></textarea>
+      <view
+        class="mic {{recording ? 'on' : ''}}"
+        catchtouchstart="onMicStart"
+        catchtouchend="onMicEnd"
+        catchtouchcancel="onMicEnd"
+      >
+        <ui-icon name="mic" size="36" color="{{recording ? '#FFFFFF' : '#5C7A5A'}}"></ui-icon>
+      </view>
+    </view>
     <view class="row composer-actions">
       <button class="btn btn-ghost mini" size="mini" bindtap="onClear">清空</button>
       <button class="btn mini" size="mini" bindtap="onSend" disabled="{{sending}}">发送</button>

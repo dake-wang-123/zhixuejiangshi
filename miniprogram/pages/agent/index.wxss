@@ -44,12 +44,43 @@
   padding: 16rpx 20rpx;
   box-shadow: 0 10rpx 30rpx rgba(44, 42, 38, 0.12);
 }
+.draft-row {
+  display: flex;
+  align-items: flex-end;
+}
 .draft {
-  width: 100%;
+  flex: 1;
   min-height: 72rpx;
   font-size: 28rpx;
+  margin-right: 12rpx;
+}
+.mic {
+  width: 72rpx;
+  height: 72rpx;
+  border-radius: 50%;
+  background: #E8F0E4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.mic.on {
+  background: #D64545;
+}
+.follow-wrap {
+  margin: 8rpx 0 20rpx;
+}
+.follow {
+  display: inline-block;
+  margin: 8rpx 12rpx 0 0;
+  padding: 10rpx 18rpx;
+  border-radius: 999rpx;
+  background: #E8F0E4;
+  color: #3F5A3E;
+  font-size: 24rpx;
 }
 .composer-actions {
   justify-content: flex-end;
+  margin-top: 8rpx;
 }
 .mini { margin-right: 12rpx; }

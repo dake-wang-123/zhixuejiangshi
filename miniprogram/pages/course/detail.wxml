@@ -10,8 +10,8 @@
 
   <block wx:if="{{!loading && course}}">
     <view class="study-head">
-      <view class="muted" wx:if="{{course.category_id}}">{{course.category_id.name}} · 智学引导</view>
-      <view class="muted" wx:else>智学引导</view>
+      <view class="muted" wx:if="{{course.category_id}}">{{course.category_id.name}} · 智学</view>
+      <view class="muted" wx:else>智学</view>
       <view class="title">{{displayTitle}}</view>
       <step-bar
         wx:if="{{steps.length}}"
@@ -21,34 +21,42 @@
         finished="{{finished}}"
         bindchange="onStepBar"
       ></step-bar>
+      <view class="muted" wx:else>智学列出环节后，这里会出现红绿进度条。对话、追问建议都按智能体原样展示。</view>
       <view class="step-goal" wx:if="{{currentStep}}">
-        <text class="muted">本节目标</text>
-        <text class="goal">{{currentStep.goal || currentStep.title}}</text>
+        <text class="muted">当前环节（来自智学）</text>
+        <text class="goal">{{currentStep.title}}</text>
       </view>
     </view>
 
     <scroll-view scroll-y class="thread" scroll-into-view="{{scrollInto}}" scroll-with-animation>
-      <view class="empty cat-table-empty" wx:if="{{planning}}">智学正在排出学习环节，请稍候…</view>
+      <view class="empty cat-table-empty" wx:if="{{planning && !thread.length}}">正在调用智学智能体…</view>
       <view
         id="m-{{item.id}}"
         class="bubble {{item.role === 'user' ? 'me' : (item.role === 'system' ? 'sys' : 'bot')}}"
         wx:for="{{thread}}"
         wx:key="id"
       >{{item.content}}</view>
+      <view class="follow-wrap" wx:if="{{followUps.length && !sending}}">
+        <view class="muted">智学建议</view>
+        <view
+          class="follow"
+          wx:for="{{followUps}}"
+          wx:key="*this"
+          data-text="{{item}}"
+          bindtap="onFollow"
+        >{{item}}</view>
+      </view>
       <view class="muted thinking" wx:if="{{sending}}">
         <ui-icon name="spark" size="28" color="#8A8175"></ui-icon>
-        <text>智学按本节引导中…</text>
+        <text>智学回复中…</text>
       </view>
     </scroll-view>
 
-    <view class="composer" wx:if="{{!finished}}">
-      <view class="row composer-actions" wx:if="{{currentIndex !== completedCount}}">
-        <button class="btn mini" size="mini" bindtap="onBackCurrent">回到当前红格</button>
-      </view>
-      <block wx:else>
+    <view class="composer">
+      <view class="draft-row">
         <textarea
           class="draft"
-          placeholder="就本节向智学提问，不要跳到后面的环节"
+          placeholder="{{recording ? '正在听，松手后转成文字' : '输入或按住右侧麦克风说话'}}"
           value="{{draft}}"
           bindinput="onDraft"
           auto-height
@@ -56,16 +64,20 @@
           confirm-type="send"
           bindconfirm="onSend"
         ></textarea>
-        <view class="row composer-actions">
-          <button class="btn btn-ghost mini" size="mini" bindtap="onRetry" wx:if="{{error}}" disabled="{{sending}}">继续本节</button>
-          <button class="btn btn-ghost mini" size="mini" bindtap="onComplete" disabled="{{sending}}">完成本节</button>
-          <button class="btn mini" size="mini" bindtap="onSend" disabled="{{sending}}">发送</button>
+        <view
+          class="mic {{recording ? 'on' : ''}}"
+          catchtouchstart="onMicStart"
+          catchtouchend="onMicEnd"
+          catchtouchcancel="onMicEnd"
+        >
+          <ui-icon name="mic" size="36" color="{{recording ? '#FFFFFF' : '#5C7A5A'}}"></ui-icon>
         </view>
-      </block>
-    </view>
-    <view class="composer" wx:else>
-      <view class="muted">进度条已全部变绿。可点绿色环节回看，或生成课件。</view>
-      <button class="btn" bindtap="onPpt">生成本课课件</button>
+      </view>
+      <view class="row composer-actions">
+        <button class="btn btn-ghost mini" size="mini" bindtap="onRetry" wx:if="{{error}}" disabled="{{sending}}">再问一次</button>
+        <button class="btn btn-ghost mini" size="mini" bindtap="onComplete" wx:if="{{steps.length && !finished}}" disabled="{{sending}}">标记完成</button>
+        <button class="btn mini" size="mini" bindtap="onSend" disabled="{{sending}}">发送</button>
+      </view>
     </view>
   </block>
 </view>

@@ -1,5 +1,5 @@
 const { formatAnalysis, matchCategory } = require('./analysis.js')
-const { buildStudySteps, readCursor, progressToRatio } = require('./study.js')
+const { buildStudySteps, progressToRatio } = require('./study.js')
 const { readSession } = require('./session.js')
 
 function resolveCategory(course, view, categories) {
@@ -22,14 +22,13 @@ function decorateCourse(course, categories) {
   const category = resolveCategory(item, view, categories)
   const agentTitle = (view && view.courseName) || ''
   const displayTitle = agentTitle || item.title || '未命名课程'
-  const cursor = readCursor(item.id)
   const session = readSession(item.id)
   const sessionSteps = session && session.steps && session.steps.length ? session.steps : null
-  const stepCount = sessionSteps ? sessionSteps.length : Math.max(built.steps.length, 6)
+  const stepCount = sessionSteps ? sessionSteps.length : 0
   const completedCount = session ? Number(session.completedCount || 0) : 0
-  const cursorStep = session
+  const cursorStep = stepCount
     ? Math.min(completedCount, Math.max(0, stepCount - 1))
-    : (cursor ? cursor.stepIndex : 0)
+    : 0
   return Object.assign({}, item, {
     view: view || { summaryText: '', chapters: [], tags: [], topics: [], direction: '', courseName: '' },
     agentTitle: agentTitle,
@@ -38,6 +37,7 @@ function decorateCourse(course, categories) {
     showOriginal: !!(agentTitle && item.title && agentTitle !== item.title),
     categoryKey: String(category.id),
     categoryName: category.name,
+    analysisStepCount: (built.steps && built.steps.length) || 0,
     stepCount: stepCount,
     completedCount: completedCount,
     cursorStep: cursorStep
@@ -47,16 +47,16 @@ function decorateCourse(course, categories) {
 function decorateStudyRow(row, categories) {
   const course = decorateCourse((row && row.course) || {}, categories)
   const session = readSession(course.id)
-  const total = course.stepCount || 1
+  const total = course.stepCount || 0
   const ratio = progressToRatio(row.progress)
-  const completedCount = session ? Number(session.completedCount || 0) : Math.round(ratio * total)
-  const percent = Math.round((total ? completedCount / total : ratio) * 100)
-  const currentIndex = Math.min(completedCount, Math.max(0, total - 1))
+  const completedCount = session ? Number(session.completedCount || 0) : (total ? Math.round(ratio * total) : 0)
+  const percent = total ? Math.round((completedCount / total) * 100) : Math.round(ratio * 100)
+  const currentIndex = total ? Math.min(completedCount, Math.max(0, total - 1)) : 0
   const steps = (session && session.steps) || []
   const current = steps[currentIndex]
   const stepTitle = current
     ? current.title
-    : (completedCount >= total ? '已学完' : '等待智学排课')
+    : (completedCount >= total && total ? '已学完' : '按智学流程学习')
   return Object.assign({}, row, {
     course: course,
     displayTitle: course.displayTitle,

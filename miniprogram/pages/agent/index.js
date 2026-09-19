@@ -1,14 +1,17 @@
 const app = getApp()
 const config = require('../../config.js')
 const { chatWithCoze } = require('../../utils/agent.js')
+const voice = require('../../utils/voice.js')
 
 const STORAGE_KEY = 'zhixue_messages'
 
 Page({
   data: {
     messages: [],
+    followUps: [],
     draft: '',
     sending: false,
+    recording: false,
     error: '',
     hint: '',
     scrollInto: ''
@@ -31,6 +34,11 @@ Page({
     }
     this.scrollBottom()
   },
+  onUnload() {
+    if (this.data.recording) {
+      try { wx.stopRecord({ fail: function () {} }) } catch (e) {}
+    }
+  },
   onDraft(e) {
     this.setData({ draft: e.detail.value })
   },
@@ -44,21 +52,21 @@ Page({
   onClear() {
     wx.removeStorageSync(STORAGE_KEY)
     wx.removeStorageSync('zhixue_conversation')
-    this.setData({ messages: [], error: '' })
+    this.setData({ messages: [], followUps: [], error: '' })
   },
-  onSend() {
-    const text = (this.data.draft || '').trim()
-    if (!text || this.data.sending) return
+  sendText(text) {
+    const prompt = String(text || '').trim()
+    if (!prompt || this.data.sending) return
     const messages = this.data.messages.slice()
-    const userMsg = { id: Date.now(), role: 'user', content: text }
+    const userMsg = { id: Date.now(), role: 'user', content: prompt }
     messages.push(userMsg)
-    this.setData({ messages: messages, draft: '', sending: true, error: '' })
+    this.setData({ messages: messages, draft: '', sending: true, error: '', followUps: [] })
     this.persist(messages)
     this.scrollBottom()
     app.ensureLogin().then(() => {
       const account = app.globalData.account || {}
       const conversationId = wx.getStorageSync('zhixue_conversation') || ''
-      return chatWithCoze(text, account.id, conversationId, app.getToken())
+      return chatWithCoze(prompt, account.id, conversationId, app.getToken())
     }).then((result) => {
       if (result.conversationId) {
         wx.setStorageSync('zhixue_conversation', result.conversationId)
@@ -69,7 +77,11 @@ Page({
         role: 'assistant',
         content: reply
       }])
-      this.setData({ messages: next, sending: false })
+      this.setData({
+        messages: next,
+        sending: false,
+        followUps: result.followUps || []
+      })
       this.persist(next)
       this.scrollBottom()
     }).catch((err) => {
@@ -85,6 +97,31 @@ Page({
       })
       this.persist(fail)
       this.scrollBottom()
+    })
+  },
+  onSend() {
+    this.sendText(this.data.draft)
+  },
+  onFollow(e) {
+    const text = e.currentTarget.dataset.text
+    if (!text || this.data.sending) return
+    this.sendText(text)
+  },
+  onMicStart() {
+    if (this.data.sending || this.data.recording) return
+    this.setData({ recording: true })
+    voice.startRecord().catch((err) => {
+      this.setData({ recording: false })
+      wx.showToast({ title: this.friendlyError(err), icon: 'none' })
+    })
+  },
+  onMicEnd() {
+    if (!this.data.recording) return
+    this.setData({ recording: false })
+    voice.stopRecord().then((text) => {
+      this.setData({ draft: voice.appendDraft(this.data.draft, text) })
+    }).catch((err) => {
+      wx.showToast({ title: this.friendlyError(err), icon: 'none' })
     })
   },
   friendlyError(err) {

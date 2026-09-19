@@ -1,15 +1,13 @@
 const app = getApp()
 const { graphqlRequest, eqBigint, andWhere } = require('../../utils/graphql.js')
 const { chatWithCoze } = require('../../utils/agent.js')
+const voice = require('../../utils/voice.js')
 const {
   readSession,
   writeSession,
-  fallbackSteps,
-  parseGuideSteps,
-  clampSteps,
-  planPrompt,
-  teachPrompt,
-  nextPrompt,
+  parseListedSteps,
+  mergeSteps,
+  startPrompt,
   visibleMessages,
   hasAssistant
 } = require('../../utils/session.js')
@@ -22,6 +20,7 @@ Page({
     loading: true,
     planning: false,
     sending: false,
+    recording: false,
     error: '',
     hint: '',
     enrolled: false,
@@ -32,6 +31,7 @@ Page({
     finished: false,
     currentStep: null,
     thread: [],
+    followUps: [],
     draft: '',
     scrollInto: '',
     conversationId: ''
@@ -40,9 +40,14 @@ Page({
     this.setData({ id: query.id })
     this.boot()
   },
+  onUnload() {
+    if (this.data.recording) {
+      try { wx.stopRecord({ fail: function () {} }) } catch (e) {}
+    }
+  },
   boot() {
     const id = this.data.id
-    this.setData({ loading: true, error: '', hint: '正在打开智学课堂…' })
+    this.setData({ loading: true, error: '', hint: '正在打开智学…' })
     return app.ensureLogin().then(() => {
       const token = app.getToken()
       const account = app.globalData.account || {}
@@ -64,9 +69,6 @@ Page({
         if (!course) throw new Error('课程不存在或无权查看')
         const study = (data.study_record || [])[0]
         this.data.course = course
-        this.data.displayTitle = course.title
-        this.data.enrolled = !!study
-        this.data.studyId = study ? study.id : ''
         const existing = readSession(id)
         this.setData({
           course: course,
@@ -74,15 +76,14 @@ Page({
           enrolled: !!study,
           studyId: study ? study.id : '',
           loading: false,
-          planning: !(existing && existing.steps && existing.steps.length),
-          hint: '智学正在排出本课学习环节…'
+          planning: !(existing && hasAssistant(existing.messages)),
+          hint: '正在调用智学…'
         })
         wx.setNavigationBarTitle({ title: '智学 · ' + String(course.title || '课程').slice(0, 10) })
-        return this.ensureEnrolled().then(() => this.ensurePlan())
+        return this.ensureEnrolled().then(() => this.ensureStarted())
       })
     }).then(() => {
-      this.setData({ loading: false })
-      return this.ensureTeaching()
+      this.setData({ loading: false, planning: false })
     }).catch((err) => {
       this.setData({
         loading: false,
@@ -95,34 +96,26 @@ Page({
     const steps = (session && session.steps) || []
     const completedCount = Number((session && session.completedCount) || 0)
     const finished = steps.length > 0 && completedCount >= steps.length
-    const currentIndex = finished
+    const teachIndex = finished
       ? Math.max(0, steps.length - 1)
       : Math.min(completedCount, Math.max(0, steps.length - 1))
-    const viewIndex = typeof (session && session.viewIndex) === 'number' ? session.viewIndex : currentIndex
-    const safeView = Math.min(Math.max(0, viewIndex), Math.max(0, steps.length - 1))
-    const currentStep = steps[safeView] || null
-    const thread = visibleMessages(session && session.messages, safeView)
+    const currentStep = steps[teachIndex] || null
+    const thread = visibleMessages(session && session.messages)
     this.setData({
       steps: steps,
       completedCount: completedCount,
       finished: finished,
-      currentIndex: safeView,
+      currentIndex: teachIndex,
       currentStep: currentStep,
       conversationId: (session && session.conversationId) || '',
       thread: thread,
-      hint: finished
-        ? '六节都已走完。可点绿色环节回看，或去学习页看总进度。'
-        : (currentStep ? ('正在智学第 ' + (safeView + 1) + ' 节：' + currentStep.title) : '智学正在排出学习环节…')
+      followUps: (session && session.followUps) || [],
+      hint: currentStep
+        ? ('第 ' + (teachIndex + 1) + ' 环节：' + currentStep.title)
+        : '对话完全跟随智学。列出环节后，顶部红格变绿表示该环节已完成'
     })
     this.scrollBottom()
-    return {
-      steps: steps,
-      completedCount: completedCount,
-      finished: finished,
-      teachIndex: currentIndex,
-      viewIndex: safeView,
-      session: session
-    }
+    return session
   },
   persist(patch) {
     const session = writeSession(this.data.id, patch)
@@ -159,116 +152,83 @@ Page({
       set: { progress: ratio }
     }, app.getToken()).catch(() => {})
   },
-  ensurePlan() {
-    const existing = readSession(this.data.id)
-    if (existing && existing.steps && existing.steps.length) {
-      this.paintSession(existing)
-      return Promise.resolve(existing)
+  applyReply(result, userText) {
+    const latest = readSession(this.data.id) || {}
+    const messages = (latest.messages || []).slice()
+    if (userText) {
+      messages.push({
+        id: Date.now(),
+        role: 'user',
+        hidden: false,
+        content: userText
+      })
     }
-    this.setData({ planning: true, hint: '智学正在排出本课学习环节…' })
-    const account = app.globalData.account || {}
-    const userId = 'learn-' + (account.id || 'guest') + '-c' + this.data.id
-    return chatWithCoze(planPrompt(this.data.course), userId, '', app.getToken()).then((result) => {
-      const parsed = parseGuideSteps(result.reply)
-      const usedFallback = !parsed.length
-      const steps = clampSteps(parsed, this.data.course)
-      const session = this.persist({
-        steps: steps,
-        completedCount: 0,
-        viewIndex: 0,
-        conversationId: usedFallback ? '' : (result.conversationId || ''),
-        chatId: usedFallback ? '' : (result.chatId || ''),
-        messages: [{
-          id: Date.now(),
-          role: 'system',
-          stepIndex: 0,
-          hidden: false,
-          content: usedFallback
-            ? '智学目录没有按 JSON 返回，先按讲师六步走。红格未完成，绿格已完成，必须按顺序学完当前节。'
-            : ('智学排出 ' + steps.length + ' 个环节。红格未完成，绿格已完成。必须按顺序走完当前节。')
-        }]
-      })
-      this.setData({ planning: false })
-      return session
-    }).catch((err) => {
-      const steps = fallbackSteps(this.data.course)
-      const session = this.persist({
-        steps: steps,
-        completedCount: 0,
-        viewIndex: 0,
-        conversationId: '',
-        messages: [{
-          id: Date.now(),
-          role: 'system',
-          stepIndex: 0,
-          hidden: false,
-          content: '智学目录暂时没排出来，先按讲师六步走。原因：' + this.friendlyError(err)
-        }]
-      })
-      this.setData({ planning: false })
-      return session
+    messages.push({
+      id: Date.now() + 1,
+      role: 'assistant',
+      hidden: false,
+      content: result.reply
+    })
+    const incoming = parseListedSteps(result.reply)
+    const steps = mergeSteps(latest.steps, incoming)
+    const completedCount = Math.min(Number(latest.completedCount || 0), steps.length)
+    return this.persist({
+      messages: messages,
+      steps: steps,
+      completedCount: completedCount,
+      followUps: result.followUps || [],
+      conversationId: result.conversationId || latest.conversationId || '',
+      chatId: result.chatId || latest.chatId || ''
     })
   },
-  ensureTeaching() {
-    const painted = this.paintSession(readSession(this.data.id) || {})
-    if (!painted.steps.length || painted.finished) return Promise.resolve()
-    if (painted.viewIndex !== painted.teachIndex) return Promise.resolve()
-    if (hasAssistant(painted.session && painted.session.messages, painted.teachIndex)) return Promise.resolve()
-    return this.askZhixue(teachPrompt(
-      this.data.course,
-      painted.steps[painted.teachIndex],
-      painted.teachIndex,
-      painted.steps.length,
-      false
-    ), painted.teachIndex, true)
-  },
-  askZhixue(prompt, stepIndex, hidden) {
-    if (this.data.sending || this._busy) return Promise.resolve()
+  askZhixue(text) {
+    const prompt = String(text || '').trim()
+    if (!prompt || this.data.sending || this._busy) return Promise.resolve()
     this._busy = true
-    const session = readSession(this.data.id) || {}
-    const messages = (session.messages || []).slice()
-    const userMsg = {
+    const preview = readSession(this.data.id) || {}
+    const pending = (preview.messages || []).concat([{
       id: Date.now(),
       role: 'user',
-      stepIndex: stepIndex,
-      hidden: !!hidden,
-      content: hidden ? ('开始第 ' + (stepIndex + 1) + ' 节') : prompt
-    }
-    messages.push(userMsg)
-    this.persist({ messages: messages, viewIndex: stepIndex })
-    this.setData({ sending: true, error: '', draft: hidden ? this.data.draft : '' })
+      hidden: false,
+      content: prompt
+    }])
+    this.persist({ messages: pending, followUps: [] })
+    this.setData({ sending: true, error: '', draft: '', planning: false })
     const account = app.globalData.account || {}
     const userId = 'learn-' + (account.id || 'guest') + '-c' + this.data.id
-    return chatWithCoze(prompt, userId, session.conversationId || '', app.getToken()).then((result) => {
-      const latest = readSession(this.data.id) || session
-      const next = (latest.messages || messages).concat([{
-        id: Date.now() + 1,
-        role: 'assistant',
-        stepIndex: stepIndex,
-        hidden: false,
-        content: result.reply
-      }])
-      this.persist({
-        messages: next,
-        conversationId: result.conversationId || latest.conversationId || '',
-        chatId: result.chatId || latest.chatId || ''
-      })
+    return chatWithCoze(prompt, userId, preview.conversationId || '', app.getToken()).then((result) => {
+      const latest = readSession(this.data.id) || {}
+      const withoutDup = (latest.messages || pending).slice()
+      if (withoutDup.length && withoutDup[withoutDup.length - 1].role === 'user') {
+        withoutDup.pop()
+      }
+      this.persist({ messages: withoutDup })
+      this.applyReply(result, prompt)
       this.setData({ sending: false })
       this._busy = false
     }).catch((err) => {
-      const latest = readSession(this.data.id) || session
-      const next = (latest.messages || messages).concat([{
-        id: Date.now() + 1,
-        role: 'assistant',
-        stepIndex: stepIndex,
-        hidden: false,
-        failed: true,
-        content: this.friendlyError(err)
-      }])
-      this.persist({ messages: next })
+      const latest = readSession(this.data.id) || {}
+      this.persist({
+        messages: (latest.messages || pending).concat([{
+          id: Date.now() + 1,
+          role: 'assistant',
+          hidden: false,
+          failed: true,
+          content: this.friendlyError(err)
+        }])
+      })
       this.setData({ sending: false, error: this.friendlyError(err) })
       this._busy = false
     })
+  },
+  ensureStarted() {
+    const existing = readSession(this.data.id)
+    if (existing && hasAssistant(existing.messages)) {
+      this.paintSession(existing)
+      return Promise.resolve(existing)
+    }
+    this.setData({ planning: true })
+    return this.askZhixue(startPrompt(this.data.course))
   },
   scrollBottom() {
     const thread = this.data.thread || []
@@ -280,80 +240,76 @@ Page({
   },
   onSend() {
     const text = (this.data.draft || '').trim()
-    if (!text || this.data.sending || this.data.finished) return
-    if (this.data.currentIndex !== this.data.completedCount) {
-      wx.showToast({ title: '回到当前红格再提问', icon: 'none' })
-      return
-    }
-    this.setData({ draft: '' })
-    this.askZhixue(text, this.data.currentIndex, false)
+    if (!text || this.data.sending) return
+    this.askZhixue(text)
+  },
+  onFollow(e) {
+    const text = e.currentTarget.dataset.text
+    if (!text || this.data.sending) return
+    this.askZhixue(text)
   },
   onStepBar(e) {
-    this.onPickStep(e.detail.index)
-  },
-  onPickStep(index) {
-    const i = Number(index)
+    const i = Number(e.detail.index)
     if (isNaN(i)) return
-    const session = readSession(this.data.id) || {}
-    const completedCount = Number(session.completedCount || 0)
-    if (i > completedCount) {
-      wx.showToast({ title: '请先完成本节智学引导', icon: 'none' })
+    if (i > this.data.completedCount) {
+      wx.showToast({ title: '请先走完当前智学环节', icon: 'none' })
       return
     }
-    this.persist({ viewIndex: i })
+    this.setData({ currentIndex: i, currentStep: this.data.steps[i] || null })
   },
   onRetry() {
     this.setData({ error: '' })
-    this.ensureTeaching()
-  },
-  onBackCurrent() {
     const session = readSession(this.data.id) || {}
-    const completedCount = Number(session.completedCount || 0)
-    const steps = session.steps || []
-    const teachIndex = Math.min(completedCount, Math.max(0, steps.length - 1))
-    this.persist({ viewIndex: teachIndex })
-    this.ensureTeaching()
+    const messages = session.messages || []
+    let lastUser = ''
+    for (let i = messages.length - 1; i >= 0; i--) {
+      if (messages[i].role === 'user' && !messages[i].hidden) {
+        lastUser = messages[i].content
+        break
+      }
+    }
+    this.askZhixue(lastUser || startPrompt(this.data.course))
   },
   onComplete() {
     if (this.data.sending || this._busy) return
     const session = readSession(this.data.id) || {}
     const steps = session.steps || []
-    if (!steps.length) return
-    if (this.data.currentIndex !== this.data.completedCount) {
-      wx.showToast({ title: '请先回到当前红格', icon: 'none' })
+    if (!steps.length) {
+      wx.showToast({ title: '等智学给出环节后再标记', icon: 'none' })
       return
     }
-    if (!hasAssistant(session.messages, this.data.completedCount)) {
-      wx.showToast({ title: '等智学讲完本节再勾完', icon: 'none' })
+    if (!hasAssistant(session.messages)) {
+      wx.showToast({ title: '等智学回复后再标记', icon: 'none' })
       return
     }
-    const completedCount = this.data.completedCount + 1
-    const finished = completedCount >= steps.length
-    const viewIndex = finished ? steps.length - 1 : completedCount
-    this.persist({
-      completedCount: completedCount,
-      viewIndex: viewIndex,
-      messages: (session.messages || []).concat([{
-        id: Date.now(),
-        role: 'system',
-        stepIndex: viewIndex,
-        hidden: false,
-        content: finished
-          ? '本节完成，课程智学路径已走完。进度条已全部变绿。'
-          : ('第 ' + completedCount + ' 节完成，进度条已变绿。开始下一节。')
-      }])
-    })
+    const completedCount = Math.min(this.data.completedCount + 1, steps.length)
+    this.persist({ completedCount: completedCount })
     this.saveProgress(completedCount, steps.length)
-    if (finished) {
-      wx.showToast({ title: '本课智学完成' })
-      return
-    }
-    const next = steps[completedCount]
-    this.askZhixue(nextPrompt(this.data.course, next, completedCount, steps.length), completedCount, true)
+    wx.showToast({
+      title: completedCount >= steps.length ? '本课环节已走完' : '已标记完成，继续按智学回复学习',
+      icon: 'none'
+    })
+  },
+  onMicStart() {
+    if (this.data.sending || this.data.recording) return
+    this.setData({ recording: true })
+    voice.startRecord().catch((err) => {
+      this.setData({ recording: false })
+      wx.showToast({ title: this.friendlyError(err), icon: 'none' })
+    })
+  },
+  onMicEnd() {
+    if (!this.data.recording) return
+    this.setData({ recording: false })
+    voice.stopRecord().then((text) => {
+      this.setData({ draft: voice.appendDraft(this.data.draft, text) })
+    }).catch((err) => {
+      wx.showToast({ title: this.friendlyError(err), icon: 'none' })
+    })
   },
   onPpt() {
     const title = this.data.displayTitle || ''
-    wx.setStorageSync('pptSeed', '课程《' + title + '》的讲师自学课件，请按智学环节展开。')
+    wx.setStorageSync('pptSeed', '课程《' + title + '》')
     wx.navigateTo({
       url: '/pages/ppt/index?title=' + encodeURIComponent(title) + '&courseId=' + this.data.id
     })

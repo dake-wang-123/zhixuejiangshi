@@ -41,7 +41,8 @@
     <view class="row chips">
       <text class="chip">{{item.status}}</text>
       <text class="chip" wx:if="{{item.topic}}">{{item.topic.name}}</text>
-      <text class="chip">{{item.stepCount}} 节</text>
+      <text class="chip" wx:if="{{item.analysisStepCount}}">解析 {{item.analysisStepCount}} 章</text>
+      <text class="chip" wx:elif="{{item.stepCount}}">智学 {{item.stepCount}} 环节</text>
     </view>
     <view class="desc" wx:if="{{item.view.summaryText}}">{{item.view.summaryText}}</view>
     <view class="muted" wx:elif="{{!item.hasAnalysis}}">尚未解析。粘贴全文后点「重新解析」。</view>

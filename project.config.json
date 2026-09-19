@@ -1,7 +1,13 @@
 {
   "description": "家庭教育讲师自学",
+  "miniprogramRoot": "miniprogram/",
+  "compileType": "miniprogram",
+  "appid": "wx0277d4abe92dd8a3",
+  "projectname": "family-edu-lecturer",
+  "libVersion": "2.32.3",
   "packOptions": {
     "ignore": [
+      { "type": "folder", "value": "wechat-import" },
       { "type": "file", "value": "project.private.config.json" }
     ]
   },
@@ -12,10 +18,5 @@
     "coverView": true,
     "lazyloadPlaceholderEnable": false
   },
-  "compileType": "miniprogram",
-  "miniprogramRoot": "./",
-  "libVersion": "2.32.3",
-  "appid": "wx0277d4abe92dd8a3",
-  "projectname": "family-edu-lecturer",
   "condition": {}
 }

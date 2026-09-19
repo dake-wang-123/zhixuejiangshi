@@ -18,7 +18,8 @@
 ## 本地运行
 
 1. 安装[微信开发者工具](https://developers.weixin.qq.com/miniprogram/dev/devtools/download.html)。
-2. 导入目录 `miniprogram/`。`project.config.json` 里的 AppID 已写成 `wx0277d4abe92dd8a3`，与 Zion 登录设置一致。
+2. 导入目录必须是 `miniprogram/`（或解压后的 `family-edu-miniprogram/`）。这一层要**同时**有 `app.json` 和 `pages/index/index.wxml`。不要导入仓库根目录的上一级，也不要把 zip 当项目打开。
+3. `project.config.json` 里的 AppID 已写成 `wx0277d4abe92dd8a3`，与 Zion 登录设置一致。若导入整个仓库，根目录的 `project.config.json` 已指定 `miniprogramRoot` 为 `miniprogram/`。
 3. 在微信公众平台把 `https://zion-app.functorz.com` 以及上传用的 OSS 域名加入 request 合法域名。
 4. 编译预览。静默登录走 `wx.login` → GraphQL `loginWithWechatMiniApp`。
 

@@ -2,3 +2,5 @@
 node_modules/
 agent-tools/
 .DS_Store
+*.zip
+wechat-import/

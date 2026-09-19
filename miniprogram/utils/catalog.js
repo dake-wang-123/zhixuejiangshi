@@ -1,5 +1,6 @@
 const { formatAnalysis, matchCategory } = require('./analysis.js')
-const { buildStudySteps, readCursor, furthestFromRatio, ratioFromFurthest } = require('./study.js')
+const { buildStudySteps, readCursor, progressToRatio } = require('./study.js')
+const { readSession } = require('./session.js')
 
 function resolveCategory(course, view, categories) {
   if (course && course.category_id && course.category_id.id) {
@@ -22,6 +23,13 @@ function decorateCourse(course, categories) {
   const agentTitle = (view && view.courseName) || ''
   const displayTitle = agentTitle || item.title || '未命名课程'
   const cursor = readCursor(item.id)
+  const session = readSession(item.id)
+  const sessionSteps = session && session.steps && session.steps.length ? session.steps : null
+  const stepCount = sessionSteps ? sessionSteps.length : Math.max(built.steps.length, 6)
+  const completedCount = session ? Number(session.completedCount || 0) : 0
+  const cursorStep = session
+    ? Math.min(completedCount, Math.max(0, stepCount - 1))
+    : (cursor ? cursor.stepIndex : 0)
   return Object.assign({}, item, {
     view: view || { summaryText: '', chapters: [], tags: [], topics: [], direction: '', courseName: '' },
     agentTitle: agentTitle,
@@ -30,33 +38,35 @@ function decorateCourse(course, categories) {
     showOriginal: !!(agentTitle && item.title && agentTitle !== item.title),
     categoryKey: String(category.id),
     categoryName: category.name,
-    stepCount: built.steps.length,
-    cursorStep: cursor ? cursor.stepIndex : 0
+    stepCount: stepCount,
+    completedCount: completedCount,
+    cursorStep: cursorStep
   })
 }
 
 function decorateStudyRow(row, categories) {
   const course = decorateCourse((row && row.course) || {}, categories)
+  const session = readSession(course.id)
   const total = course.stepCount || 1
-  const ratio = Number(row.progress || 0) <= 1 ? Number(row.progress || 0) : Number(row.progress || 0) / 100
-  const furthest = furthestFromRatio(ratio, total)
-  const percent = Math.round(ratioFromFurthest(furthest, total) * 100)
-  const cursor = readCursor(course.id)
-  const currentIndex = cursor && String(cursor.studyId) === String(row.id)
-    ? (typeof cursor.stepIndex === 'number' ? cursor.stepIndex : furthest)
-    : furthest
-  const built = buildStudySteps(course, course.view)
-  const current = built.steps[currentIndex] || built.steps[0]
-  const stepTitle = current ? current.title : '课程导读'
+  const ratio = progressToRatio(row.progress)
+  const completedCount = session ? Number(session.completedCount || 0) : Math.round(ratio * total)
+  const percent = Math.round((total ? completedCount / total : ratio) * 100)
+  const currentIndex = Math.min(completedCount, Math.max(0, total - 1))
+  const steps = (session && session.steps) || []
+  const current = steps[currentIndex]
+  const stepTitle = current
+    ? current.title
+    : (completedCount >= total ? '已学完' : '等待智学排课')
   return Object.assign({}, row, {
     course: course,
     displayTitle: course.displayTitle,
     categoryKey: course.categoryKey,
     categoryName: course.categoryName,
     stepCount: total,
-    percent: percent,
+    percent: Math.min(100, percent),
     currentIndex: currentIndex,
-    furthest: furthest,
+    completedCount: completedCount,
+    furthest: Math.max(0, completedCount - 1),
     stepTitle: stepTitle,
     coverUrl: row.coverUrl || ''
   })

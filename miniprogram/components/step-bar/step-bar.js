@@ -2,8 +2,8 @@ Component({
   properties: {
     steps: { type: Array, value: [] },
     current: { type: Number, value: 0 },
-    furthest: { type: Number, value: 0 },
-    percent: { type: Number, value: 0 }
+    completedCount: { type: Number, value: 0 },
+    finished: { type: Boolean, value: false }
   },
   methods: {
     onTap(e) {

@@ -108,8 +108,6 @@ Page({
   },
   onOpen(e) {
     const id = e.currentTarget.dataset.id
-    const step = e.currentTarget.dataset.step
-    const extra = step === undefined || step === '' ? '' : '&step=' + step
-    wx.navigateTo({ url: '/pages/course/detail?id=' + id + extra })
+    wx.navigateTo({ url: '/pages/course/detail?id=' + id })
   }
 })

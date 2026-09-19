@@ -9,7 +9,7 @@
         <text class="hero-title">智学助手</text>
       </view>
     </view>
-    <text class="hero-sub">{{hint}}</text>
+    <text class="hero-sub">选课学习走课程页的智学课堂。这里只回答临时备课问题，不会和某门课的环节进度混在一起。</text>
   </view>
   <view class="error" wx:if="{{error}}">{{error}}</view>
   <scroll-view scroll-y class="thread" scroll-into-view="{{scrollInto}}" scroll-with-animation>
@@ -17,7 +17,7 @@
       <view class="empty-icon">
         <ui-icon name="chat" size="48" color="#8A8175"></ui-icon>
       </view>
-      从课程或学习页点「问智学」，或在这里直接提问备课问题。
+      先去课程目录点一门课，按智学环节上课。这里适合问临时的话术或案例，不计入课程进度。
     </view>
     <view
       id="m-{{item.id}}"

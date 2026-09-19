@@ -161,23 +161,46 @@ function extractReply(row) {
   }
 }
 
-function chatWithCoze(message, userId, conversationId, token) {
-  if (!config.cozeBotId) {
-    return Promise.reject(new Error('尚未配置 Coze Bot ID。请打开 miniprogram/config.js，把 cozeBotId 换成控制台里的 Bot ID。'))
-  }
+function needsPoll(reply) {
+  const text = String(reply || '')
+  return !text || text.indexOf('仍在生成中') >= 0 || text.indexOf('请稍后再发') >= 0
+}
+
+function runCoze(message, userId, conversationId, token) {
   const args = {
     user_message: message,
     user_id: String(userId || ''),
     conversation_id: conversationId || '',
     bot_id: config.cozeBotId
   }
-  return invokeAsyncFlow(args, token).then((taskId) => pollFlowTask(taskId, token)).then((row) => {
+  return invokeAsyncFlow(args, token).then((taskId) => pollFlowTask(taskId, token, {
+    maxAttempts: 90,
+    intervalMs: 2000
+  })).then((row) => {
     if (row.status === 'FAILED') {
       throw new Error('智学流程失败。请在 Zion 检查 Actionflow「智学对话」是否已同步，以及智学 / 智学消息 TPA 的 Authorization。')
     }
-    const extracted = extractReply(row)
-    if (!extracted.reply) {
-      throw new Error('智学流程已跑完，但没有解析到回复。TPA 请求体需要包含 bot_id、user_id 和 additional_messages。')
+    return extractReply(row)
+  })
+}
+
+function chatWithCoze(message, userId, conversationId, token) {
+  if (!config.cozeBotId) {
+    return Promise.reject(new Error('尚未配置 Coze Bot ID。请打开 miniprogram/config.js，把 cozeBotId 换成控制台里的 Bot ID。'))
+  }
+  return runCoze(message, userId, conversationId, token).then((extracted) => {
+    if (needsPoll(extracted.reply) && extracted.conversationId && extracted.chatId) {
+      const pollMsg = '__POLL_CHAT__|' + extracted.conversationId + '|' + extracted.chatId
+      return runCoze(pollMsg, userId, extracted.conversationId, token).then((again) => {
+        if (!again.conversationId) again.conversationId = extracted.conversationId
+        if (!again.chatId) again.chatId = extracted.chatId
+        return again
+      })
+    }
+    return extracted
+  }).then((extracted) => {
+    if (!extracted.reply || needsPoll(extracted.reply)) {
+      throw new Error('智学还在生成这一节，请稍后再点「继续本节」。')
     }
     return extracted
   })

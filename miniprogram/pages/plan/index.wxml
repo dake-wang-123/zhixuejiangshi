@@ -41,7 +41,7 @@
     <view class="row chips">
       <text class="chip">{{item.status}}</text>
       <text class="chip" wx:if="{{item.topic}}">{{item.topic.name}}</text>
-      <text class="chip">{{item.stepCount}} 步</text>
+      <text class="chip">{{item.stepCount}} 节</text>
     </view>
     <view class="desc" wx:if="{{item.view.summaryText}}">{{item.view.summaryText}}</view>
     <view class="muted" wx:elif="{{!item.hasAnalysis}}">尚未解析。粘贴全文后点「重新解析」。</view>
@@ -52,7 +52,7 @@
       <text class="chip" wx:for="{{item.view.tags}}" wx:for-item="tag" wx:key="*this">{{tag}}</text>
     </view>
     <view class="row wrap">
-      <button class="btn mini" size="mini" data-id="{{item.id}}" bindtap="onOpen">查看步骤</button>
+      <button class="btn mini" size="mini" data-id="{{item.id}}" bindtap="onOpen">进入智学</button>
       <button class="btn btn-ghost mini" size="mini" data-id="{{item.id}}" bindtap="onReparse">重新解析</button>
       <button class="btn btn-ghost mini" size="mini" data-id="{{item.id}}" bindtap="onPlanPpt">生成课件</button>
     </view>

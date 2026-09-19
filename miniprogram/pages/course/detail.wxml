@@ -1,75 +1,71 @@
-<view class="page">
+<view class="page study-page">
   <view class="error" wx:if="{{error}}">{{error}}</view>
+
   <view class="empty" wx:if="{{loading}}">
     <view class="empty-icon">
-      <ui-icon name="book-open" size="48" color="#8A8175"></ui-icon>
+      <ui-icon name="spark" size="48" color="#8A8175"></ui-icon>
     </view>
-    正在打开课程…
+    {{hint || '正在进入智学…'}}
   </view>
-  <block wx:if="{{course && currentStep}}">
-    <image class="banner" src="{{coverUrl}}" mode="aspectFill" wx:if="{{coverUrl}}"></image>
-    <view class="card">
-      <view class="title">{{displayTitle}}</view>
-      <view class="muted" wx:if="{{displayTitle !== course.title && course.title}}">原标题 {{course.title}}</view>
-      <view class="row chips">
-        <text class="chip" wx:if="{{course.category_id}}">{{course.category_id.name}}</text>
-        <text class="chip" wx:if="{{course.topic}}">{{course.topic.name}}</text>
-        <text class="chip" wx:if="{{course.direction}}">{{course.direction.name}}</text>
-        <text class="price" wx:if="{{course.price > 0}}">¥{{course.price}}</text>
-        <text class="muted" wx:else>免费学习</text>
-      </view>
-      <button class="btn" bindtap="onEnroll" wx:if="{{!enrolled}}">开始按步骤学习</button>
-    </view>
 
-    <view class="card">
-      <view class="section-head" style="margin-top: 0;">
-        <ui-icon name="route" size="32" color="#5C7A5A"></ui-icon>
-        <text class="name">学习进度</text>
-      </view>
+  <block wx:if="{{!loading && course}}">
+    <view class="study-head">
+      <view class="muted" wx:if="{{course.category_id}}">{{course.category_id.name}} · 智学引导</view>
+      <view class="muted" wx:else>智学引导</view>
+      <view class="title">{{displayTitle}}</view>
       <step-bar
+        wx:if="{{steps.length}}"
         steps="{{steps}}"
         current="{{currentIndex}}"
-        furthest="{{furthest}}"
-        percent="{{percent}}"
+        completedCount="{{completedCount}}"
+        finished="{{finished}}"
         bindchange="onStepBar"
       ></step-bar>
-    </view>
-
-    <view class="card step-card">
-      <view class="muted">{{currentStep.group}} · 第 {{currentStep.ordinal}} 步</view>
-      <view class="title">{{currentStep.title}}</view>
-      <view class="desc step-body">{{currentStep.detail}}</view>
-      <view class="row nav">
-        <button class="btn btn-ghost mini" size="mini" bindtap="onPrev" disabled="{{currentIndex === 0}}">上一步</button>
-        <button class="btn mini" size="mini" bindtap="onNext" disabled="{{currentIndex >= steps.length - 1}}">下一步</button>
+      <view class="step-goal" wx:if="{{currentStep}}">
+        <text class="muted">本节目标</text>
+        <text class="goal">{{currentStep.goal || currentStep.title}}</text>
       </view>
     </view>
 
-    <view class="card">
-      <view class="section-head" style="margin-top: 0;">
-        <ui-icon name="folder" size="32" color="#5C7A5A"></ui-icon>
-        <text class="name">课程目录</text>
+    <scroll-view scroll-y class="thread" scroll-into-view="{{scrollInto}}" scroll-with-animation>
+      <view class="empty cat-table-empty" wx:if="{{planning}}">智学正在排出学习环节，请稍候…</view>
+      <view
+        id="m-{{item.id}}"
+        class="bubble {{item.role === 'user' ? 'me' : (item.role === 'system' ? 'sys' : 'bot')}}"
+        wx:for="{{thread}}"
+        wx:key="id"
+      >{{item.content}}</view>
+      <view class="muted thinking" wx:if="{{sending}}">
+        <ui-icon name="spark" size="28" color="#8A8175"></ui-icon>
+        <text>智学按本节引导中…</text>
       </view>
-      <view class="toc-group" wx:for="{{groups}}" wx:key="name">
-        <view class="toc-label">{{item.name}}</view>
-        <view
-          class="toc-item {{item2.index === currentIndex ? 'current' : ''}} {{item2.index <= furthest ? 'done' : ''}}"
-          wx:for="{{item.items}}"
-          wx:for-item="item2"
-          wx:key="key"
-          data-index="{{item2.index}}"
-          bindtap="onPickStep"
-        >
-          <view class="toc-index">{{item2.ordinal}}</view>
-          <view class="grow">{{item2.title}}</view>
+    </scroll-view>
+
+    <view class="composer" wx:if="{{!finished}}">
+      <view class="row composer-actions" wx:if="{{currentIndex !== completedCount}}">
+        <button class="btn mini" size="mini" bindtap="onBackCurrent">回到当前红格</button>
+      </view>
+      <block wx:else>
+        <textarea
+          class="draft"
+          placeholder="就本节向智学提问，不要跳到后面的环节"
+          value="{{draft}}"
+          bindinput="onDraft"
+          auto-height
+          maxlength="2000"
+          confirm-type="send"
+          bindconfirm="onSend"
+        ></textarea>
+        <view class="row composer-actions">
+          <button class="btn btn-ghost mini" size="mini" bindtap="onRetry" wx:if="{{error}}" disabled="{{sending}}">继续本节</button>
+          <button class="btn btn-ghost mini" size="mini" bindtap="onComplete" disabled="{{sending}}">完成本节</button>
+          <button class="btn mini" size="mini" bindtap="onSend" disabled="{{sending}}">发送</button>
         </view>
-      </view>
+      </block>
     </view>
-
-    <view class="card">
-      <button class="btn" bindtap="onLearn" wx:if="{{enrolled}}">返回学习列表</button>
-      <button class="btn btn-ghost" bindtap="onAsk">就这一步问智学</button>
-      <button class="btn btn-ghost" bindtap="onMakePpt">生成课件 PPT</button>
+    <view class="composer" wx:else>
+      <view class="muted">进度条已全部变绿。可点绿色环节回看，或生成课件。</view>
+      <button class="btn" bindtap="onPpt">生成本课课件</button>
     </view>
   </block>
 </view>

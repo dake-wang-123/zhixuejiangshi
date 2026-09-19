@@ -66,13 +66,7 @@ Page({
   },
   onOpen(e) {
     const id = e.currentTarget.dataset.id
-    const step = e.currentTarget.dataset.step
-    wx.navigateTo({ url: '/pages/course/detail?id=' + id + '&step=' + (step || 0) })
-  },
-  onAsk(e) {
-    const title = e.currentTarget.dataset.title
-    wx.setStorageSync('agentSeed', '我正在自学《' + title + '》，请按我上次停下的步骤继续带备课本段要点。')
-    wx.switchTab({ url: '/pages/agent/index' })
+    wx.navigateTo({ url: '/pages/course/detail?id=' + id })
   },
   onBrowse() {
     wx.switchTab({ url: '/pages/index/index' })

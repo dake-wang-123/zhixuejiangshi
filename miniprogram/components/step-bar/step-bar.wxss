@@ -1,11 +1,11 @@
 .step-bar {
-  padding: 8rpx 0 4rpx;
+  padding: 4rpx 0 0;
 }
 .meta {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  margin-bottom: 16rpx;
+  margin-bottom: 14rpx;
 }
 .meta-strong {
   font-size: 26rpx;
@@ -16,20 +16,31 @@
   font-size: 22rpx;
   color: #8A8175;
 }
-.track {
-  height: 10rpx;
-  border-radius: 999rpx;
-  background: #EFE6D8;
-  overflow: hidden;
+.segments {
+  display: flex;
 }
-.fill {
-  height: 100%;
+.seg {
+  flex: 1;
+  height: 16rpx;
   border-radius: 999rpx;
-  background: linear-gradient(90deg, #7A9A74 0%, #5C7A5A 100%);
+  background: #D64545;
+  margin-right: 8rpx;
+}
+.seg:last-child {
+  margin-right: 0;
+}
+.seg.is-done {
+  background: #3F8F5A;
+}
+.seg.is-current {
+  box-shadow: 0 0 0 4rpx rgba(214, 69, 69, 0.22);
+}
+.seg.is-done.is-current {
+  box-shadow: 0 0 0 4rpx rgba(63, 143, 90, 0.28);
 }
 .nodes {
   white-space: nowrap;
-  margin-top: 22rpx;
+  margin-top: 18rpx;
 }
 .node {
   display: inline-flex;
@@ -43,12 +54,27 @@
   width: 44rpx;
   height: 44rpx;
   border-radius: 50%;
-  border: 2rpx solid #D8CFC2;
-  background: #FFFBF5;
+  border: 2rpx solid #D64545;
+  background: #FDECEC;
+  color: #A33B3B;
   text-align: center;
   line-height: 40rpx;
   font-size: 20rpx;
   font-weight: 650;
+}
+.node.is-done .dot {
+  border-color: #3F8F5A;
+  background: #E4F3EA;
+  color: #2F6B44;
+}
+.node.is-current .dot {
+  box-shadow: 0 6rpx 16rpx rgba(214, 69, 69, 0.28);
+}
+.node.is-done.is-current .dot {
+  box-shadow: 0 6rpx 16rpx rgba(63, 143, 90, 0.28);
+}
+.node.is-current {
+  color: #2C2A26;
 }
 .label {
   margin-top: 8rpx;
@@ -57,17 +83,22 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.node.is-done .dot {
-  border-color: #5C7A5A;
-  background: #E8F0E4;
-  color: #3F5A3E;
+.legend {
+  display: flex;
+  margin-top: 12rpx;
+  font-size: 20rpx;
+  color: #8A8175;
 }
-.node.is-current .dot {
-  background: #5C7A5A;
-  border-color: #5C7A5A;
-  color: #fff;
-  box-shadow: 0 6rpx 16rpx rgba(92, 122, 90, 0.28);
+.lg {
+  display: flex;
+  align-items: center;
+  margin-right: 24rpx;
 }
-.node.is-current {
-  color: #3F5A3E;
+.lg-dot {
+  width: 16rpx;
+  height: 16rpx;
+  border-radius: 50%;
+  margin-right: 8rpx;
 }
+.lg-dot.red { background: #D64545; }
+.lg-dot.green { background: #3F8F5A; }

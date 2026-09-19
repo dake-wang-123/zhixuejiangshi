@@ -43,7 +43,7 @@
         <view class="progress-line">
           <view class="fill" style="width: {{item.percent}}%;"></view>
         </view>
-        <view class="muted" style="margin-top: 8rpx;">已完成 {{item.completedCount || 0}} 节</view>
+        <view class="muted" style="margin-top: 8rpx;">已完成 {{item.completedCount || 0}} 环节</view>
         <view class="row">
           <button class="btn mini" size="mini" data-id="{{item.course.id}}" bindtap="onOpen">继续智学</button>
         </view>

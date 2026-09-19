@@ -1,31 +1,9 @@
-.label {
-  margin: 18rpx 0 10rpx;
-  font-size: 24rpx;
-  color: #6F675C;
-}
-.field {
-  background: #F6F1E8;
-  border-radius: 16rpx;
-  padding: 18rpx 20rpx;
-  font-size: 28rpx;
-}
-.area {
-  width: 100%;
-  min-height: 260rpx;
-  background: #F6F1E8;
-  border-radius: 16rpx;
-  padding: 18rpx 20rpx;
-  font-size: 26rpx;
-  box-sizing: border-box;
-}
-.section-title {
-  margin: 12rpx 8rpx 20rpx;
-  font-size: 30rpx;
-  font-weight: 650;
-}
+.grow { flex: 1; min-width: 0; }
 .mini { margin-right: 12rpx; }
 .wrap { flex-wrap: wrap; }
-.desc {
+.chips { flex-wrap: wrap; }
+.area { min-height: 260rpx; }
+.outline {
   max-height: 220rpx;
   overflow: hidden;
 }

@@ -1,20 +1,53 @@
 <view class="page">
   <view class="hero">
-    <text class="hero-title">学习进度</text>
-    <text class="hero-sub">已选择的课程会出现在这里。进度会写入学习记录。</text>
-  </view>
-  <view class="error" wx:if="{{error}}">{{error}}</view>
-  <view class="empty" wx:if="{{loading}}">正在读取学习记录…</view>
-  <view class="empty" wx:if="{{!loading && !list.length}}">还没有选课，去课程页挑一门吧</view>
-  <view class="card row" wx:for="{{list}}" wx:key="id">
-    <image class="cover" src="{{item.coverUrl}}" mode="aspectFill" wx:if="{{item.coverUrl}}"></image>
-    <view class="grow">
-      <view class="title">{{item.course.title}}</view>
-      <view class="muted">进度 {{item.percent || 0}}%</view>
-      <view class="row">
-        <button class="btn mini" size="mini" data-id="{{item.course.id}}" bindtap="onOpen">打开</button>
-        <button class="btn btn-ghost mini" size="mini" data-title="{{item.course.title}}" bindtap="onAsk">智学</button>
+    <view class="hero-row">
+      <view class="hero-mark">
+        <ui-icon name="route" size="40" color="#5C7A5A"></ui-icon>
+      </view>
+      <view class="grow">
+        <text class="eyebrow">PROGRESS</text>
+        <text class="hero-title">学习进度</text>
       </view>
     </view>
+    <text class="hero-sub">进度按智能体拆出的步骤保存。离开后再进来，会回到你上次查看的那一步。</text>
   </view>
+  <view class="error" wx:if="{{error}}">{{error}}</view>
+  <view class="empty" wx:if="{{loading}}">
+    <view class="empty-icon">
+      <ui-icon name="route" size="48" color="#8A8175"></ui-icon>
+    </view>
+    正在读取学习记录…
+  </view>
+  <view class="empty" wx:if="{{!loading && !sections.length}}">
+    <view class="empty-icon">
+      <ui-icon name="book-open" size="48" color="#8A8175"></ui-icon>
+    </view>
+    还没有选课，去课程页挑一门吧
+    <button class="btn" bindtap="onBrowse">去选课</button>
+  </view>
+  <block wx:for="{{sections}}" wx:key="id" wx:for-item="section">
+    <view class="section-head">
+      <ui-icon name="folder" size="32" color="#5C7A5A"></ui-icon>
+      <text class="name">{{section.name}}</text>
+      <text class="count">{{section.courses.length}} 门</text>
+    </view>
+    <view class="card row course-card" wx:for="{{section.courses}}" wx:for-item="item" wx:key="id">
+      <image class="cover" src="{{item.coverUrl}}" mode="aspectFill" wx:if="{{item.coverUrl}}"></image>
+      <view class="cover cover-fallback" wx:else>
+        <ui-icon name="book" size="48" color="#7A9A74"></ui-icon>
+      </view>
+      <view class="grow">
+        <view class="title">{{item.displayTitle}}</view>
+        <view class="muted">第 {{item.currentIndex + 1}} / {{item.stepCount}} 步 · {{item.stepTitle}}</view>
+        <view class="progress-line">
+          <view class="fill" style="width: {{item.percent}}%;"></view>
+        </view>
+        <view class="muted" style="margin-top: 8rpx;">已学 {{item.percent}}%</view>
+        <view class="row">
+          <button class="btn mini" size="mini" data-id="{{item.course.id}}" data-step="{{item.currentIndex}}" bindtap="onOpen">继续</button>
+          <button class="btn btn-ghost mini" size="mini" data-title="{{item.displayTitle}}" bindtap="onAsk">智学</button>
+        </view>
+      </view>
+    </view>
+  </block>
 </view>

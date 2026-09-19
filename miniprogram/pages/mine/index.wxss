@@ -1,23 +1,4 @@
-.label {
-  margin: 18rpx 0 10rpx;
-  font-size: 24rpx;
-  color: #6F675C;
-}
-.field {
-  background: #F6F1E8;
-  border-radius: 16rpx;
-  padding: 18rpx 20rpx;
-  font-size: 28rpx;
-}
-.area {
-  width: 100%;
-  min-height: 180rpx;
-  background: #F6F1E8;
-  border-radius: 16rpx;
-  padding: 18rpx 20rpx;
-  font-size: 26rpx;
-  box-sizing: border-box;
-}
+.grow { flex: 1; min-width: 0; }
 .mini { margin-right: 12rpx; }
 .ppt-row {
   display: flex;
@@ -25,3 +6,4 @@
   justify-content: space-between;
   margin-top: 12rpx;
 }
+.area { min-height: 180rpx; }

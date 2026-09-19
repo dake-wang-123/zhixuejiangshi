@@ -1,0 +1,6 @@
+<image
+  class="svg-icon"
+  src="{{src}}"
+  mode="aspectFit"
+  style="width: {{size}}rpx; height: {{size}}rpx;"
+/>

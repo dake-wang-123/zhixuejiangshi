@@ -8,8 +8,8 @@
 
 | Tab | 做什么 |
 | --- | --- |
-| 课程 | 读取已上架课程，按课程分类筛选 |
-| 学习 | 当前用户的 `study_record`，可回详情改进度 |
+| 课程 | 读取已上架课程；标题优先用智能体解析出的课程名称，按分类分节排列 |
+| 学习 | 当前用户的 `study_record`，按分类显示进度条，点「继续」回到上次那一步 |
 | 教案 | 上传文件到 `course.original_file`，粘贴全文后串联三个 ZAI，写回 `ai_analysis`；可把讲课稿生成课件 |
 | 智学 | 异步 Actionflow **智学对话** `8e640419-2243-41b5-92c4-0dd349b97f2d`：POST Coze `/v3/chat`，再轮询 **智学消息** TPA |
 | 课件 | 独立页 `pages/ppt/index`：智学写 PPT 大纲 → 智谱 GLM PPT Agent 出片 → 写入 `ppt_record.file_url`，页面提供打开/复制下载 |
@@ -80,6 +80,8 @@ https://zion-app.functorz.com/zero/PO76RBe9KX0/api/graphql-v2
 
 - 教案不是独立表，而是课程的 `original_file` + `ai_analysis`。讲师上传 `source_type = 讲师上传`，解析中为 `解析中`，解析完为 `待审核`。
 - 上架课由管理员把 `status` 改为 `已上架`。登录用户可读「已上架 **或** 自己上传」的课程；课程 Tab 客户端再筛一层已上架。
+- 课程目录优先展示智能体写出的 `course_name` / `课程名称`。教案解析成功后，也会把该名称写回 `course.title`。没有分类时，会按智能体的专业方向归组。
+- 学习步骤来自智能体拆出的章节。详情页用进度条和分类目录查看任意一步，每次只渲染当前步正文，避免串内容。`study_record.progress` 只前进不回退；本地还记下当前步的 `stepKey`，再次进入会回到同一节。
 - 登录用户可插入自己的课程、学习记录、用户资料、反馈；匿名角色没有任何表权限，也不能调用 Actionflow / TPA / ZAI。
 - 课程分类字段在 GraphQL 里是关系对象 `category_id { id name }`，不是标量外键。
 - 资料 upsert 约束名：`user_profile_user_id_key`。反馈外键写入 `user_id_id`。

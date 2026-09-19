@@ -1,2 +1,3 @@
 .mini { margin-right: 12rpx; }
-.grow { flex: 1; }
+.grow { flex: 1; min-width: 0; }
+.course-card { align-items: flex-start; }

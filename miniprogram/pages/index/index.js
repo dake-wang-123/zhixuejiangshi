@@ -2,6 +2,7 @@ const app = getApp()
 const config = require('../../config.js')
 const { graphqlRequest, eqText } = require('../../utils/graphql.js')
 const { getImageUrl } = require('../../utils/upload.js')
+const { decorateCourse, groupByCategory } = require('../../utils/catalog.js')
 
 const COURSE_LIST = `
   query CourseList($where: course_bool_exp, $limit: Int) {
@@ -15,6 +16,7 @@ const COURSE_LIST = `
       status
       is_recommended
       cover_id
+      ai_analysis
       topic { id name }
       category_id { id name }
     }
@@ -31,7 +33,7 @@ Page({
     loading: true,
     error: '',
     courses: [],
-    visibleCourses: [],
+    sections: [],
     categories: [],
     activeCategory: 0
   },
@@ -43,6 +45,10 @@ Page({
   },
   onPullDownRefresh() {
     this.load().then(() => wx.stopPullDownRefresh())
+  },
+  applyFilter(courses, categories, activeCategory) {
+    const decorated = (courses || []).map((item) => decorateCourse(item, categories))
+    return groupByCategory(decorated, categories, activeCategory)
   },
   load() {
     this.setData({ loading: true, error: '' })
@@ -65,7 +71,7 @@ Page({
           loading: false,
           courses: courses,
           categories: [{ id: 0, name: '全部' }].concat(categories),
-          visibleCourses: courses
+          sections: this.applyFilter(courses, categories, this.data.activeCategory)
         })
       })
     }).catch((err) => {
@@ -90,13 +96,16 @@ Page({
   },
   onCategory(e) {
     const id = Number(e.currentTarget.dataset.id)
-    const visible = !id
-      ? this.data.courses
-      : this.data.courses.filter((item) => item.category_id && Number(item.category_id.id) === id)
-    this.setData({ activeCategory: id, visibleCourses: visible })
+    const rawCats = (this.data.categories || []).filter((item) => Number(item.id) !== 0)
+    this.setData({
+      activeCategory: id,
+      sections: this.applyFilter(this.data.courses, rawCats, id)
+    })
   },
   onOpen(e) {
     const id = e.currentTarget.dataset.id
-    wx.navigateTo({ url: '/pages/course/detail?id=' + id })
+    const step = e.currentTarget.dataset.step
+    const extra = step === undefined || step === '' ? '' : '&step=' + step
+    wx.navigateTo({ url: '/pages/course/detail?id=' + id + extra })
   }
 })

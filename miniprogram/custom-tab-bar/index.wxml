@@ -6,7 +6,9 @@
     data-index="{{index}}"
     bindtap="onChange"
   >
-    <view class="icon">{{item.icon}}</view>
+    <view class="icon-wrap">
+      <image class="icon" src="{{selected === index ? item.iconOn : item.icon}}" mode="aspectFit"></image>
+    </view>
     <view class="text">{{item.text}}</view>
   </view>
 </view>

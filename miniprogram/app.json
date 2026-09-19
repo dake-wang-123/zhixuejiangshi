@@ -44,5 +44,9 @@
     ]
   },
   "style": "v2",
-  "sitemapLocation": "sitemap.json"
+  "sitemapLocation": "sitemap.json",
+  "usingComponents": {
+    "ui-icon": "/components/icon/icon",
+    "step-bar": "/components/step-bar/step-bar"
+  }
 }

@@ -4,6 +4,7 @@ const { graphqlRequest, eqBigint } = require('../../utils/graphql.js')
 const { uploadFile } = require('../../utils/upload.js')
 const { parseLessonPlan } = require('../../utils/agent.js')
 const { formatAnalysis, lectureTextFromCourse } = require('../../utils/analysis.js')
+const { decorateCourse } = require('../../utils/catalog.js')
 
 const MY_PLANS = `
   query MyPlans($where: course_bool_exp) {
@@ -49,10 +50,9 @@ Page({
       return graphqlRequest(MY_PLANS, { where: eqBigint('uploader_id', account.id) }, app.getToken())
     }).then((data) => {
       const plans = (data.course || []).map((item) => {
-        const view = formatAnalysis(item.ai_analysis) || { summaryText: '', chapters: [], tags: [], topics: [], direction: '' }
-        item.view = view
-        item.hasAnalysis = !!(view.summaryText || (view.chapters && view.chapters.length) || (view.tags && view.tags.length) || (view.topics && view.topics.length))
-        return item
+        const decorated = decorateCourse(item, [])
+        decorated.hasAnalysis = !!(decorated.view.summaryText || (decorated.view.chapters && decorated.view.chapters.length) || (decorated.view.tags && decorated.view.tags.length) || (decorated.view.topics && decorated.view.topics.length))
+        return decorated
       })
       this.setData({ plans: plans, loading: false })
     }).catch((err) => {
@@ -169,19 +169,22 @@ Page({
     this.setData({ progress: '智能体正在拆教案…' })
     return parseLessonPlan(fullText, token, (msg) => this.setData({ progress: msg })).then((parsed) => {
       this.setData({ progress: '正在写回解析结果…' })
-      const summaryText = (parsed.summary && (parsed.summary.summary || parsed.summary.text)) || ''
+      const view = formatAnalysis(parsed) || {}
+      const summaryText = view.summaryText || (parsed.summary && (parsed.summary.summary || parsed.summary.text)) || ''
       const mutation = `
         mutation SaveAnalysis($id: bigint!, $set: course_set_input!) {
           update_course_by_pk(pk_columns: { id: $id }, _set: $set) { id status }
         }
       `
+      const set = {
+        ai_analysis: parsed,
+        description: summaryText || undefined,
+        status: config.statusDraft
+      }
+      if (view.courseName) set.title = view.courseName
       return graphqlRequest(mutation, {
         id: courseId,
-        set: {
-          ai_analysis: parsed,
-          description: summaryText || undefined,
-          status: config.statusDraft
-        }
+        set: set
       }, token)
     })
   },

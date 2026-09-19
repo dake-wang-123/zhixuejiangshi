@@ -1,0 +1,21 @@
+<view class="step-bar">
+  <view class="meta">
+    <text class="meta-strong">第 {{current + 1}} / {{steps.length}} 步</text>
+    <text class="meta-muted">已学 {{percent}}%</text>
+  </view>
+  <view class="track">
+    <view class="fill" style="width: {{percent}}%;"></view>
+  </view>
+  <scroll-view scroll-x class="nodes" enable-flex>
+    <view
+      class="node {{index === current ? 'is-current' : ''}} {{index <= furthest ? 'is-done' : ''}}"
+      wx:for="{{steps}}"
+      wx:key="key"
+      data-index="{{index}}"
+      bindtap="onTap"
+    >
+      <view class="dot">{{index + 1}}</view>
+      <text class="label">{{item.shortTitle}}</text>
+    </view>
+  </scroll-view>
+</view>

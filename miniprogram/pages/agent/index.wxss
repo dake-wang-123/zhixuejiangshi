@@ -4,6 +4,7 @@
   height: 100vh;
   padding-bottom: calc(280rpx + env(safe-area-inset-bottom));
 }
+.grow { flex: 1; min-width: 0; }
 .thread {
   flex: 1;
   height: 0;
@@ -28,6 +29,11 @@
   color: #2C2A26;
   border-bottom-left-radius: 8rpx;
 }
+.thinking {
+  display: flex;
+  align-items: center;
+}
+.thinking text { margin-left: 8rpx; }
 .composer {
   position: fixed;
   left: 24rpx;
@@ -42,5 +48,8 @@
   width: 100%;
   min-height: 72rpx;
   font-size: 28rpx;
+}
+.composer-actions {
+  justify-content: flex-end;
 }
 .mini { margin-right: 12rpx; }

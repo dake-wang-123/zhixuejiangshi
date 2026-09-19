@@ -1,0 +1,73 @@
+.step-bar {
+  padding: 8rpx 0 4rpx;
+}
+.meta {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 16rpx;
+}
+.meta-strong {
+  font-size: 26rpx;
+  font-weight: 650;
+  color: #3F5A3E;
+}
+.meta-muted {
+  font-size: 22rpx;
+  color: #8A8175;
+}
+.track {
+  height: 10rpx;
+  border-radius: 999rpx;
+  background: #EFE6D8;
+  overflow: hidden;
+}
+.fill {
+  height: 100%;
+  border-radius: 999rpx;
+  background: linear-gradient(90deg, #7A9A74 0%, #5C7A5A 100%);
+}
+.nodes {
+  white-space: nowrap;
+  margin-top: 22rpx;
+}
+.node {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  width: 96rpx;
+  margin-right: 8rpx;
+  color: #8A8175;
+}
+.dot {
+  width: 44rpx;
+  height: 44rpx;
+  border-radius: 50%;
+  border: 2rpx solid #D8CFC2;
+  background: #FFFBF5;
+  text-align: center;
+  line-height: 40rpx;
+  font-size: 20rpx;
+  font-weight: 650;
+}
+.label {
+  margin-top: 8rpx;
+  font-size: 20rpx;
+  max-width: 96rpx;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.node.is-done .dot {
+  border-color: #5C7A5A;
+  background: #E8F0E4;
+  color: #3F5A3E;
+}
+.node.is-current .dot {
+  background: #5C7A5A;
+  border-color: #5C7A5A;
+  color: #fff;
+  box-shadow: 0 6rpx 16rpx rgba(92, 122, 90, 0.28);
+}
+.node.is-current {
+  color: #3F5A3E;
+}

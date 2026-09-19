@@ -7,8 +7,9 @@
   background: #FFFBF5;
   border-radius: 40rpx;
   display: flex;
-  box-shadow: 0 10rpx 30rpx rgba(44, 42, 38, 0.12);
+  box-shadow: 0 10rpx 30rpx rgba(44, 42, 38, 0.1);
   z-index: 100;
+  border: 1rpx solid rgba(92, 122, 90, 0.08);
 }
 
 .item {
@@ -24,22 +25,26 @@
   color: #3F5A3E;
 }
 
-.icon {
-  width: 44rpx;
-  height: 44rpx;
-  border-radius: 50%;
-  background: #F3EADF;
-  text-align: center;
-  line-height: 44rpx;
-  font-size: 22rpx;
-  margin-bottom: 6rpx;
+.icon-wrap {
+  width: 56rpx;
+  height: 56rpx;
+  border-radius: 18rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 4rpx;
 }
 
-.item.active .icon {
-  background: #5C7A5A;
-  color: #fff;
+.item.active .icon-wrap {
+  background: #E8F0E4;
+}
+
+.icon {
+  width: 40rpx;
+  height: 40rpx;
 }
 
 .text {
   font-size: 20rpx;
+  letter-spacing: 1rpx;
 }

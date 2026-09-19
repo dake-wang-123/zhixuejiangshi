@@ -1,11 +1,21 @@
 const app = getApp()
 const { graphqlRequest, eqBigint, andWhere } = require('../../utils/graphql.js')
 const { getImageUrl } = require('../../utils/upload.js')
-const { formatAnalysis, lectureTextFromCourse } = require('../../utils/analysis.js')
+const { lectureTextFromCourse } = require('../../utils/analysis.js')
+const {
+  buildStudySteps,
+  isolateStep,
+  groupSteps,
+  resumePosition,
+  persistCursor,
+  readCursor,
+  ratioFromFurthest
+} = require('../../utils/study.js')
 
 Page({
   data: {
     id: '',
+    wantedStep: '',
     course: null,
     coverUrl: '',
     loading: true,
@@ -13,11 +23,36 @@ Page({
     enrolled: false,
     studyId: '',
     percent: 0,
-    analysis: null
+    steps: [],
+    groups: [],
+    currentIndex: 0,
+    currentStep: null,
+    furthest: 0,
+    displayTitle: '',
+    saving: false
   },
   onLoad(query) {
-    this.setData({ id: query.id })
+    this.setData({
+      id: query.id,
+      wantedStep: query.step === undefined ? '' : String(query.step)
+    })
     this.load()
+  },
+  onHide() {
+    this.rememberCursor()
+  },
+  onUnload() {
+    this.rememberCursor()
+  },
+  rememberCursor() {
+    if (!this.data.id || !this.data.currentStep) return
+    persistCursor(
+      this.data.id,
+      this.data.studyId,
+      this.data.currentStep,
+      this.data.furthest,
+      this.data.steps.length
+    )
   },
   load() {
     const id = this.data.id
@@ -47,16 +82,34 @@ Page({
       const course = data.course_by_pk
       if (!course) throw new Error('课程不存在或无权查看')
       const study = (data.study_record || [])[0]
-      const progress = study ? Number(study.progress || 0) : 0
-      const percent = Math.round(progress * (progress <= 1 ? 100 : 1))
+      const built = buildStudySteps(course)
+      const groups = groupSteps(built.steps)
+      const resume = resumePosition(
+        study ? study.progress : 0,
+        readCursor(course.id),
+        built.steps,
+        study ? study.id : ''
+      )
+      let current = resume.current
+      if (this.data.wantedStep !== '') {
+        const wanted = Number(this.data.wantedStep)
+        if (!isNaN(wanted)) current = wanted
+      }
+      const currentStep = isolateStep(built.steps, current)
       this.setData({
         course: course,
-        analysis: formatAnalysis(course.ai_analysis),
+        displayTitle: built.courseName,
+        steps: built.steps,
+        groups: groups,
+        currentIndex: currentStep.index,
+        currentStep: currentStep,
+        furthest: study ? resume.furthest : 0,
         enrolled: !!study,
         studyId: study ? study.id : '',
-        percent: percent,
+        percent: study ? resume.percent : 0,
         loading: false
       })
+      this.rememberCursor()
       return getImageUrl(course.cover_id, app.getToken()).then((url) => this.setData({ coverUrl: url }))
     }).catch((err) => this.setData({ loading: false, error: this.friendlyError(err) }))
   },
@@ -70,72 +123,118 @@ Page({
     }
     return msg
   },
-  onEnroll() {
+  showStep(index, persist) {
+    const currentStep = isolateStep(this.data.steps, index)
+    const nextFurthest = this.data.enrolled
+      ? Math.max(this.data.furthest, currentStep.index)
+      : this.data.furthest
+    const percent = this.data.enrolled
+      ? Math.round(ratioFromFurthest(nextFurthest, this.data.steps.length) * 100)
+      : this.data.percent
+    this.setData({
+      currentIndex: currentStep.index,
+      currentStep: currentStep,
+      furthest: nextFurthest,
+      percent: percent
+    })
+    this.rememberCursor()
+    if (persist && this.data.studyId) this.saveProgress(nextFurthest)
+  },
+  saveProgress(furthest) {
+    if (this.data.saving || !this.data.studyId) return Promise.resolve()
+    const ratio = ratioFromFurthest(furthest, this.data.steps.length)
+    const mutation = `
+      mutation SaveProgress($id: bigint!, $set: study_record_set_input!) {
+        update_study_record_by_pk(pk_columns: { id: $id }, _set: $set) { id progress }
+      }
+    `
+    this.setData({ saving: true })
+    return graphqlRequest(mutation, {
+      id: this.data.studyId,
+      set: { progress: ratio }
+    }, app.getToken()).then(() => {
+      this.setData({
+        saving: false,
+        furthest: furthest,
+        percent: Math.round(ratio * 100)
+      })
+    }).catch((err) => {
+      this.setData({ saving: false })
+      wx.showToast({ title: err.message || '进度保存失败', icon: 'none' })
+    })
+  },
+  ensureEnrolled() {
+    if (this.data.studyId) return Promise.resolve(this.data.studyId)
     const account = app.globalData.account
     if (!account || !account.id) {
       wx.showToast({ title: '请先登录', icon: 'none' })
-      return
+      return Promise.reject(new Error('请先登录'))
     }
-    wx.showLoading({ title: '加入学习' })
-    const token = app.getToken()
     const mutation = `
       mutation Enroll($object: study_record_insert_input!) {
         insert_study_record_one(object: $object) { id }
       }
     `
-    graphqlRequest(mutation, {
+    return graphqlRequest(mutation, {
       object: { course_id: this.data.id, user_id: account.id, progress: 0 }
-    }, token).then((data) => {
+    }, app.getToken()).then((data) => {
+      const studyId = data.insert_study_record_one.id
+      this.setData({ enrolled: true, studyId: studyId })
+      return studyId
+    })
+  },
+  onEnroll() {
+    wx.showLoading({ title: '加入学习' })
+    this.ensureEnrolled().then(() => {
       wx.hideLoading()
-      this.setData({
-        enrolled: true,
-        studyId: data.insert_study_record_one.id,
-        percent: 0
-      })
+      this.showStep(this.data.currentIndex, true)
       wx.showToast({ title: '已加入学习' })
     }).catch((err) => {
       wx.hideLoading()
       wx.showToast({ title: err.message || '加入失败', icon: 'none' })
     })
   },
-  onProgress(e) {
-    const percent = Number(e.currentTarget.dataset.percent)
-    if (!this.data.studyId) {
-      wx.showToast({ title: '请先选课', icon: 'none' })
+  onStepBar(e) {
+    this.onPickStep(e.detail.index)
+  },
+  onPickStep(e) {
+    const index = typeof e === 'number' ? e : Number(e.currentTarget.dataset.index)
+    if (isNaN(index)) return
+    if (!this.data.enrolled) {
+      this.ensureEnrolled().then(() => this.showStep(index, true)).catch(() => this.showStep(index, false))
       return
     }
-    const mutation = `
-      mutation SaveProgress($id: bigint!, $set: study_record_set_input!) {
-        update_study_record_by_pk(pk_columns: { id: $id }, _set: $set) { id progress }
-      }
-    `
-    graphqlRequest(mutation, {
-      id: this.data.studyId,
-      set: { progress: percent / 100 }
-    }, app.getToken()).then(() => {
-      this.setData({ percent: percent })
-      wx.showToast({ title: '进度 ' + percent + '%' })
-    }).catch((err) => wx.showToast({ title: err.message || '进度保存失败', icon: 'none' }))
+    this.showStep(index, true)
+  },
+  onPrev() {
+    this.onPickStep(Math.max(0, this.data.currentIndex - 1))
+  },
+  onNext() {
+    this.onPickStep(Math.min(this.data.steps.length - 1, this.data.currentIndex + 1))
   },
   onLearn() {
     wx.switchTab({ url: '/pages/learn/index' })
   },
   onAsk() {
-    const title = this.data.course ? this.data.course.title : ''
-    wx.setStorageSync('agentSeed', '我想学习课程《' + title + '》，请按讲师自学路径带我过一遍要点。')
+    const title = this.data.displayTitle || (this.data.course && this.data.course.title) || ''
+    const step = this.data.currentStep
+    const seed = step
+      ? '我想继续自学《' + title + '》的第 ' + step.ordinal + ' 步「' + step.title + '」。请只讲这一步，不要和其他步骤混在一起。'
+      : '我想学习课程《' + title + '》，请按讲师自学路径带我过一遍要点。'
+    wx.setStorageSync('agentSeed', seed)
     wx.switchTab({ url: '/pages/agent/index' })
   },
   onMakePpt() {
     const course = this.data.course
     if (!course) return
-    const text = lectureTextFromCourse(course, this.data.analysis)
+    const text = lectureTextFromCourse(course)
     if (!text) {
       wx.showToast({ title: '这门课还没有可生成课件的内容', icon: 'none' })
       return
     }
     wx.setStorageSync('pptSeed', text)
     wx.navigateTo({
-      url: '/pages/ppt/index?title=' + encodeURIComponent(course.title || '') + '&courseId=' + course.id
+      url: '/pages/ppt/index?title=' + encodeURIComponent(this.data.displayTitle || course.title || '') + '&courseId=' + course.id
     })
   }
 })

@@ -1,9 +1,14 @@
 const app = getApp()
 const { graphqlRequest, eqBigint } = require('../../utils/graphql.js')
 const { getImageUrl } = require('../../utils/upload.js')
+const { decorateStudyRow, groupByCategory } = require('../../utils/catalog.js')
 
 Page({
-  data: { list: [], loading: true, error: '' },
+  data: {
+    sections: [],
+    loading: true,
+    error: ''
+  },
   onShow() {
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
       this.getTabBar().setData({ selected: 1 })
@@ -20,26 +25,34 @@ Page({
           study_record(where: $where, order_by: { updated_at: desc }) {
             id progress
             course {
-              id title description price status cover_id
+              id title description price status cover_id ai_analysis
               category_id { id name }
             }
+          }
+          course_category(order_by: { sort_order: asc }) {
+            id name sort_order
           }
         }
       `
       return graphqlRequest(q, { where: eqBigint('user_id', account.id) }, token)
     }).then((data) => {
       const rows = data.study_record || []
+      const categories = data.course_category || []
       const token = app.getToken()
       return Promise.all(rows.map((row) => {
         const course = row.course || {}
         return getImageUrl(course.cover_id, token).then((url) => {
           row.coverUrl = url
-          row.percent = Math.round(Number(row.progress || 0) * (Number(row.progress || 0) <= 1 ? 100 : 1))
-          return row
-        }).catch(() => row)
-      }))
-    }).then((list) => this.setData({ list: list, loading: false }))
-      .catch((err) => this.setData({ loading: false, error: this.friendlyError(err) }))
+          return decorateStudyRow(row, categories)
+        }).catch(() => decorateStudyRow(row, categories))
+      })).then((list) => {
+        const visible = list.filter((row) => row.course && row.course.id)
+        this.setData({
+          sections: groupByCategory(visible, categories, 0),
+          loading: false
+        })
+      })
+    }).catch((err) => this.setData({ loading: false, error: this.friendlyError(err) }))
   },
   friendlyError(err) {
     const msg = (err && err.message) || '加载失败'
@@ -52,11 +65,16 @@ Page({
     return msg
   },
   onOpen(e) {
-    wx.navigateTo({ url: '/pages/course/detail?id=' + e.currentTarget.dataset.id })
+    const id = e.currentTarget.dataset.id
+    const step = e.currentTarget.dataset.step
+    wx.navigateTo({ url: '/pages/course/detail?id=' + id + '&step=' + (step || 0) })
   },
   onAsk(e) {
     const title = e.currentTarget.dataset.title
-    wx.setStorageSync('agentSeed', '我正在自学《' + title + '》，请用智学助手带我做讲师备课演练。')
+    wx.setStorageSync('agentSeed', '我正在自学《' + title + '》，请按我上次停下的步骤继续带备课本段要点。')
     wx.switchTab({ url: '/pages/agent/index' })
+  },
+  onBrowse() {
+    wx.switchTab({ url: '/pages/index/index' })
   }
 })

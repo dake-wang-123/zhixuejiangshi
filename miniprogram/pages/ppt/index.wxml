@@ -1,7 +1,14 @@
 <view class="page">
   <view class="hero">
-    <text class="eyebrow">SLIDES</text>
-    <text class="hero-title">生成课件 PPT</text>
+    <view class="hero-row">
+      <view class="hero-mark">
+        <ui-icon name="slides" size="40" color="#5C7A5A"></ui-icon>
+      </view>
+      <view class="grow">
+        <text class="eyebrow">SLIDES</text>
+        <text class="hero-title">生成课件 PPT</text>
+      </view>
+    </view>
     <text class="hero-sub">把讲课稿或课程要点交给智学写大纲，再调用智谱 PPT 接口出片。完成后会写入 PPT 记录，并在这里给出下载入口。</text>
   </view>
   <view class="error" wx:if="{{error}}">{{error}}</view>
@@ -13,16 +20,24 @@
     <view class="muted" wx:if="{{progress}}">{{progress}}</view>
     <button class="btn" bindtap="onSubmit" disabled="{{submitting}}">{{submitting ? '生成中…' : '生成课件'}}</button>
   </view>
-  <view class="section-title">我的课件</view>
+  <view class="section-head">
+    <ui-icon name="folder" size="32" color="#5C7A5A"></ui-icon>
+    <text class="name">我的课件</text>
+  </view>
   <view class="empty" wx:if="{{loading}}">正在读取 PPT 记录…</view>
-  <view class="empty" wx:if="{{!loading && !records.length}}">还没有生成过课件</view>
+  <view class="empty" wx:if="{{!loading && !records.length}}">
+    <view class="empty-icon">
+      <ui-icon name="slides" size="48" color="#8A8175"></ui-icon>
+    </view>
+    还没有生成过课件
+  </view>
   <view class="card" wx:for="{{records}}" wx:key="id">
     <view class="title">{{item.title}}</view>
-    <view class="row" style="margin-top: 12rpx;">
+    <view class="row chips">
       <text class="chip" wx:if="{{item.status === '已完成'}}">{{item.status}}</text>
       <text class="chip chip-warn" wx:else>{{item.status}}</text>
     </view>
-    <view class="desc" wx:if="{{item.outline}}">{{item.outline}}</view>
+    <view class="desc outline" wx:if="{{item.outline}}">{{item.outline}}</view>
     <view class="error" wx:if="{{item.error_message}}">{{item.error_message}}</view>
     <view class="muted">{{item.created_at}}</view>
     <view class="row wrap" wx:if="{{item.file_url}}">

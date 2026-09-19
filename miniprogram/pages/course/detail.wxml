@@ -1,47 +1,75 @@
 <view class="page">
   <view class="error" wx:if="{{error}}">{{error}}</view>
-  <view class="empty" wx:if="{{loading}}">正在打开课程…</view>
-  <image class="banner" src="{{coverUrl}}" mode="aspectFill" wx:if="{{coverUrl}}"></image>
-  <view class="card" wx:if="{{course}}">
-    <view class="title">{{course.title}}</view>
-    <view class="desc">{{course.description || ''}}</view>
-    <view class="row" style="margin-top: 16rpx;">
-      <text class="chip" wx:if="{{course.category_id}}">{{course.category_id.name}}</text>
-      <text class="chip" wx:if="{{course.topic}}">{{course.topic.name}}</text>
-      <text class="chip" wx:if="{{course.direction}}">{{course.direction.name}}</text>
-      <text class="price" wx:if="{{course.price > 0}}">¥{{course.price}}</text>
-      <text class="muted" wx:else>免费学习</text>
+  <view class="empty" wx:if="{{loading}}">
+    <view class="empty-icon">
+      <ui-icon name="book-open" size="48" color="#8A8175"></ui-icon>
     </view>
-    <button class="btn" bindtap="onEnroll" wx:if="{{!enrolled}}">选择这门课</button>
-    <block wx:else>
-      <view class="muted" style="margin-top: 16rpx;">当前进度 {{percent}}%</view>
-      <view class="row wrap">
-        <button class="btn btn-ghost mini" size="mini" data-percent="25" bindtap="onProgress">25%</button>
-        <button class="btn btn-ghost mini" size="mini" data-percent="50" bindtap="onProgress">50%</button>
-        <button class="btn btn-ghost mini" size="mini" data-percent="75" bindtap="onProgress">75%</button>
-        <button class="btn mini" size="mini" data-percent="100" bindtap="onProgress">学完</button>
+    正在打开课程…
+  </view>
+  <block wx:if="{{course && currentStep}}">
+    <image class="banner" src="{{coverUrl}}" mode="aspectFill" wx:if="{{coverUrl}}"></image>
+    <view class="card">
+      <view class="title">{{displayTitle}}</view>
+      <view class="muted" wx:if="{{displayTitle !== course.title && course.title}}">原标题 {{course.title}}</view>
+      <view class="row chips">
+        <text class="chip" wx:if="{{course.category_id}}">{{course.category_id.name}}</text>
+        <text class="chip" wx:if="{{course.topic}}">{{course.topic.name}}</text>
+        <text class="chip" wx:if="{{course.direction}}">{{course.direction.name}}</text>
+        <text class="price" wx:if="{{course.price > 0}}">¥{{course.price}}</text>
+        <text class="muted" wx:else>免费学习</text>
       </view>
-      <button class="btn" bindtap="onLearn">返回学习列表</button>
-    </block>
-    <button class="btn btn-ghost" bindtap="onAsk">问智学助手</button>
-    <button class="btn btn-ghost" bindtap="onMakePpt">生成课件 PPT</button>
-  </view>
-  <view class="card" wx:if="{{analysis}}">
-    <view class="title">智能体解析</view>
-    <view class="desc" wx:if="{{analysis.summaryText}}">{{analysis.summaryText}}</view>
-    <view class="chapter" wx:for="{{analysis.chapters}}" wx:key="title">
-      <view class="title">{{item.title}}</view>
-      <view class="desc" wx:if="{{item.detail}}">{{item.detail}}</view>
+      <button class="btn" bindtap="onEnroll" wx:if="{{!enrolled}}">开始按步骤学习</button>
     </view>
-    <view wx:if="{{analysis.direction}}">
-      <text class="chip">{{analysis.direction}}</text>
+
+    <view class="card">
+      <view class="section-head" style="margin-top: 0;">
+        <ui-icon name="route" size="32" color="#5C7A5A"></ui-icon>
+        <text class="name">学习进度</text>
+      </view>
+      <step-bar
+        steps="{{steps}}"
+        current="{{currentIndex}}"
+        furthest="{{furthest}}"
+        percent="{{percent}}"
+        bindchange="onStepBar"
+      ></step-bar>
     </view>
-    <view wx:if="{{analysis.tags.length}}">
-      <text class="chip" wx:for="{{analysis.tags}}" wx:key="*this">{{item}}</text>
+
+    <view class="card step-card">
+      <view class="muted">{{currentStep.group}} · 第 {{currentStep.ordinal}} 步</view>
+      <view class="title">{{currentStep.title}}</view>
+      <view class="desc step-body">{{currentStep.detail}}</view>
+      <view class="row nav">
+        <button class="btn btn-ghost mini" size="mini" bindtap="onPrev" disabled="{{currentIndex === 0}}">上一步</button>
+        <button class="btn mini" size="mini" bindtap="onNext" disabled="{{currentIndex >= steps.length - 1}}">下一步</button>
+      </view>
     </view>
-    <view class="chapter" wx:for="{{analysis.topics}}" wx:key="name">
-      <view class="title">课题 · {{item.name}}</view>
-      <view class="desc" wx:if="{{item.reason}}">{{item.reason}}</view>
+
+    <view class="card">
+      <view class="section-head" style="margin-top: 0;">
+        <ui-icon name="folder" size="32" color="#5C7A5A"></ui-icon>
+        <text class="name">课程目录</text>
+      </view>
+      <view class="toc-group" wx:for="{{groups}}" wx:key="name">
+        <view class="toc-label">{{item.name}}</view>
+        <view
+          class="toc-item {{item2.index === currentIndex ? 'current' : ''}} {{item2.index <= furthest ? 'done' : ''}}"
+          wx:for="{{item.items}}"
+          wx:for-item="item2"
+          wx:key="key"
+          data-index="{{item2.index}}"
+          bindtap="onPickStep"
+        >
+          <view class="toc-index">{{item2.ordinal}}</view>
+          <view class="grow">{{item2.title}}</view>
+        </view>
+      </view>
     </view>
-  </view>
+
+    <view class="card">
+      <button class="btn" bindtap="onLearn" wx:if="{{enrolled}}">返回学习列表</button>
+      <button class="btn btn-ghost" bindtap="onAsk">就这一步问智学</button>
+      <button class="btn btn-ghost" bindtap="onMakePpt">生成课件 PPT</button>
+    </view>
+  </block>
 </view>

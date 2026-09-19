@@ -1,11 +1,23 @@
 <view class="page">
   <view class="hero">
-    <text class="eyebrow">FAMILY EDUCATION</text>
-    <text class="hero-title">家庭教育讲师自学</text>
-    <text class="hero-sub">选课学习、上传教案，智能体帮你拆结构、写摘要、推课题，再进入智学对话。</text>
+    <view class="hero-row">
+      <view class="hero-mark">
+        <ui-icon name="leaf" size="40" color="#5C7A5A"></ui-icon>
+      </view>
+      <view class="grow">
+        <text class="eyebrow">FAMILY EDUCATION</text>
+        <text class="hero-title">家庭教育讲师自学</text>
+      </view>
+    </view>
+    <text class="hero-sub">课程名称来自智能体解析，按分类排列。点进一门课，就能按步骤学习。</text>
   </view>
   <view class="error" wx:if="{{error}}">{{error}}</view>
-  <view class="empty" wx:if="{{loading}}">正在加载课程…</view>
+  <view class="empty" wx:if="{{loading}}">
+    <view class="empty-icon">
+      <ui-icon name="book-open" size="48" color="#8A8175"></ui-icon>
+    </view>
+    正在加载课程目录…
+  </view>
   <scroll-view scroll-x class="cats" wx:if="{{categories.length}}">
     <view
       class="cat {{activeCategory === item.id ? 'on' : ''}}"
@@ -15,19 +27,43 @@
       bindtap="onCategory"
     >{{item.name}}</view>
   </scroll-view>
-  <view class="empty" wx:if="{{!loading && !visibleCourses.length}}">暂无已上架课程</view>
-  <view class="card row" wx:for="{{visibleCourses}}" wx:key="id" data-id="{{item.id}}" bindtap="onOpen">
-    <image class="cover" src="{{item.coverUrl}}" mode="aspectFill" wx:if="{{item.coverUrl}}"></image>
-    <view class="cover" wx:else></view>
-    <view class="grow">
-      <view class="title">{{item.title}}</view>
-      <view class="desc">{{item.description || '家庭教育讲师进阶课程'}}</view>
-      <view class="row" style="margin-top: 12rpx;">
-        <text class="chip" wx:if="{{item.is_recommended}}">推荐</text>
-        <text class="chip" wx:if="{{item.category_id}}">{{item.category_id.name}}</text>
-        <text class="price" wx:if="{{item.price > 0}}">¥{{item.price}}</text>
-        <text class="muted" wx:else>免费</text>
+  <view class="empty" wx:if="{{!loading && !sections.length}}">
+    <view class="empty-icon">
+      <ui-icon name="empty" size="48" color="#8A8175"></ui-icon>
+    </view>
+    暂无已上架课程
+  </view>
+  <block wx:for="{{sections}}" wx:key="id" wx:for-item="section">
+    <view class="section-head">
+      <ui-icon name="folder" size="32" color="#5C7A5A"></ui-icon>
+      <text class="name">{{section.name}}</text>
+      <text class="count">{{section.courses.length}} 门</text>
+    </view>
+    <view
+      class="card row course-card"
+      wx:for="{{section.courses}}"
+      wx:for-item="item"
+      wx:key="id"
+      data-id="{{item.id}}"
+      data-step="{{item.cursorStep}}"
+      bindtap="onOpen"
+    >
+      <image class="cover" src="{{item.coverUrl}}" mode="aspectFill" wx:if="{{item.coverUrl}}"></image>
+      <view class="cover cover-fallback" wx:else>
+        <ui-icon name="book" size="48" color="#7A9A74"></ui-icon>
+      </view>
+      <view class="grow">
+        <view class="title">{{item.displayTitle}}</view>
+        <view class="muted" wx:if="{{item.showOriginal}}">原标题 {{item.originalTitle}}</view>
+        <view class="desc">{{item.description || '家庭教育讲师进阶课程'}}</view>
+        <view class="row chips">
+          <text class="chip" wx:if="{{item.is_recommended}}">推荐</text>
+          <text class="chip">{{item.stepCount}} 步</text>
+          <text class="chip" wx:if="{{item.view.direction}}">{{item.view.direction}}</text>
+          <text class="price" wx:if="{{item.price > 0}}">¥{{item.price}}</text>
+          <text class="muted" wx:else>免费</text>
+        </view>
       </view>
     </view>
-  </view>
+  </block>
 </view>

@@ -8,7 +8,7 @@
 
 | Tab | 做什么 |
 | --- | --- |
-| 课程 | 读取已上架课程；标题优先用智能体解析出的课程名称，按分类分节排列 |
+| 课程 | 固定展示六张分类表（0-3 / 3-6 / 6-12 / 12-15 / 15-18 / 父母国学修养）。标题来自扣子智能体知识库，按分类写入 `course` |
 | 学习 | 当前用户的 `study_record`，按分类显示进度条，点「继续」回到上次那一步 |
 | 教案 | 上传文件到 `course.original_file`，粘贴全文后串联三个 ZAI，写回 `ai_analysis`；可把讲课稿生成课件 |
 | 智学 | 异步 Actionflow **智学对话** `8e640419-2243-41b5-92c4-0dd349b97f2d`：POST Coze `/v3/chat`，再轮询 **智学消息** TPA |
@@ -50,7 +50,7 @@ https://zion-app.functorz.com/zero/PO76RBe9KX0/api/graphql-v2
    - 授权工作空间必须包含当前 Bot
    - 只把令牌填进 Zion 项目密钥，不要加 `Bearer `，不要发到聊天里
    - 保存后 **同步后端**
-3. Actionflow **智学对话**（异步，超时 120 秒）已同步。组装节点会去掉重复的 `Bearer` 前缀，并在 Run Code 里用 `callThirdPartyApi` 发送 OBJECT 请求体（`bot_id` 为 TEXT，`additional_messages` 为一条 user 文本）。
+3. Actionflow **智学对话**（异步，超时 180 秒）已同步。组装节点会去掉重复的 `Bearer` 前缀，并在 Run Code 里用 `callThirdPartyApi` 发送 OBJECT 请求体（`bot_id` 为 TEXT，`additional_messages` 为一条 user 文本）。轮询节点会等到 Coze 真正写出 `answer` 再返回。
    - 入参：`user_message` / `user_id` / `conversation_id` / `bot_id`
    - 节点：组装并调用智学 → Run Code **轮询智学回复**（TPA **智学消息** `r43leo7de`）
    - 输出：`reply_content`、`conversation_id`、`raw`（chat id）
@@ -81,7 +81,7 @@ https://zion-app.functorz.com/zero/PO76RBe9KX0/api/graphql-v2
 
 - 教案不是独立表，而是课程的 `original_file` + `ai_analysis`。讲师上传 `source_type = 讲师上传`，解析中为 `解析中`，解析完为 `待审核`。
 - 上架课由管理员把 `status` 改为 `已上架`。登录用户可读「已上架 **或** 自己上传」的课程；课程 Tab 客户端再筛一层已上架。
-- 课程目录优先展示智能体写出的 `course_name` / `课程名称`。教案解析成功后，也会把该名称写回 `course.title`。没有分类时，会按智能体的专业方向归组。
+- 课程目录优先展示智能体写出的 `course_name` / `课程名称`。首页始终渲染 6 张分类表，空分类显示「该分类暂无课程」。扣子知识库的 60 门课已按分类写入 `course`（每类 10 门，`status = 已上架`，`source_type = 管理员上传`）。教案解析成功后，也会把该名称写回 `course.title`。
 - 学习步骤来自智能体拆出的章节。详情页用进度条和分类目录查看任意一步，每次只渲染当前步正文，避免串内容。`study_record.progress` 只前进不回退；本地还记下当前步的 `stepKey`，再次进入会回到同一节。
 - 登录用户可插入自己的课程、学习记录、用户资料、反馈；匿名角色没有任何表权限，也不能调用 Actionflow / TPA / ZAI。
 - 课程分类字段在 GraphQL 里是关系对象 `category_id { id name }`，不是标量外键。
@@ -91,7 +91,7 @@ https://zion-app.functorz.com/zero/PO76RBe9KX0/api/graphql-v2
 
 | 环节 | 结果 |
 | --- | --- |
-| GraphQL 课程 / 分类 | 通。`where` 必须用 operator-first 变量，分类有 6 条。已写入示例课 **亲子沟通：倾听与表达**（`course.id = 5`，6-12岁，已上架，含完整 `ai_analysis`）。 |
+| GraphQL 课程 / 分类 | 通。6 个分类表都在。扣子目录 **60 门全部导入**（每类 10 门）。另保留讲师教案示例 **亲子沟通：倾听与表达**（`course.id = 5`，6-12岁），故上架课合计 61 门。占位课标题 `1` 已删。 |
 | 微信登录 | AppID / AppSecret 已填。用假 code 会得到 `invalid code` / `FAILED_TO_GET_MINI_APP_SESSION_KEY`，说明已经打到微信。真机需微信开发者工具里的 `wx.login`。 |
 | 权限 | 登录用户：课程/学习记录/资料/反馈有行列条件；匿名无表权限，且已关掉 Actionflow / TPA / ZAI 的 allowAll。CLI 只能以管理员跑查询，不能代替登录用户验收。 |
 | 上传 | `filePresignedUrl` 能拿到 fileId 和 PUT 地址。小程序用 MD5 + 预签名 PUT。 |
@@ -104,7 +104,7 @@ https://zion-app.functorz.com/zero/PO76RBe9KX0/api/graphql-v2
 ## 已知缺口（需在 Zion 编辑器处理）
 
 - 编辑器微信端原先「生成PPT」按钮指向已删除 TPA 的校验错误已清除，`schema validate` 目前无稳定错误。
-- 课程表里仍有早期调试行（标题为 `1` 的已上架课、空的学习记录）。可在数据表里自行删除。示例课是 `id = 5`。
+- 空的学习记录、未实际上传的文件资源、ZAI 会话与历史智学/PPT 任务可删。示例教案课是 `id = 5`。
 - 验证留下了未实际上传的文件资源、ZAI 会话 `2`–`5`、智学任务 `1150000000000001`–`1150000000000015`、PPT 记录 `1`–`3`，可删。
 - 智谱 `ppt-api-key` 当前余额不足，充值后重新点「生成课件」才会写入 `file_url`。请把智谱文件域名加入微信 downloadFile 合法域名。
 

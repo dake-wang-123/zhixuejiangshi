@@ -9,7 +9,8 @@
         <text class="hero-title">家庭教育讲师自学</text>
       </view>
     </view>
-    <text class="hero-sub">课程名称来自智能体解析，按分类排列。点进一门课，就能按步骤学习。</text>
+        <text class="hero-sub">目录固定六张分类表。课程标题来自扣子智能体，按年龄段写入对应分类。</text>
+        <text class="hero-meta" wx:if="{{!loading}}">已上架 {{totalCount}} 门 · {{categoryCount}} 个分类</text>
   </view>
   <view class="error" wx:if="{{error}}">{{error}}</view>
   <view class="empty" wx:if="{{loading}}">
@@ -27,20 +28,21 @@
       bindtap="onCategory"
     >{{item.name}}</view>
   </scroll-view>
-  <view class="empty" wx:if="{{!loading && !sections.length}}">
+  <view class="empty" wx:if="{{!loading && !categories.length}}">
     <view class="empty-icon">
       <ui-icon name="empty" size="48" color="#8A8175"></ui-icon>
     </view>
-    暂无已上架课程
+    还没有课程分类
   </view>
-  <block wx:for="{{sections}}" wx:key="id" wx:for-item="section">
-    <view class="section-head">
+  <view class="cat-table" wx:for="{{sections}}" wx:key="id" wx:for-item="section">
+    <view class="cat-table-head">
       <ui-icon name="folder" size="32" color="#5C7A5A"></ui-icon>
       <text class="name">{{section.name}}</text>
       <text class="count">{{section.courses.length}} 门</text>
     </view>
+    <view class="cat-table-empty" wx:if="{{!section.courses.length}}">该分类暂无课程</view>
     <view
-      class="card row course-card"
+      class="cat-row"
       wx:for="{{section.courses}}"
       wx:for-item="item"
       wx:key="id"
@@ -48,10 +50,7 @@
       data-step="{{item.cursorStep}}"
       bindtap="onOpen"
     >
-      <image class="cover" src="{{item.coverUrl}}" mode="aspectFill" wx:if="{{item.coverUrl}}"></image>
-      <view class="cover cover-fallback" wx:else>
-        <ui-icon name="book" size="48" color="#7A9A74"></ui-icon>
-      </view>
+      <text class="cat-idx">{{index + 1}}</text>
       <view class="grow">
         <view class="title">{{item.displayTitle}}</view>
         <view class="muted" wx:if="{{item.showOriginal}}">原标题 {{item.originalTitle}}</view>
@@ -60,10 +59,9 @@
           <text class="chip" wx:if="{{item.is_recommended}}">推荐</text>
           <text class="chip">{{item.stepCount}} 步</text>
           <text class="chip" wx:if="{{item.view.direction}}">{{item.view.direction}}</text>
-          <text class="price" wx:if="{{item.price > 0}}">¥{{item.price}}</text>
-          <text class="muted" wx:else>免费</text>
+          <text class="muted" wx:else>免费自学</text>
         </view>
       </view>
     </view>
-  </block>
+  </view>
 </view>

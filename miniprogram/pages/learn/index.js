@@ -48,7 +48,7 @@ Page({
       })).then((list) => {
         const visible = list.filter((row) => row.course && row.course.id)
         this.setData({
-          sections: groupByCategory(visible, categories, 0),
+          sections: groupByCategory(visible, categories, 0, false),
           loading: false
         })
       })

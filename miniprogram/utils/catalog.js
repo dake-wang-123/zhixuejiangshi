@@ -62,12 +62,14 @@ function decorateStudyRow(row, categories) {
   })
 }
 
-function groupByCategory(items, categories, activeCategory) {
+function groupByCategory(items, categories, activeCategory, keepEmpty) {
   const cats = categories || []
   const map = {}
   const sections = []
+  const filterId = Number(activeCategory) || 0
   cats.forEach((cat) => {
     if (!cat || !cat.id) return
+    if (filterId && Number(cat.id) !== filterId) return
     const key = String(cat.id)
     map[key] = { id: cat.id, name: cat.name, courses: [] }
     sections.push(map[key])
@@ -81,10 +83,13 @@ function groupByCategory(items, categories, activeCategory) {
   }
   ;(items || []).forEach((item) => {
     const key = String(item.categoryKey || 'uncat')
-    if (activeCategory && Number(activeCategory) && Number(key) !== Number(activeCategory)) return
+    if (filterId && Number(key) !== filterId) return
     ensure(key, item.categoryName).courses.push(item)
   })
-  return sections.filter((section) => section.courses.length)
+  if (keepEmpty === false) {
+    return sections.filter((section) => section.courses && section.courses.length)
+  }
+  return sections
 }
 
 module.exports = {

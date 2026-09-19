@@ -35,7 +35,9 @@ Page({
     courses: [],
     sections: [],
     categories: [],
-    activeCategory: 0
+    activeCategory: 0,
+    totalCount: 0,
+    categoryCount: 0
   },
   onShow() {
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
@@ -55,7 +57,7 @@ Page({
     return app.ensureLogin().then(() => {
       const token = app.getToken()
       const where = eqText('status', config.statusOnShelf)
-      return graphqlRequest(COURSE_LIST, { where: where, limit: 50 }, token)
+      return graphqlRequest(COURSE_LIST, { where: where, limit: 200 }, token)
     }).then((data) => {
       const categories = data.course_category || []
       const courses = data.course || []
@@ -70,6 +72,8 @@ Page({
         this.setData({
           loading: false,
           courses: courses,
+          totalCount: courses.length,
+          categoryCount: categories.length,
           categories: [{ id: 0, name: '全部' }].concat(categories),
           sections: this.applyFilter(courses, categories, this.data.activeCategory)
         })

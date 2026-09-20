@@ -1,6 +1,6 @@
 {
   "usingComponents": {
-    "custom-tab-bar": "/custom-tab-bar/index"
+    "ui-icon": "/components/icon/icon"
   },
   "navigationBarTitleText": "我的学习"
 }

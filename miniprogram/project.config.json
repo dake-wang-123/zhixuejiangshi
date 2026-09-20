@@ -7,10 +7,16 @@
   },
   "setting": {
     "es6": true,
+    "enhance": true,
+    "postcss": true,
     "minified": true,
+    "minifyWXSS": true,
+    "minifyWXML": true,
     "urlCheck": false,
     "coverView": true,
-    "lazyloadPlaceholderEnable": false
+    "lazyloadPlaceholderEnable": false,
+    "ignoreUploadUnusedFiles": true,
+    "ignoreDevUnusedFiles": true
   },
   "compileType": "miniprogram",
   "miniprogramRoot": "./",

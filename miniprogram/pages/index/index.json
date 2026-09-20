@@ -1,6 +1,6 @@
 {
   "usingComponents": {
-    "custom-tab-bar": "/custom-tab-bar/index"
+    "ui-icon": "/components/icon/icon"
   },
   "enablePullDownRefresh": true,
   "navigationBarTitleText": "选课学习"

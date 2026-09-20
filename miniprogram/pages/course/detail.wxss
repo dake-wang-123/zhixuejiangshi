@@ -24,6 +24,7 @@
   font-size: 24rpx;
   line-height: 1.5;
 }
+.step-goal {
   margin-top: 12rpx;
   padding-top: 12rpx;
   border-top: 1rpx solid #F0E6D6;
@@ -72,7 +73,9 @@
   align-items: center;
   padding-bottom: 12rpx;
 }
-.thinking text { margin-left: 8rpx; }
+.thinking text {
+  margin-left: 8rpx;
+}
 .composer {
   position: fixed;
   left: 24rpx;
@@ -122,4 +125,6 @@
   justify-content: flex-end;
   margin-top: 8rpx;
 }
-.mini { margin-right: 12rpx; }
+.mini {
+  margin-right: 12rpx;
+}

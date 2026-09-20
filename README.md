@@ -23,7 +23,7 @@
 4. 在微信公众平台把 `https://zion-app.functorz.com` 以及上传用的 OSS 域名加入 request 合法域名。
 5. 编译预览。静默登录走 `wx.login` → GraphQL `loginWithWechatMiniApp`。
 
-上传体验版时，代码质量「启用组件按需注入」必须通过：`app.json` 已写 `"lazyCodeLoading": "requiredComponents"`（基础库 ≥ 2.11.1，当前 `2.32.3`）。`ui-icon`、`step-bar` 只写在用到它们的页面 json 里，不要写进 `app.json` 的全局 `usingComponents`，否则每个页面都会注入进度条，这项检查仍会失败。重新导入本仓库或最新 zip 后再点上传。
+上传体验版时，代码质量「启用组件按需注入」必须通过：`app.json` 已写 `"lazyCodeLoading": "requiredComponents"`（基础库 ≥ 2.11.1，当前 `2.32.3`）。`ui-icon`、`step-bar` 只写在用到它们的页面 json 里，不要写进 `app.json` 的全局 `usingComponents`，否则每个页面都会注入进度条，这项检查仍会失败。`sitemap.json` 必须带 `rules`（当前允许全部页面被索引），缺这个字段上传会报 `-80055 Invalid SiteMap`。重新导入本仓库或最新 zip 后再点上传。
 
 后端地址写在 `miniprogram/config.js`：
 

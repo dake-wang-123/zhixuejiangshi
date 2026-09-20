@@ -5,38 +5,41 @@
     <view class="empty-icon">
       <ui-icon name="spark" size="48" color="#8A8175"></ui-icon>
     </view>
-    {{hint || '正在进入智学…'}}
+    {{hint || '正在进入智学伴练…'}}
   </view>
 
   <block wx:if="{{!loading && course}}">
     <view class="study-head">
-      <view class="muted" wx:if="{{course.category_id}}">{{course.category_id.name}} · 智学</view>
-      <view class="muted" wx:else>智学</view>
+      <view class="muted" wx:if="{{course.category_id}}">{{course.category_id.name}} · 智学伴练</view>
+      <view class="muted" wx:else>智学伴练</view>
       <view class="title">{{displayTitle}}</view>
       <step-bar
-        wx:if="{{steps.length}}"
         steps="{{steps}}"
         current="{{currentIndex}}"
         completedCount="{{completedCount}}"
         finished="{{finished}}"
         bindchange="onStepBar"
       ></step-bar>
-      <view class="muted" wx:else>智学列出环节后，这里会出现红绿进度条。对话、追问建议都按智能体原样展示。</view>
+      <view class="review-banner" wx:if="{{reviewing}}" bindtap="onBackLive">
+        正在回看「{{currentStep.title}}」。点这里回到当前环节继续学。
+      </view>
       <view class="step-goal" wx:if="{{currentStep}}">
-        <text class="muted">当前环节（来自智学）</text>
+        <text class="muted">{{currentStep.group}}</text>
         <text class="goal">{{currentStep.title}}</text>
+        <text class="muted">{{currentStep.goal}}</text>
       </view>
     </view>
 
     <scroll-view scroll-y class="thread" scroll-into-view="{{scrollInto}}" scroll-with-animation>
-      <view class="empty cat-table-empty" wx:if="{{planning && !thread.length}}">正在调用智学智能体…</view>
+      <view class="empty cat-table-empty" wx:if="{{planning && !thread.length}}">正在进入自我介绍…</view>
+      <view class="empty cat-table-empty" wx:elif="{{!thread.length && !sending}}">这一环节还没有对话。点进度条可回看已完成环节。</view>
       <view
         id="m-{{item.id}}"
         class="bubble {{item.role === 'user' ? 'me' : (item.role === 'system' ? 'sys' : 'bot')}}"
         wx:for="{{thread}}"
         wx:key="id"
       >{{item.content}}</view>
-      <view class="follow-wrap" wx:if="{{followUps.length && !sending}}">
+      <view class="follow-wrap" wx:if="{{followUps.length && !sending && !reviewing}}">
         <view class="muted">智学建议</view>
         <view
           class="follow"
@@ -52,7 +55,7 @@
       </view>
     </scroll-view>
 
-    <view class="composer">
+    <view class="composer" wx:if="{{!reviewing}}">
       <view class="draft-row">
         <textarea
           class="draft"
@@ -75,7 +78,7 @@
       </view>
       <view class="row composer-actions">
         <button class="btn btn-ghost mini" size="mini" bindtap="onRetry" wx:if="{{error}}" disabled="{{sending}}">再问一次</button>
-        <button class="btn btn-ghost mini" size="mini" bindtap="onComplete" wx:if="{{steps.length && !finished}}" disabled="{{sending}}">标记完成</button>
+        <button class="btn btn-ghost mini" size="mini" bindtap="onComplete" wx:if="{{!finished}}" disabled="{{sending}}">完成本环节</button>
         <button class="btn mini" size="mini" bindtap="onSend" disabled="{{sending}}">发送</button>
       </view>
     </view>

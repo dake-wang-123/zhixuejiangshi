@@ -1,31 +1,34 @@
-<view class="page chat-page">
-  <view class="hero">
-    <view class="hero-row">
-      <view class="hero-mark">
-        <ui-icon name="spark" size="40" color="#5C7A5A"></ui-icon>
-      </view>
-      <view class="grow">
-        <text class="eyebrow">COZE</text>
-        <text class="hero-title">智学助手</text>
-      </view>
+<view class="page study-page">
+  <view class="study-head">
+    <view class="muted">智学伴练 · 未选课</view>
+    <view class="title">完整学习流程</view>
+    <view class="muted">还没选课。智学会先打招呼、帮你选定课题。从课程目录点进去的课会跳过这句招呼，直接进入自我介绍。</view>
+    <step-bar
+      steps="{{steps}}"
+      current="{{currentIndex}}"
+      completedCount="{{completedCount}}"
+      finished="{{finished}}"
+      bindchange="onStepBar"
+    ></step-bar>
+    <view class="review-banner" wx:if="{{reviewing}}" bindtap="onBackLive">
+      正在回看「{{currentStep.title}}」。点这里回到当前环节继续学。
     </view>
-    <text class="hero-sub">选课学习走课程页的智学课堂。这里只回答临时备课问题，不会和某门课的环节进度混在一起。</text>
+    <view class="step-goal" wx:if="{{currentStep}}">
+      <text class="muted">{{currentStep.group}}</text>
+      <text class="goal">{{currentStep.title}}</text>
+      <text class="muted">{{currentStep.goal}}</text>
+    </view>
   </view>
   <view class="error" wx:if="{{error}}">{{error}}</view>
   <scroll-view scroll-y class="thread" scroll-into-view="{{scrollInto}}" scroll-with-animation>
-    <view class="empty" wx:if="{{!messages.length}}">
-      <view class="empty-icon">
-        <ui-icon name="chat" size="48" color="#8A8175"></ui-icon>
-      </view>
-      先去课程目录点一门课，按智学自己的流程上课。这里适合问临时的话术或案例，不计入课程进度。
-    </view>
+    <view class="empty cat-table-empty" wx:if="{{planning && !thread.length}}">正在请智学打招呼并引导选题…</view>
     <view
       id="m-{{item.id}}"
       class="bubble {{item.role === 'user' ? 'me' : 'bot'}}"
-      wx:for="{{messages}}"
+      wx:for="{{thread}}"
       wx:key="id"
     >{{item.content}}</view>
-    <view class="follow-wrap" wx:if="{{followUps.length && !sending}}">
+    <view class="follow-wrap" wx:if="{{followUps.length && !sending && !reviewing}}">
       <view class="muted">智学建议</view>
       <view
         class="follow"
@@ -37,14 +40,14 @@
     </view>
     <view class="muted thinking" wx:if="{{sending}}">
       <ui-icon name="spark" size="28" color="#8A8175"></ui-icon>
-      <text>智学思考中…</text>
+      <text>智学回复中…</text>
     </view>
   </scroll-view>
-  <view class="composer">
+  <view class="composer" wx:if="{{!reviewing}}">
     <view class="draft-row">
       <textarea
         class="draft"
-        placeholder="{{recording ? '正在听，松手后转成文字' : '输入或按住右侧麦克风说话'}}"
+        placeholder="{{recording ? '正在听，松手后转成文字' : '输入课题，或按住麦克风说话'}}"
         value="{{draft}}"
         bindinput="onDraft"
         auto-height
@@ -62,7 +65,9 @@
       </view>
     </view>
     <view class="row composer-actions">
-      <button class="btn btn-ghost mini" size="mini" bindtap="onClear">清空</button>
+      <button class="btn btn-ghost mini" size="mini" bindtap="onClear">重新开始</button>
+      <button class="btn btn-ghost mini" size="mini" bindtap="onRetry" wx:if="{{error}}" disabled="{{sending}}">再问一次</button>
+      <button class="btn btn-ghost mini" size="mini" bindtap="onComplete" wx:if="{{!finished}}" disabled="{{sending}}">完成本环节</button>
       <button class="btn mini" size="mini" bindtap="onSend" disabled="{{sending}}">发送</button>
     </view>
   </view>

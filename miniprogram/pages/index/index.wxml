@@ -9,7 +9,7 @@
         <text class="hero-title">家庭教育讲师自学</text>
       </view>
     </view>
-        <text class="hero-sub">点一门课即进入智学课堂。学习过程完全跟随扣子智能体，顶部只用红绿条标记进度。</text>
+        <text class="hero-sub">点一门课即进入智学伴练。课题已选定，跳过打招呼，从自我介绍开始。红格未完成，绿格已完成，点已完成环节可回看。</text>
     <text class="hero-meta" wx:if="{{!loading}}">已上架 {{totalCount}} 门 · {{categoryCount}} 个分类</text>
   </view>
   <view class="error" wx:if="{{error}}">{{error}}</view>
@@ -56,7 +56,7 @@
         <view class="desc">{{item.description || '家庭教育讲师进阶课程'}}</view>
         <view class="row chips">
           <text class="chip" wx:if="{{item.is_recommended}}">推荐</text>
-          <text class="chip" wx:if="{{item.stepCount}}">智学 {{item.stepCount}} 环节</text>
+          <text class="chip" wx:if="{{item.stepCount}}">{{item.stepCount}} 环节</text>
           <text class="chip" wx:if="{{item.view.direction}}">{{item.view.direction}}</text>
           <text class="muted" wx:else>免费自学</text>
         </view>

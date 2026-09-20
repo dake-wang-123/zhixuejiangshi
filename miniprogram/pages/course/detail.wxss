@@ -15,7 +15,15 @@
 .study-head .title {
   margin: 6rpx 0 18rpx;
 }
-.step-goal {
+.review-banner {
+  margin-top: 12rpx;
+  padding: 12rpx 16rpx;
+  border-radius: 16rpx;
+  background: #F3EADF;
+  color: #6F675C;
+  font-size: 24rpx;
+  line-height: 1.5;
+}
   margin-top: 12rpx;
   padding-top: 12rpx;
   border-top: 1rpx solid #F0E6D6;

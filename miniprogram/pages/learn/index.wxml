@@ -9,7 +9,7 @@
         <text class="hero-title">学习进度</text>
       </view>
     </view>
-    <text class="hero-sub">点一门课就进入智学课堂。环节和追问都来自扣子智能体，顶部红格未完成、绿格已完成。</text>
+    <text class="hero-sub">点一门课继续智学伴练。红格未完成，绿格已完成，点进度条可回看已学环节。</text>
   </view>
   <view class="error" wx:if="{{error}}">{{error}}</view>
   <view class="empty" wx:if="{{loading}}">

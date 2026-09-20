@@ -46,7 +46,7 @@
   display: inline-flex;
   flex-direction: column;
   align-items: center;
-  width: 96rpx;
+  width: 88rpx;
   margin-right: 8rpx;
   color: #8A8175;
 }
@@ -59,7 +59,7 @@
   color: #A33B3B;
   text-align: center;
   line-height: 40rpx;
-  font-size: 20rpx;
+  font-size: 18rpx;
   font-weight: 650;
 }
 .node.is-done .dot {
@@ -79,7 +79,7 @@
 .label {
   margin-top: 8rpx;
   font-size: 20rpx;
-  max-width: 96rpx;
+  max-width: 88rpx;
   overflow: hidden;
   text-overflow: ellipsis;
 }

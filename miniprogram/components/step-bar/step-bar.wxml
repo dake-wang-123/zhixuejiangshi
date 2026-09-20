@@ -1,6 +1,6 @@
 <view class="step-bar">
   <view class="meta">
-    <text class="meta-strong">{{finished ? '已学完' : ('第 ' + (current + 1) + ' / ' + steps.length + ' 环节')}}</text>
+    <text class="meta-strong">{{currentLabel}}</text>
     <text class="meta-muted">{{completedCount}} 环节完成</text>
   </view>
   <view class="segments">
@@ -20,12 +20,12 @@
       data-index="{{index}}"
       bindtap="onTap"
     >
-      <view class="dot">{{index + 1}}</view>
+      <view class="dot">{{item.mark}}</view>
       <text class="label">{{item.shortTitle}}</text>
     </view>
   </scroll-view>
   <view class="legend">
     <view class="lg"><view class="lg-dot red"></view><text>未完成</text></view>
-    <view class="lg"><view class="lg-dot green"></view><text>已完成</text></view>
+    <view class="lg"><view class="lg-dot green"></view><text>已完成，可回看</text></view>
   </view>
 </view>

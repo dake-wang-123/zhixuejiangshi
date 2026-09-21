@@ -2,17 +2,28 @@ const app = getApp()
 const { graphqlRequest, eqBigint } = require('../../utils/graphql.js')
 const { getImageUrl } = require('../../utils/upload.js')
 const { decorateStudyRow, groupByCategory } = require('../../utils/catalog.js')
+const { PENDING_TOPIC_KEY, TOPIC_DRAFT_KEY } = require('../../utils/flow.js')
 
 Page({
   data: {
     sections: [],
     loading: true,
-    error: ''
+    error: '',
+    topicDraft: ''
   },
   onShow() {
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
       this.getTabBar().setData({ selected: 1 })
     }
+    let draft = this.data.topicDraft
+    try {
+      const stored = wx.getStorageSync(TOPIC_DRAFT_KEY)
+      if (stored) {
+        draft = stored
+        wx.removeStorageSync(TOPIC_DRAFT_KEY)
+      }
+    } catch (e) {}
+    if (draft !== this.data.topicDraft) this.setData({ topicDraft: draft })
     this.load()
   },
   load() {
@@ -64,9 +75,30 @@ Page({
     }
     return msg
   },
+  onTopicDraft(e) {
+    this.setData({ topicDraft: e.detail.value })
+  },
+  onStartTopic() {
+    const title = String(this.data.topicDraft || '').trim()
+    if (!title) {
+      wx.showToast({ title: '请先输入课题名称', icon: 'none' })
+      return
+    }
+    try {
+      wx.setStorageSync(PENDING_TOPIC_KEY, title)
+    } catch (e) {}
+    wx.switchTab({ url: '/pages/agent/index' })
+  },
   onOpen(e) {
     const id = e.currentTarget.dataset.id
-    wx.navigateTo({ url: '/pages/course/detail?id=' + id })
+    const matched = e.currentTarget.dataset.matched
+    const title = e.currentTarget.dataset.title
+    if (String(matched) === '1') {
+      wx.navigateTo({ url: '/pages/course/detail?id=' + id })
+      return
+    }
+    this.setData({ topicDraft: title || this.data.topicDraft })
+    wx.showToast({ title: '该课未匹配智学目录，请确认课题后开始', icon: 'none' })
   },
   onBrowse() {
     wx.switchTab({ url: '/pages/index/index' })

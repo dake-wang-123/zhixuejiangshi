@@ -2,7 +2,8 @@ const app = getApp()
 const { graphqlRequest, eqBigint, andWhere } = require('../../utils/graphql.js')
 const classroom = require('../../utils/classroom.js')
 const { ensureFlowSession } = require('../../utils/session.js')
-const { courseStartPrompt } = require('../../utils/flow.js')
+const { startPrompt, TOPIC_DRAFT_KEY } = require('../../utils/flow.js')
+const { matchCanonical } = require('../../utils/coze-catalog.js')
 const voice = require('../../utils/voice.js')
 
 Page({
@@ -10,6 +11,7 @@ Page({
     id: '',
     course: null,
     displayTitle: '',
+    matched: false,
     loading: true,
     planning: false,
     sending: false,
@@ -20,9 +22,9 @@ Page({
     enrolled: false,
     studyId: '',
     steps: [],
-    currentIndex: 1,
-    liveIndex: 1,
-    completedCount: 1,
+    currentIndex: 0,
+    liveIndex: 0,
+    completedCount: 0,
     finished: false,
     currentStep: null,
     thread: [],
@@ -69,19 +71,28 @@ Page({
         const course = data.course_by_pk
         if (!course) throw new Error('课程不存在或无权查看')
         const study = (data.study_record || [])[0]
-        this.data.course = course
-        ensureFlowSession(id, true)
+        const canonical = matchCanonical(course.title)
+        const displayTitle = canonical ? canonical.title : course.title
+        this.data.course = Object.assign({}, course, { displayTitle: displayTitle })
+        ensureFlowSession(id, displayTitle)
         this.setData({
-          course: course,
-          displayTitle: course.title,
+          course: this.data.course,
+          displayTitle: displayTitle,
+          matched: !!canonical,
           enrolled: !!study,
           studyId: study ? study.id : '',
-          loading: false,
-          planning: true,
-          hint: '正在进入模块一：自我介绍'
+          loading: false
         })
-        wx.setNavigationBarTitle({ title: '智学 · ' + String(course.title || '课程').slice(0, 10) })
-        return this.ensureEnrolled().then(() => classroom.startCourseFlow(this, course))
+        wx.setNavigationBarTitle({ title: '智学 · ' + String(displayTitle || '课程').slice(0, 10) })
+        if (!canonical) {
+          this.setData({
+            planning: false,
+            hint: '该标题不在智学 60 课目录中'
+          })
+          return null
+        }
+        this.setData({ planning: true, hint: '正在把课题发给智学…' })
+        return this.ensureEnrolled().then(() => classroom.startCourseFlow(this, this.data.course))
       })
     }).then(() => {
       this.setData({ loading: false, planning: false })
@@ -123,6 +134,12 @@ Page({
       set: { progress: ratio }
     }, app.getToken()).catch(() => {})
   },
+  onGoInput() {
+    try {
+      wx.setStorageSync(TOPIC_DRAFT_KEY, this.data.displayTitle || '')
+    } catch (e) {}
+    wx.switchTab({ url: '/pages/learn/index' })
+  },
   onDraft(e) {
     this.setData({ draft: e.detail.value })
   },
@@ -136,7 +153,7 @@ Page({
     classroom.onStepBar(this, e.detail.index)
   },
   onRetry() {
-    classroom.onRetry(this, courseStartPrompt(this.data.course))
+    classroom.onRetry(this, startPrompt(this.data.course, this.data.displayTitle))
   },
   onComplete() {
     classroom.onComplete(this)

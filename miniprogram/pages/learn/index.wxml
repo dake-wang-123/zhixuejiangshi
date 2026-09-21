@@ -9,8 +9,23 @@
         <text class="hero-title">学习进度</text>
       </view>
     </view>
-    <text class="hero-sub">点一门课继续智学伴练。红格未完成，绿格已完成，点进度条可回看已学环节。</text>
+    <text class="hero-sub">已入库的课继续智学。目录对不上的课题，在下方输入原题名称，智学按自己的流程上课，不改写环节。</text>
   </view>
+
+  <view class="card topic-box">
+    <view class="title">自行输入课题</view>
+    <view class="muted">智学知识库对不上、或目录显示未入库时，把课题原题贴在这里。</view>
+    <input
+      class="field"
+      placeholder="输入智学知识库中的课题名称"
+      value="{{topicDraft}}"
+      bindinput="onTopicDraft"
+      confirm-type="done"
+      bindconfirm="onStartTopic"
+    />
+    <button class="btn" bindtap="onStartTopic">开始智学</button>
+  </view>
+
   <view class="error" wx:if="{{error}}">{{error}}</view>
   <view class="empty" wx:if="{{loading}}">
     <view class="empty-icon">
@@ -22,7 +37,7 @@
     <view class="empty-icon">
       <ui-icon name="book-open" size="48" color="#8A8175"></ui-icon>
     </view>
-    还没有选课，去课程页挑一门吧
+    还没有选课。可去课程页挑一门已入库的课，或在上方自行输入课题。
     <button class="btn" bindtap="onBrowse">去选课</button>
   </view>
   <block wx:for="{{sections}}" wx:key="id" wx:for-item="section">
@@ -38,14 +53,22 @@
       </view>
       <view class="grow">
         <view class="title">{{item.displayTitle}}</view>
-        <view class="muted" wx:if="{{item.stepCount}}">第 {{item.currentIndex + 1}} / {{item.stepCount}} 环节 · {{item.stepTitle}}</view>
-        <view class="muted" wx:else>{{item.stepTitle}}</view>
-        <view class="progress-line">
+        <view class="muted" wx:if="{{item.matched && item.stepCount}}">第 {{item.currentIndex + 1}} / {{item.stepCount}} 环节 · {{item.stepTitle}}</view>
+        <view class="muted" wx:elif="{{item.matched}}">{{item.stepTitle}}</view>
+        <view class="muted" wx:else>未匹配智学 60 课目录，请在上方输入原题</view>
+        <view class="progress-line" wx:if="{{item.matched}}">
           <view class="fill" style="width: {{item.percent}}%;"></view>
         </view>
-        <view class="muted" style="margin-top: 8rpx;">已完成 {{item.completedCount || 0}} 环节</view>
+        <view class="muted" style="margin-top: 8rpx;" wx:if="{{item.matched}}">已完成 {{item.completedCount || 0}} 环节</view>
         <view class="row">
-          <button class="btn mini" size="mini" data-id="{{item.course.id}}" bindtap="onOpen">继续智学</button>
+          <button
+            class="btn mini"
+            size="mini"
+            data-id="{{item.course.id}}"
+            data-matched="{{item.matchedFlag}}"
+            data-title="{{item.displayTitle}}"
+            bindtap="onOpen"
+          >{{item.matched ? '继续智学' : '去输入课题'}}</button>
         </view>
       </view>
     </view>

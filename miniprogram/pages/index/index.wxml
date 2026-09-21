@@ -9,15 +9,15 @@
         <text class="hero-title">家庭教育讲师自学</text>
       </view>
     </view>
-        <text class="hero-sub">点一门课即进入智学伴练。课题已选定，跳过打招呼，从自我介绍开始。红格未完成，绿格已完成，点已完成环节可回看。</text>
-    <text class="hero-meta" wx:if="{{!loading}}">已上架 {{totalCount}} 门 · {{categoryCount}} 个分类</text>
+    <text class="hero-sub">目录严格对应智学知识库 60 门课题，标题不做改写。点已入库的课即按智学自己的流程上课；对不上库的课题，点进去后到学习页自行输入。</text>
+    <text class="hero-meta" wx:if="{{!loading}}">智学目录 {{catalogCount}} 门 · 已入库 {{matchedCount}} 门 · {{categoryCount}} 个分类</text>
   </view>
   <view class="error" wx:if="{{error}}">{{error}}</view>
   <view class="empty" wx:if="{{loading}}">
     <view class="empty-icon">
       <ui-icon name="book-open" size="48" color="#8A8175"></ui-icon>
     </view>
-    正在加载课程目录…
+    正在加载智学课程目录…
   </view>
   <scroll-view scroll-x class="cats" wx:if="{{categories.length}}">
     <view
@@ -45,20 +45,19 @@
       class="cat-row"
       wx:for="{{section.courses}}"
       wx:for-item="item"
-      wx:key="id"
-      data-id="{{item.id}}"
+      wx:key="displayTitle"
+      data-id="{{item.dbId}}"
+      data-title="{{item.displayTitle}}"
       bindtap="onOpen"
     >
       <text class="cat-idx">{{index + 1}}</text>
       <view class="grow">
         <view class="title">{{item.displayTitle}}</view>
-        <view class="muted" wx:if="{{item.showOriginal}}">原标题 {{item.originalTitle}}</view>
-        <view class="desc">{{item.description || '家庭教育讲师进阶课程'}}</view>
+        <view class="desc">{{item.description}}</view>
         <view class="row chips">
+          <text class="chip" wx:if="{{item.inLibrary}}">已入库</text>
+          <text class="chip chip-warn" wx:else>未入库，点后自行输入</text>
           <text class="chip" wx:if="{{item.is_recommended}}">推荐</text>
-          <text class="chip" wx:if="{{item.stepCount}}">{{item.stepCount}} 环节</text>
-          <text class="chip" wx:if="{{item.view.direction}}">{{item.view.direction}}</text>
-          <text class="muted" wx:else>免费自学</text>
         </view>
       </view>
     </view>

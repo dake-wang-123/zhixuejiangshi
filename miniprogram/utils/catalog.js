@@ -1,7 +1,8 @@
 const { formatAnalysis, matchCategory } = require('./analysis.js')
 const { buildStudySteps, progressToRatio } = require('./study.js')
 const { readSession } = require('./session.js')
-const { listFlowSteps, firstLiveIndex } = require('./flow.js')
+const { firstLiveIndex } = require('./flow.js')
+const { matchCanonical, listCanonical, listCategories } = require('./coze-catalog.js')
 
 function resolveCategory(course, view, categories) {
   if (course && course.category_id && course.category_id.id) {
@@ -21,24 +22,23 @@ function decorateCourse(course, categories) {
   const view = formatAnalysis(item.ai_analysis)
   const built = buildStudySteps(item, view)
   const category = resolveCategory(item, view, categories)
-  const agentTitle = (view && view.courseName) || ''
-  const displayTitle = agentTitle || item.title || '未命名课程'
-  const flowSteps = listFlowSteps()
+  const canonical = matchCanonical(item.title, view && view.courseName)
+  const displayTitle = canonical ? canonical.title : (item.title || '未命名课程')
   const session = readSession(item.id)
-  const sessionSteps = (session && session.steps && session.steps.length) ? session.steps : flowSteps
+  const sessionSteps = (session && session.steps) || []
   const stepCount = sessionSteps.length
-  const completedCount = session ? Number(session.completedCount || 0) : firstLiveIndex(true)
-  const cursorStep = stepCount
-    ? Math.min(completedCount, Math.max(0, stepCount - 1))
-    : 0
+  const completedCount = session ? Number(session.completedCount || 0) : firstLiveIndex()
+  const cursorStep = stepCount ? Math.min(completedCount, Math.max(0, stepCount - 1)) : 0
   return Object.assign({}, item, {
     view: view || { summaryText: '', chapters: [], tags: [], topics: [], direction: '', courseName: '' },
-    agentTitle: agentTitle,
+    canonical: canonical,
+    matched: !!canonical,
+    agentTitle: canonical ? canonical.title : '',
     displayTitle: displayTitle,
     originalTitle: item.title || '',
-    showOriginal: !!(agentTitle && item.title && agentTitle !== item.title),
+    showOriginal: false,
     categoryKey: String(category.id),
-    categoryName: category.name,
+    categoryName: (canonical && canonical.category) || category.name,
     analysisStepCount: (built.steps && built.steps.length) || 0,
     stepCount: stepCount,
     completedCount: completedCount,
@@ -53,14 +53,15 @@ function decorateStudyRow(row, categories) {
   const percent = total ? Math.round((completedCount / total) * 100) : Math.round(progressToRatio(row.progress) * 100)
   const currentIndex = total ? Math.min(completedCount, Math.max(0, total - 1)) : 0
   const session = readSession(course.id)
-  const steps = (session && session.steps && session.steps.length) ? session.steps : listFlowSteps()
+  const steps = (session && session.steps) || []
   const current = steps[currentIndex]
   const stepTitle = current
     ? current.title
-    : (completedCount >= total && total ? '已学完' : '智学伴练')
+    : (completedCount >= total && total ? '已学完' : (course.matched ? '智学伴练' : '未匹配智学目录'))
   return Object.assign({}, row, {
     course: course,
     displayTitle: course.displayTitle,
+    matched: course.matched,
     categoryKey: course.categoryKey,
     categoryName: course.categoryName,
     stepCount: total,
@@ -69,6 +70,7 @@ function decorateStudyRow(row, categories) {
     completedCount: completedCount,
     furthest: Math.max(0, completedCount - 1),
     stepTitle: stepTitle,
+    matchedFlag: course.matched ? 1 : 0,
     coverUrl: row.coverUrl || ''
   })
 }
@@ -103,9 +105,47 @@ function groupByCategory(items, categories, activeCategory, keepEmpty) {
   return sections
 }
 
+function buildCanonicalCatalog(dbCourses, activeCategory) {
+  const decorated = (dbCourses || []).map((item) => decorateCourse(item, []))
+  const byTitle = {}
+  decorated.forEach((item) => {
+    if (!item.canonical) return
+    byTitle[item.canonical.title] = item
+  })
+  const filter = activeCategory || ''
+  const sections = []
+  listCategories().forEach((name) => {
+    if (filter && filter !== name) return
+    const courses = listCanonical().filter((item) => item.category === name).map((canon) => {
+      const db = byTitle[canon.title]
+      return {
+        id: db ? db.id : '',
+        dbId: db ? db.id : '',
+        inLibrary: !!db,
+        canonical: canon,
+        matched: !!db,
+        displayTitle: canon.title,
+        description: canon.description,
+        categoryName: name,
+        is_recommended: db ? db.is_recommended : false,
+        coverUrl: db ? db.coverUrl : '',
+        stepCount: db ? db.stepCount : 0
+      }
+    })
+    sections.push({ id: name, name: name, courses: courses })
+  })
+  const matchedCount = decorated.filter((item) => item.matched).length
+  return {
+    sections: sections,
+    matchedCount: matchedCount,
+    catalogCount: listCanonical().length
+  }
+}
+
 module.exports = {
   decorateCourse: decorateCourse,
   decorateStudyRow: decorateStudyRow,
   groupByCategory: groupByCategory,
-  resolveCategory: resolveCategory
+  resolveCategory: resolveCategory,
+  buildCanonicalCatalog: buildCanonicalCatalog
 }

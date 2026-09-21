@@ -2,7 +2,9 @@ const app = getApp()
 const config = require('../../config.js')
 const { graphqlRequest, eqText } = require('../../utils/graphql.js')
 const { getImageUrl } = require('../../utils/upload.js')
-const { decorateCourse, groupByCategory } = require('../../utils/catalog.js')
+const { buildCanonicalCatalog } = require('../../utils/catalog.js')
+const { listCategories } = require('../../utils/coze-catalog.js')
+const { TOPIC_DRAFT_KEY } = require('../../utils/flow.js')
 
 const COURSE_LIST = `
   query CourseList($where: course_bool_exp, $limit: Int) {
@@ -35,9 +37,11 @@ Page({
     courses: [],
     sections: [],
     categories: [],
-    activeCategory: 0,
+    activeCategory: '',
     totalCount: 0,
-    categoryCount: 0
+    matchedCount: 0,
+    catalogCount: 60,
+    categoryCount: 6
   },
   onShow() {
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
@@ -48,9 +52,8 @@ Page({
   onPullDownRefresh() {
     this.load().then(() => wx.stopPullDownRefresh())
   },
-  applyFilter(courses, categories, activeCategory) {
-    const decorated = (courses || []).map((item) => decorateCourse(item, categories))
-    return groupByCategory(decorated, categories, activeCategory)
+  applyFilter(courses, activeCategory) {
+    return buildCanonicalCatalog(courses, activeCategory)
   },
   load() {
     this.setData({ loading: true, error: '' })
@@ -59,7 +62,6 @@ Page({
       const where = eqText('status', config.statusOnShelf)
       return graphqlRequest(COURSE_LIST, { where: where, limit: 200 }, token)
     }).then((data) => {
-      const categories = data.course_category || []
       const courses = data.course || []
       const token = app.getToken()
       const tasks = courses.map((item) => {
@@ -69,13 +71,17 @@ Page({
         }).catch(() => item)
       })
       return Promise.all(tasks).then(() => {
+        const packed = this.applyFilter(courses, this.data.activeCategory)
+        const cats = [{ id: '', name: '全部' }].concat(listCategories().map((name) => ({ id: name, name: name })))
         this.setData({
           loading: false,
           courses: courses,
-          totalCount: courses.length,
-          categoryCount: categories.length,
-          categories: [{ id: 0, name: '全部' }].concat(categories),
-          sections: this.applyFilter(courses, categories, this.data.activeCategory)
+          totalCount: packed.catalogCount,
+          matchedCount: packed.matchedCount,
+          catalogCount: packed.catalogCount,
+          categoryCount: listCategories().length,
+          categories: cats,
+          sections: packed.sections
         })
       })
     }).catch((err) => {
@@ -99,15 +105,23 @@ Page({
     return msg
   },
   onCategory(e) {
-    const id = Number(e.currentTarget.dataset.id)
-    const rawCats = (this.data.categories || []).filter((item) => Number(item.id) !== 0)
+    const id = e.currentTarget.dataset.id || ''
+    const packed = this.applyFilter(this.data.courses, id)
     this.setData({
       activeCategory: id,
-      sections: this.applyFilter(this.data.courses, rawCats, id)
+      sections: packed.sections
     })
   },
   onOpen(e) {
-    const id = e.currentTarget.dataset.id
-    wx.navigateTo({ url: '/pages/course/detail?id=' + id })
+    const dbId = e.currentTarget.dataset.id
+    const title = e.currentTarget.dataset.title
+    if (dbId) {
+      wx.navigateTo({ url: '/pages/course/detail?id=' + dbId })
+      return
+    }
+    if (typeof wx.setStorageSync === 'function') {
+      wx.setStorageSync(TOPIC_DRAFT_KEY, title || '')
+    }
+    wx.switchTab({ url: '/pages/learn/index' })
   }
 })

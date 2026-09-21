@@ -1,4 +1,3 @@
-const { graphqlRequest } = require('./graphql.js')
 const { chatWithCoze } = require('./agent.js')
 const {
   readSession,
@@ -6,17 +5,16 @@ const {
   hasAssistant
 } = require('./session.js')
 const {
-  listFlowSteps,
-  firstLiveIndex,
-  courseStartPrompt,
-  openStartPrompt,
-  stageEnterPrompt,
-  messagesForStage
+  parseListedSteps,
+  mergeSteps,
+  startPrompt,
+  continuePrompt,
+  firstLiveIndex
 } = require('./flow.js')
 const voice = require('./voice.js')
 
 function liveIndexOf(session) {
-  const steps = (session && session.steps) || listFlowSteps()
+  const steps = (session && session.steps) || []
   const completed = Number((session && session.completedCount) || 0)
   if (!steps.length) return 0
   if (completed >= steps.length) return steps.length - 1
@@ -24,15 +22,19 @@ function liveIndexOf(session) {
 }
 
 function paint(page, session, viewIndex) {
-  const steps = (session && session.steps) || listFlowSteps()
+  const steps = (session && session.steps) || []
   const completedCount = Number((session && session.completedCount) || 0)
   const finished = steps.length > 0 && completedCount >= steps.length
   const liveIndex = liveIndexOf(session)
   const idx = viewIndex == null ? (page.data.reviewing ? page.data.currentIndex : liveIndex) : viewIndex
-  const safeIndex = Math.max(0, Math.min(idx, steps.length - 1))
-  const reviewing = !finished && safeIndex !== liveIndex
+  const safeIndex = steps.length ? Math.max(0, Math.min(idx, steps.length - 1)) : 0
+  const reviewing = !!(steps.length && !finished && safeIndex !== liveIndex)
   const currentStep = steps[safeIndex] || null
-  const thread = messagesForStage(session && session.messages, safeIndex)
+  const thread = ((session && session.messages) || []).filter((item) => {
+    if (item.hidden) return false
+    if (!steps.length || !reviewing) return true
+    return Number(item.stageIndex) === Number(safeIndex)
+  })
   const followUps = reviewing ? [] : ((session && session.followUps) || [])
   page.setData({
     steps: steps,
@@ -46,8 +48,8 @@ function paint(page, session, viewIndex) {
     thread: thread,
     followUps: followUps,
     hint: currentStep
-      ? ((currentStep.group || '') + ' · ' + currentStep.title)
-      : ''
+      ? ((currentStep.group ? currentStep.group + ' · ' : '') + currentStep.title)
+      : '对话跟随智学。智能体列出环节后，顶部红格变绿表示该环节已完成'
   })
   scrollBottom(page)
   return session
@@ -107,8 +109,10 @@ function askZhixue(page, text, options) {
       stageIndex: stageIndex,
       content: result.reply
     })
+    const steps = mergeSteps(latest.steps, parseListedSteps(result.reply))
     persist(page, {
       messages: messages,
+      steps: steps,
       followUps: result.followUps || [],
       conversationId: result.conversationId || latest.conversationId || '',
       chatId: result.chatId || latest.chatId || ''
@@ -133,38 +137,53 @@ function askZhixue(page, text, options) {
 }
 
 function startCourseFlow(page, course) {
+  const title = (course && (course.displayTitle || course.title)) || ''
   const existing = readSession(page.sessionKey())
-  if (existing && (existing.messages || []).length && hasAssistant(existing.messages)) {
+  if (existing && (existing.messages || []).length && hasAssistant(existing.messages) && (!title || existing.topicTitle === title)) {
     paint(page, existing)
     return Promise.resolve(existing)
   }
-  const live = firstLiveIndex(true)
+  const live = firstLiveIndex()
   persist(page, {
-    steps: listFlowSteps(),
+    steps: [],
     completedCount: live,
     currentIndex: live,
-    topicTitle: (course && course.title) || ''
+    messages: [],
+    followUps: [],
+    conversationId: '',
+    chatId: '',
+    topicTitle: title
   }, live)
+  const prompt = startPrompt(course, title)
+  if (!prompt) {
+    page.setData({ planning: false })
+    return Promise.resolve(readSession(page.sessionKey()))
+  }
   page.setData({ planning: true })
-  return askZhixue(page, courseStartPrompt(course), {
-    hidden: true,
+  return askZhixue(page, prompt, {
+    hidden: false,
     stageIndex: live
   })
 }
 
-function startOpenFlow(page) {
+function startOpenFlow(page, topicTitle) {
+  if (topicTitle) {
+    return startCourseFlow(page, { title: topicTitle, displayTitle: topicTitle })
+  }
   const existing = readSession(page.sessionKey())
   if (existing && hasAssistant(existing.messages)) {
     paint(page, existing)
     return Promise.resolve(existing)
   }
-  persist(page, {
-    steps: listFlowSteps(),
+  paint(page, existing || {
+    steps: [],
+    messages: [],
+    followUps: [],
     completedCount: 0,
     currentIndex: 0
-  }, 0)
-  page.setData({ planning: true })
-  return askZhixue(page, openStartPrompt(), { hidden: true, stageIndex: 0 })
+  })
+  page.setData({ planning: false })
+  return Promise.resolve(existing)
 }
 
 function onStepBar(page, index) {
@@ -186,7 +205,11 @@ function onComplete(page) {
     return
   }
   const session = readSession(page.sessionKey()) || {}
-  const steps = session.steps || listFlowSteps()
+  const steps = session.steps || []
+  if (!steps.length) {
+    wx.showToast({ title: '等智学列出环节后再标记完成', icon: 'none' })
+    return
+  }
   const liveIndex = liveIndexOf(session)
   if (!hasAssistant(session.messages, liveIndex)) {
     wx.showToast({ title: '等智学回复后再进入下一环节', icon: 'none' })
@@ -198,13 +221,13 @@ function onComplete(page) {
     page.saveProgress(completedCount, steps.length)
   }
   if (completedCount >= steps.length) {
-    wx.showToast({ title: '完整学习流程已走完', icon: 'none' })
+    wx.showToast({ title: '智学列出的环节已走完', icon: 'none' })
     return
   }
   const next = steps[completedCount]
   wx.showToast({ title: '进入「' + next.title + '」', icon: 'none' })
-  return askZhixue(page, stageEnterPrompt(next, page.data.course, session.topicTitle), {
-    hidden: true,
+  return askZhixue(page, continuePrompt(), {
+    hidden: false,
     stageIndex: completedCount
   })
 }
@@ -240,7 +263,7 @@ function onRetry(page, fallbackPrompt) {
     }
   }
   askZhixue(page, lastUser || fallbackPrompt, {
-    hidden: !lastUser || !!messages.filter((item) => item.content === lastUser && item.hidden).length,
+    hidden: false,
     stageIndex: liveIndex
   })
 }

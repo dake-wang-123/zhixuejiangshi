@@ -1,7 +1,7 @@
 const app = getApp()
 const classroom = require('../../utils/classroom.js')
-const { ensureFlowSession, OPEN_SESSION_ID } = require('../../utils/session.js')
-const { openStartPrompt } = require('../../utils/flow.js')
+const { ensureFlowSession, OPEN_SESSION_ID, blankSession, writeSession } = require('../../utils/session.js')
+const { startPrompt, PENDING_TOPIC_KEY } = require('../../utils/flow.js')
 const voice = require('../../utils/voice.js')
 
 Page({
@@ -37,8 +37,28 @@ Page({
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
       this.getTabBar().setData({ selected: 3 })
     }
-    ensureFlowSession(OPEN_SESSION_ID, false)
-    app.ensureLogin().then(() => classroom.startOpenFlow(this)).catch((err) => {
+    let pending = ''
+    try {
+      pending = wx.getStorageSync(PENDING_TOPIC_KEY) || ''
+      if (pending) wx.removeStorageSync(PENDING_TOPIC_KEY)
+    } catch (e) {}
+    ensureFlowSession(OPEN_SESSION_ID, pending)
+    app.ensureLogin().then(() => {
+      if (pending) {
+        this.setData({
+          displayTitle: pending,
+          course: { title: pending, displayTitle: pending },
+          planning: true,
+          hint: '正在把课题发给智学…'
+        })
+        return classroom.startOpenFlow(this, pending)
+      }
+      this.setData({
+        displayTitle: '智学伴练',
+        course: null
+      })
+      return classroom.startOpenFlow(this)
+    }).catch((err) => {
       this.setData({ error: this.friendlyError(err), planning: false })
     })
   },
@@ -60,7 +80,7 @@ Page({
     classroom.onStepBar(this, e.detail.index)
   },
   onRetry() {
-    classroom.onRetry(this, openStartPrompt())
+    classroom.onRetry(this, startPrompt(this.data.course, this.data.displayTitle))
   },
   onComplete() {
     classroom.onComplete(this)
@@ -70,9 +90,17 @@ Page({
     classroom.paint(this, session || {}, classroom.liveIndexOf(session || {}))
   },
   onClear() {
-    const session = require('../../utils/session.js')
-    session.writeSession(OPEN_SESSION_ID, session.blankSession(false))
-    this.setData({ error: '', followUps: [], thread: [], planning: true })
+    writeSession(OPEN_SESSION_ID, blankSession(''))
+    this.setData({
+      error: '',
+      followUps: [],
+      thread: [],
+      steps: [],
+      planning: false,
+      displayTitle: '智学伴练',
+      course: null,
+      hint: ''
+    })
     classroom.startOpenFlow(this)
   },
   onMicStart() {

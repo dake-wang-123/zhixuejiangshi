@@ -20,7 +20,7 @@
       data-index="{{index}}"
       bindtap="onTap"
     >
-      <view class="dot">{{item.mark}}</view>
+      <view class="dot">{{item.mark || index + 1}}</view>
       <text class="label">{{item.shortTitle}}</text>
     </view>
   </scroll-view>

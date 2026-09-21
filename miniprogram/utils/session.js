@@ -1,11 +1,12 @@
 const {
   FLOW_VERSION,
   OPEN_SESSION_ID,
-  listFlowSteps,
+  parseListedSteps,
+  mergeSteps,
   firstLiveIndex
 } = require('./flow.js')
 
-const SESSION_KEY = 'zhixue_sessions_v3'
+const SESSION_KEY = 'zhixue_sessions_v4'
 const FOLLOW_MARK = '__FOLLOW_UPS__'
 
 function loadAll() {
@@ -34,28 +35,29 @@ function writeSession(courseId, patch) {
   return next
 }
 
-function blankSession(hasCourse) {
-  const steps = listFlowSteps()
-  const liveIndex = firstLiveIndex(!!hasCourse)
+function blankSession(topicTitle) {
   return {
     flowVersion: FLOW_VERSION,
-    steps: steps,
+    steps: [],
     messages: [],
     followUps: [],
-    completedCount: liveIndex,
-    currentIndex: liveIndex,
+    completedCount: firstLiveIndex(),
+    currentIndex: firstLiveIndex(),
     conversationId: '',
     chatId: '',
-    topicTitle: ''
+    topicTitle: topicTitle || ''
   }
 }
 
-function ensureFlowSession(courseId, hasCourse) {
+function ensureFlowSession(courseId, topicTitle) {
   const existing = readSession(courseId)
-  if (existing && existing.flowVersion === FLOW_VERSION && (existing.steps || []).length === listFlowSteps().length) {
+  if (existing && existing.flowVersion === FLOW_VERSION) {
+    if (topicTitle && existing.topicTitle && existing.topicTitle !== topicTitle) {
+      return writeSession(courseId, blankSession(topicTitle))
+    }
     return existing
   }
-  return writeSession(courseId, blankSession(hasCourse))
+  return writeSession(courseId, blankSession(topicTitle))
 }
 
 function visibleMessages(messages) {
@@ -86,11 +88,14 @@ module.exports = {
   FOLLOW_MARK: FOLLOW_MARK,
   OPEN_SESSION_ID: OPEN_SESSION_ID,
   FLOW_VERSION: FLOW_VERSION,
+  SESSION_KEY: SESSION_KEY,
   readSession: readSession,
   writeSession: writeSession,
   blankSession: blankSession,
   ensureFlowSession: ensureFlowSession,
   visibleMessages: visibleMessages,
   hasAssistant: hasAssistant,
-  stripFollowUps: stripFollowUps
+  stripFollowUps: stripFollowUps,
+  parseListedSteps: parseListedSteps,
+  mergeSteps: mergeSteps
 }

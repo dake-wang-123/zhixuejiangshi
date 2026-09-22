@@ -9,7 +9,7 @@
         <text class="hero-title">家庭教育讲师自学</text>
       </view>
     </view>
-    <text class="hero-sub">目录严格对应智学知识库 60 门课题，标题不做改写。点已入库的课即按智学自己的流程上课；对不上库的课题，点进去后到学习页自行输入。</text>
+    <text class="hero-sub">目录对应智学知识库 60 门原题。点已入库的课即把原题发给智学，按内定问答环节逐项作答；对不上的课题到学习页自行输入。</text>
     <text class="hero-meta" wx:if="{{!loading}}">智学目录 {{catalogCount}} 门 · 已入库 {{matchedCount}} 门 · {{categoryCount}} 个分类</text>
   </view>
   <view class="error" wx:if="{{error}}">{{error}}</view>

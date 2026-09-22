@@ -74,7 +74,7 @@ Page({
         const canonical = matchCanonical(course.title)
         const displayTitle = canonical ? canonical.title : course.title
         this.data.course = Object.assign({}, course, { displayTitle: displayTitle })
-        ensureFlowSession(id, displayTitle)
+        ensureFlowSession(id, displayTitle, true)
         this.setData({
           course: this.data.course,
           displayTitle: displayTitle,

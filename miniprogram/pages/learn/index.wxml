@@ -9,7 +9,7 @@
         <text class="hero-title">学习进度</text>
       </view>
     </view>
-    <text class="hero-sub">已入库的课继续智学。目录对不上的课题，在下方输入原题名称，智学按自己的流程上课，不改写环节。</text>
+    <text class="hero-sub">已入库的课继续按智学内定问答推进。目录对不上的课题在下方输入原题，智学仍按同一套问答上课，不改写环节。</text>
   </view>
 
   <view class="card topic-box">

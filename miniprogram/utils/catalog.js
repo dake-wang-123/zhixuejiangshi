@@ -1,7 +1,7 @@
 const { formatAnalysis, matchCategory } = require('./analysis.js')
 const { buildStudySteps, progressToRatio } = require('./study.js')
 const { readSession } = require('./session.js')
-const { firstLiveIndex } = require('./flow.js')
+const { firstLiveIndex, listFlowSteps } = require('./flow.js')
 const { matchCanonical, listCanonical, listCategories } = require('./coze-catalog.js')
 
 function resolveCategory(course, view, categories) {
@@ -25,9 +25,9 @@ function decorateCourse(course, categories) {
   const canonical = matchCanonical(item.title, view && view.courseName)
   const displayTitle = canonical ? canonical.title : (item.title || '未命名课程')
   const session = readSession(item.id)
-  const sessionSteps = (session && session.steps) || []
+  const sessionSteps = (session && session.steps && session.steps.length) ? session.steps : listFlowSteps()
   const stepCount = sessionSteps.length
-  const completedCount = session ? Number(session.completedCount || 0) : firstLiveIndex()
+  const completedCount = session ? Number(session.completedCount || 0) : firstLiveIndex(true)
   const cursorStep = stepCount ? Math.min(completedCount, Math.max(0, stepCount - 1)) : 0
   return Object.assign({}, item, {
     view: view || { summaryText: '', chapters: [], tags: [], topics: [], direction: '', courseName: '' },
@@ -53,7 +53,7 @@ function decorateStudyRow(row, categories) {
   const percent = total ? Math.round((completedCount / total) * 100) : Math.round(progressToRatio(row.progress) * 100)
   const currentIndex = total ? Math.min(completedCount, Math.max(0, total - 1)) : 0
   const session = readSession(course.id)
-  const steps = (session && session.steps) || []
+  const steps = (session && session.steps && session.steps.length) ? session.steps : listFlowSteps()
   const current = steps[currentIndex]
   const stepTitle = current
     ? current.title

@@ -21,6 +21,7 @@
       <view class="muted" wx:if="{{course.category_id}}">{{course.category_id.name}} · 智学伴练</view>
       <view class="muted" wx:else>智学伴练</view>
       <view class="title">{{displayTitle}}</view>
+      <view class="muted">问答由智学原样给出，按内定环节逐项作答。小程序不改写问题、不跳问。</view>
       <step-bar
         wx:if="{{steps.length}}"
         steps="{{steps}}"
@@ -40,8 +41,8 @@
     </view>
 
     <scroll-view scroll-y class="thread" scroll-into-view="{{scrollInto}}" scroll-with-animation>
-      <view class="empty cat-table-empty" wx:if="{{planning && !thread.length}}">正在把课题发给智学…</view>
-      <view class="empty cat-table-empty" wx:elif="{{!thread.length && !sending}}">等待智学按自己的流程回复。点进度条可回看已完成环节。</view>
+      <view class="empty cat-table-empty" wx:if="{{planning && !thread.length}}">正在把课题原题发给智学…</view>
+      <view class="empty cat-table-empty" wx:elif="{{!thread.length && !sending}}">请直接回答智学的问题。点进度条可回看已完成环节。</view>
       <view
         id="m-{{item.id}}"
         class="bubble {{item.role === 'user' ? 'me' : (item.role === 'system' ? 'sys' : 'bot')}}"

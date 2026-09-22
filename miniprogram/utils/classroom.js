@@ -5,16 +5,15 @@ const {
   hasAssistant
 } = require('./session.js')
 const {
-  parseListedSteps,
-  mergeSteps,
+  listFlowSteps,
   startPrompt,
-  continuePrompt,
-  firstLiveIndex
+  firstLiveIndex,
+  detectAdvance
 } = require('./flow.js')
 const voice = require('./voice.js')
 
 function liveIndexOf(session) {
-  const steps = (session && session.steps) || []
+  const steps = (session && session.steps) || listFlowSteps()
   const completed = Number((session && session.completedCount) || 0)
   if (!steps.length) return 0
   if (completed >= steps.length) return steps.length - 1
@@ -22,17 +21,17 @@ function liveIndexOf(session) {
 }
 
 function paint(page, session, viewIndex) {
-  const steps = (session && session.steps) || []
+  const steps = (session && session.steps && session.steps.length) ? session.steps : listFlowSteps()
   const completedCount = Number((session && session.completedCount) || 0)
   const finished = steps.length > 0 && completedCount >= steps.length
-  const liveIndex = liveIndexOf(session)
+  const liveIndex = liveIndexOf(Object.assign({}, session, { steps: steps, completedCount: completedCount }))
   const idx = viewIndex == null ? (page.data.reviewing ? page.data.currentIndex : liveIndex) : viewIndex
-  const safeIndex = steps.length ? Math.max(0, Math.min(idx, steps.length - 1)) : 0
-  const reviewing = !!(steps.length && !finished && safeIndex !== liveIndex)
+  const safeIndex = Math.max(0, Math.min(idx, steps.length - 1))
+  const reviewing = !finished && safeIndex !== liveIndex
   const currentStep = steps[safeIndex] || null
   const thread = ((session && session.messages) || []).filter((item) => {
     if (item.hidden) return false
-    if (!steps.length || !reviewing) return true
+    if (!reviewing) return true
     return Number(item.stageIndex) === Number(safeIndex)
   })
   const followUps = reviewing ? [] : ((session && session.followUps) || [])
@@ -49,7 +48,7 @@ function paint(page, session, viewIndex) {
     followUps: followUps,
     hint: currentStep
       ? ((currentStep.group ? currentStep.group + ' · ' : '') + currentStep.title)
-      : '对话跟随智学。智能体列出环节后，顶部红格变绿表示该环节已完成'
+      : '请按智学内定问答逐项作答'
   })
   scrollBottom(page)
   return session
@@ -73,12 +72,11 @@ function askZhixue(page, text, options) {
   if (!prompt || page.data.sending || page._busy) return Promise.resolve()
   page._busy = true
   const stageIndex = opts.stageIndex != null ? opts.stageIndex : liveIndexOf(readSession(page.sessionKey()))
-  const hidden = !!opts.hidden
   const preview = readSession(page.sessionKey()) || {}
   const pending = (preview.messages || []).concat([{
     id: Date.now(),
     role: 'user',
-    hidden: hidden,
+    hidden: false,
     stageIndex: stageIndex,
     content: prompt
   }])
@@ -92,33 +90,37 @@ function askZhixue(page, text, options) {
     if (withoutDup.length && withoutDup[withoutDup.length - 1].role === 'user') {
       withoutDup.pop()
     }
-    const messages = withoutDup.slice()
-    if (!hidden) {
-      messages.push({
+    const messages = withoutDup.concat([
+      {
         id: Date.now(),
         role: 'user',
         hidden: false,
         stageIndex: stageIndex,
         content: prompt
-      })
-    }
-    messages.push({
-      id: Date.now() + 1,
-      role: 'assistant',
-      hidden: false,
-      stageIndex: stageIndex,
-      content: result.reply
-    })
-    const steps = mergeSteps(latest.steps, parseListedSteps(result.reply))
+      },
+      {
+        id: Date.now() + 1,
+        role: 'assistant',
+        hidden: false,
+        stageIndex: stageIndex,
+        content: result.reply
+      }
+    ])
+    const steps = (latest.steps && latest.steps.length) ? latest.steps : listFlowSteps()
+    const completedCount = detectAdvance(result.reply, steps, latest.completedCount)
     persist(page, {
       messages: messages,
       steps: steps,
+      completedCount: completedCount,
       followUps: result.followUps || [],
       conversationId: result.conversationId || latest.conversationId || '',
       chatId: result.chatId || latest.chatId || ''
-    }, stageIndex)
+    }, completedCount)
     page.setData({ sending: false })
     page._busy = false
+    if (typeof page.saveProgress === 'function') {
+      page.saveProgress(completedCount, steps.length)
+    }
   }).catch((err) => {
     const latest = readSession(page.sessionKey()) || {}
     persist(page, {
@@ -137,15 +139,15 @@ function askZhixue(page, text, options) {
 }
 
 function startCourseFlow(page, course) {
-  const title = (course && (course.displayTitle || course.title)) || ''
+  const title = startPrompt(course)
   const existing = readSession(page.sessionKey())
   if (existing && (existing.messages || []).length && hasAssistant(existing.messages) && (!title || existing.topicTitle === title)) {
     paint(page, existing)
     return Promise.resolve(existing)
   }
-  const live = firstLiveIndex()
+  const live = firstLiveIndex(true)
   persist(page, {
-    steps: [],
+    steps: listFlowSteps(),
     completedCount: live,
     currentIndex: live,
     messages: [],
@@ -154,16 +156,12 @@ function startCourseFlow(page, course) {
     chatId: '',
     topicTitle: title
   }, live)
-  const prompt = startPrompt(course, title)
-  if (!prompt) {
+  if (!title) {
     page.setData({ planning: false })
     return Promise.resolve(readSession(page.sessionKey()))
   }
   page.setData({ planning: true })
-  return askZhixue(page, prompt, {
-    hidden: false,
-    stageIndex: live
-  })
+  return askZhixue(page, title, { stageIndex: live })
 }
 
 function startOpenFlow(page, topicTitle) {
@@ -175,15 +173,17 @@ function startOpenFlow(page, topicTitle) {
     paint(page, existing)
     return Promise.resolve(existing)
   }
-  paint(page, existing || {
-    steps: [],
-    messages: [],
+  const live = firstLiveIndex(false)
+  persist(page, {
+    steps: listFlowSteps(),
+    completedCount: live,
+    currentIndex: live,
+    messages: (existing && existing.messages) || [],
     followUps: [],
-    completedCount: 0,
-    currentIndex: 0
-  })
+    topicTitle: ''
+  }, live)
   page.setData({ planning: false })
-  return Promise.resolve(existing)
+  return Promise.resolve(readSession(page.sessionKey()))
 }
 
 function onStepBar(page, index) {
@@ -192,7 +192,7 @@ function onStepBar(page, index) {
   const session = readSession(page.sessionKey()) || {}
   const completed = Number(session.completedCount || 0)
   if (i > completed) {
-    wx.showToast({ title: '请先走完当前环节再进入', icon: 'none' })
+    wx.showToast({ title: '请按智学问答顺序完成本环节', icon: 'none' })
     return
   }
   paint(page, session, i)
@@ -205,31 +205,23 @@ function onComplete(page) {
     return
   }
   const session = readSession(page.sessionKey()) || {}
-  const steps = session.steps || []
-  if (!steps.length) {
-    wx.showToast({ title: '等智学列出环节后再标记完成', icon: 'none' })
-    return
-  }
+  const steps = (session.steps && session.steps.length) ? session.steps : listFlowSteps()
   const liveIndex = liveIndexOf(session)
   if (!hasAssistant(session.messages, liveIndex)) {
-    wx.showToast({ title: '等智学回复后再进入下一环节', icon: 'none' })
+    wx.showToast({ title: '请先回答智学的问题', icon: 'none' })
     return
   }
   const completedCount = Math.min(Number(session.completedCount || 0) + 1, steps.length)
-  persist(page, { completedCount: completedCount }, Math.min(completedCount, steps.length - 1))
+  persist(page, { completedCount: completedCount, steps: steps }, Math.min(completedCount, steps.length - 1))
   if (typeof page.saveProgress === 'function') {
     page.saveProgress(completedCount, steps.length)
   }
   if (completedCount >= steps.length) {
-    wx.showToast({ title: '智学列出的环节已走完', icon: 'none' })
+    wx.showToast({ title: '内定环节已走完', icon: 'none' })
     return
   }
   const next = steps[completedCount]
   wx.showToast({ title: '进入「' + next.title + '」', icon: 'none' })
-  return askZhixue(page, continuePrompt(), {
-    hidden: false,
-    stageIndex: completedCount
-  })
 }
 
 function onSend(page) {
@@ -239,7 +231,7 @@ function onSend(page) {
   }
   const text = (page.data.draft || '').trim()
   if (!text || page.data.sending) return
-  askZhixue(page, text, { hidden: false, stageIndex: liveIndexOf(readSession(page.sessionKey())) })
+  askZhixue(page, text, { stageIndex: liveIndexOf(readSession(page.sessionKey())) })
 }
 
 function onFollow(page, text) {
@@ -247,7 +239,7 @@ function onFollow(page, text) {
   if (page.data.reviewing) {
     paint(page, readSession(page.sessionKey()) || {}, liveIndexOf(readSession(page.sessionKey())))
   }
-  askZhixue(page, text, { hidden: false, stageIndex: liveIndexOf(readSession(page.sessionKey())) })
+  askZhixue(page, String(text), { stageIndex: liveIndexOf(readSession(page.sessionKey())) })
 }
 
 function onRetry(page, fallbackPrompt) {
@@ -257,15 +249,12 @@ function onRetry(page, fallbackPrompt) {
   const messages = session.messages || []
   let lastUser = ''
   for (let i = messages.length - 1; i >= 0; i--) {
-    if (messages[i].role === 'user' && Number(messages[i].stageIndex) === liveIndex) {
+    if (messages[i].role === 'user' && Number(messages[i].stageIndex) === liveIndex && !messages[i].hidden) {
       lastUser = messages[i].content
       break
     }
   }
-  askZhixue(page, lastUser || fallbackPrompt, {
-    hidden: false,
-    stageIndex: liveIndex
-  })
+  askZhixue(page, lastUser || fallbackPrompt, { stageIndex: liveIndex })
 }
 
 function bindMic(page) {

@@ -1,5 +1,5 @@
 const CACHE_KEY = 'zhixue_coze_catalog_v2'
-const ARCHIVE = require('../data/zhixue-catalog.json')
+const ARCHIVE = require('../data/zhixue-catalog.js')
 const CATALOG_QUERY = [
   '请只列出你知识库里已经上传的课程分类，以及每个分类下的课题原题。',
   '分类名和课题名必须与知识库一致，不要改写，不要开始上课，不要自我介绍。'

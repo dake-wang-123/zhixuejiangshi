@@ -1,6 +1,7 @@
 {
   "description": "家庭教育讲师自学",
   "miniprogramRoot": "miniprogram/",
+  "srcMiniprogramRoot": "miniprogram/",
   "compileType": "miniprogram",
   "appid": "wx0277d4abe92dd8a3",
   "projectname": "family-edu-lecturer",
@@ -9,20 +10,37 @@
     "ignore": [
       { "type": "folder", "value": "wechat-import" },
       { "type": "file", "value": "project.private.config.json" }
-    ]
+    ],
+    "include": []
   },
   "setting": {
+    "urlCheck": false,
     "es6": true,
     "enhance": true,
     "postcss": true,
+    "preloadBackgroundData": false,
     "minified": true,
-    "minifyWXSS": true,
-    "minifyWXML": true,
-    "urlCheck": false,
     "coverView": true,
     "lazyloadPlaceholderEnable": false,
+    "useMultiFrameRuntime": true,
+    "useApiHook": true,
+    "useApiHostProcess": true,
+    "babelSetting": {
+      "ignore": [],
+      "disablePlugins": [],
+      "outputPath": ""
+    },
+    "useIsolateContext": true,
+    "minifyWXSS": true,
+    "minifyWXML": true,
+    "ignoreDevUnusedFiles": true,
     "ignoreUploadUnusedFiles": true,
-    "ignoreDevUnusedFiles": true
+    "checkSiteMap": true,
+    "checkInvalidKey": true
+  },
+  "editorSetting": {
+    "tabIndent": "insertSpaces",
+    "tabSize": 2
   },
   "condition": {}
 }

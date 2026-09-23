@@ -3,25 +3,55 @@
   "packOptions": {
     "ignore": [
       { "type": "file", "value": "project.private.config.json" }
-    ]
+    ],
+    "include": []
   },
   "setting": {
+    "urlCheck": false,
     "es6": true,
     "enhance": true,
     "postcss": true,
+    "preloadBackgroundData": false,
     "minified": true,
-    "minifyWXSS": true,
-    "minifyWXML": true,
-    "urlCheck": false,
+    "newFeature": false,
     "coverView": true,
+    "nodeModules": false,
+    "autoAudits": false,
+    "showShadowRootInWxmlPanel": true,
+    "scopeDataCheck": false,
+    "uglifyFileName": false,
+    "checkInvalidKey": true,
+    "checkSiteMap": true,
+    "uploadWithSourceMap": true,
+    "compileHotReLoad": false,
     "lazyloadPlaceholderEnable": false,
-    "ignoreUploadUnusedFiles": true,
-    "ignoreDevUnusedFiles": true
+    "useMultiFrameRuntime": true,
+    "useApiHook": true,
+    "useApiHostProcess": true,
+    "babelSetting": {
+      "ignore": [],
+      "disablePlugins": [],
+      "outputPath": ""
+    },
+    "useIsolateContext": true,
+    "userConfirmedBundleSwitch": false,
+    "packNpmManually": false,
+    "packNpmRelationList": [],
+    "minifyWXSS": true,
+    "disableUseStrict": false,
+    "minifyWXML": true,
+    "showES6CompileOption": false,
+    "useCompilerPlugins": false,
+    "ignoreDevUnusedFiles": true,
+    "ignoreUploadUnusedFiles": true
   },
   "compileType": "miniprogram",
-  "miniprogramRoot": "./",
   "libVersion": "2.32.3",
   "appid": "wx0277d4abe92dd8a3",
   "projectname": "family-edu-lecturer",
-  "condition": {}
+  "condition": {},
+  "editorSetting": {
+    "tabIndent": "insertSpaces",
+    "tabSize": 2
+  }
 }

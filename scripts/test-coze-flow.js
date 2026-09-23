@@ -160,4 +160,15 @@ assert.strictEqual(filtered.sections.length, 1)
 assert.strictEqual(filtered.sections[0].courses.length, 6)
 assert.strictEqual(filtered.sections[0].courses[1].lesson_code, 'D02')
 
-console.log('coze catalog and flow tests passed')
+const voice = require('../miniprogram/utils/voice.js')
+assert.strictEqual(voice.appendDraft('', '你好'), '你好')
+assert.strictEqual(voice.appendDraft('你', '好'), '你好')
+assert.strictEqual(voice.appendDraft('你好', '你好啊'), '你好啊')
+assert.ok(voice.friendlyVoiceError(new Error('authorize:fail auth deny')).indexOf('麦克风') >= 0)
+assert.ok(voice.friendlyVoiceError(new Error('WechatSI plugin missing')).indexOf('同声传译') >= 0)
+voice.begin().then(() => {
+  throw new Error('voice.begin should reject without wx')
+}, (err) => {
+  assert.ok(String(err.message || err).indexOf('不支持录音') >= 0)
+  console.log('coze catalog and flow tests passed')
+})

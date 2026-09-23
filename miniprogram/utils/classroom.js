@@ -167,23 +167,34 @@ function onRetry(page, fallbackPrompt) {
 
 function bindMic(page) {
   return {
-    onMicStart: function () {
-      if (page.data.sending || page.data.recording) return
-      page.setData({ recording: true })
-      voice.startRecord().catch((err) => {
+    onMicTap: function () {
+      if (page.data.sending) return
+      if (page.data.recording) {
+        voice.end().then((text) => {
+          page.setData({
+            recording: false,
+            draft: voice.appendDraft(page.data.draft, text)
+          })
+        }).catch((err) => {
+          page.setData({ recording: false })
+          wx.showToast({ title: voice.friendlyVoiceError(err), icon: 'none' })
+        })
+        return
+      }
+      voice.begin({
+        onPartial: function (text) {
+          page.setData({ draft: voice.appendDraft(page._voiceBase || '', text) })
+        }
+      }).then(() => {
+        page._voiceBase = page.data.draft || ''
+        page.setData({ recording: true })
+      }).catch((err) => {
         page.setData({ recording: false })
-        wx.showToast({ title: page.friendlyError(err), icon: 'none' })
+        wx.showToast({ title: voice.friendlyVoiceError(err), icon: 'none' })
       })
     },
-    onMicEnd: function () {
-      if (!page.data.recording) return
-      page.setData({ recording: false })
-      voice.stopRecord().then((text) => {
-        page.setData({ draft: voice.appendDraft(page.data.draft, text) })
-      }).catch((err) => {
-        wx.showToast({ title: page.friendlyError(err), icon: 'none' })
-      })
-    }
+    onMicStart: function () {},
+    onMicEnd: function () {}
   }
 }
 

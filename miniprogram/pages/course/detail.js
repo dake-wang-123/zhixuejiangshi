@@ -41,12 +41,11 @@ Page({
   },
   onLoad(query) {
     this.setData({ id: query.id })
+    voice.prepare().catch(() => {})
     this.boot()
   },
   onUnload() {
-    if (this.data.recording) {
-      try { wx.stopRecord({ fail: function () {} }) } catch (e) {}
-    }
+    voice.cancel()
   },
   boot() {
     const id = this.data.id
@@ -150,21 +149,30 @@ Page({
   onRetry() {
     classroom.onRetry(this, startPrompt(this.data.course, this.data.displayTitle))
   },
-  onMicStart() {
-    if (this.data.sending || this.data.recording) return
-    this.setData({ recording: true })
-    voice.startRecord().catch((err) => {
-      this.setData({ recording: false })
-      wx.showToast({ title: this.friendlyError(err), icon: 'none' })
-    })
-  },
-  onMicEnd() {
-    if (!this.data.recording) return
-    this.setData({ recording: false })
-    voice.stopRecord().then((text) => {
-      this.setData({ draft: voice.appendDraft(this.data.draft, text) })
+  onMicTap() {
+    if (this.data.sending) return
+    if (this.data.recording) {
+      voice.end().then((text) => {
+        this.setData({
+          recording: false,
+          draft: voice.appendDraft(this.data.draft, text)
+        })
+      }).catch((err) => {
+        this.setData({ recording: false })
+        wx.showToast({ title: voice.friendlyVoiceError(err), icon: 'none' })
+      })
+      return
+    }
+    this._voiceBase = this.data.draft || ''
+    voice.begin({
+      onPartial: (text) => {
+        this.setData({ draft: voice.appendDraft(this._voiceBase || '', text) })
+      }
+    }).then(() => {
+      this.setData({ recording: true })
     }).catch((err) => {
-      wx.showToast({ title: this.friendlyError(err), icon: 'none' })
+      this.setData({ recording: false })
+      wx.showToast({ title: voice.friendlyVoiceError(err), icon: 'none' })
     })
   },
   friendlyError(err) {

@@ -45,7 +45,7 @@
       <view class="draft-row">
         <textarea
           class="draft"
-          placeholder="{{recording ? '正在听，松手后转成文字' : '输入或按住右侧麦克风说话'}}"
+          placeholder="{{recording ? '正在听，再点麦克风结束并转成文字' : '输入或点右侧麦克风说话'}}"
           value="{{draft}}"
           bindinput="onDraft"
           auto-height
@@ -53,14 +53,13 @@
           confirm-type="send"
           bindconfirm="onSend"
         ></textarea>
-        <view
+        <button
           class="mic {{recording ? 'on' : ''}}"
-          catchtouchstart="onMicStart"
-          catchtouchend="onMicEnd"
-          catchtouchcancel="onMicEnd"
+          hover-class="mic-hover"
+          catchtap="onMicTap"
         >
           <ui-icon name="mic" size="36" color="{{recording ? '#FFFFFF' : '#5C7A5A'}}"></ui-icon>
-        </view>
+        </button>
       </view>
       <view class="row composer-actions">
         <button class="btn btn-ghost mini" size="mini" bindtap="onRetry" wx:if="{{error}}" disabled="{{sending}}">再问一次</button>

@@ -52,6 +52,7 @@ Page({
       if (pending) wx.removeStorageSync(PENDING_TOPIC_KEY)
     } catch (e) {}
     ensureFlowSession(OPEN_SESSION_ID, pending)
+    voice.prepare().catch(() => {})
     app.ensureLogin().then(() => {
       if (pending) {
         this.setData({
@@ -74,9 +75,7 @@ Page({
     })
   },
   onUnload() {
-    if (this.data.recording) {
-      try { wx.stopRecord({ fail: function () {} }) } catch (e) {}
-    }
+    voice.cancel()
   },
   onDraft(e) {
     this.setData({ draft: e.detail.value })
@@ -109,6 +108,7 @@ Page({
     classroom.onRetry(this, startPrompt(this.data.course, this.data.displayTitle))
   },
   onClear() {
+    voice.cancel()
     writeSession(OPEN_SESSION_ID, blankSession(''))
     this.setData({
       error: '',
@@ -123,23 +123,35 @@ Page({
     })
     classroom.startOpenFlow(this)
   },
-  onMicStart() {
-    if (this.data.sending || this.data.recording) return
-    this.setData({ recording: true })
-    voice.startRecord().catch((err) => {
-      this.setData({ recording: false })
-      wx.showToast({ title: this.friendlyError(err), icon: 'none' })
-    })
-  },
-  onMicEnd() {
-    if (!this.data.recording) return
-    this.setData({ recording: false })
-    voice.stopRecord().then((text) => {
-      this.setData({ draft: voice.appendDraft(this.data.draft, text) })
+  onMicTap() {
+    if (this.data.sending) return
+    if (this.data.recording) {
+      voice.end().then((text) => {
+        this.setData({
+          recording: false,
+          draft: voice.appendDraft(this.data.draft, text)
+        })
+      }).catch((err) => {
+        this.setData({ recording: false })
+        wx.showToast({ title: voice.friendlyVoiceError(err), icon: 'none' })
+      })
+      return
+    }
+    const base = this.data.draft || ''
+    this._voiceBase = base
+    voice.begin({
+      onPartial: (text) => {
+        this.setData({ draft: voice.appendDraft(this._voiceBase || '', text) })
+      }
+    }).then(() => {
+      this.setData({ recording: true })
     }).catch((err) => {
-      wx.showToast({ title: this.friendlyError(err), icon: 'none' })
+      this.setData({ recording: false })
+      wx.showToast({ title: voice.friendlyVoiceError(err), icon: 'none' })
     })
   },
+  onMicStart() {},
+  onMicEnd() {},
   friendlyError(err) {
     const msg = (err && err.message) || '智学调用失败'
     if (msg.indexOf('wechat id config') >= 0) {

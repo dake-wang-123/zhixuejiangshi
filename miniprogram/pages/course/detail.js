@@ -1,11 +1,11 @@
 const app = getApp()
 const { graphqlRequest, eqBigint, andWhere } = require('../../utils/graphql.js')
 const classroom = require('../../utils/classroom.js')
-const { ensureFlowSession, stableUserId } = require('../../utils/session.js')
+const { ensureFlowSession, stableUserId, blankSession, writeSession } = require('../../utils/session.js')
 const { startPrompt, PENDING_TOPIC_KEY } = require('../../utils/flow.js')
 const { matchCanonical, loadCachedCatalog } = require('../../utils/coze-catalog.js')
 const { findLessonCode } = require('../../utils/official-catalog.js')
-const voice = require('../../utils/voice.js')
+const { friendlyError } = require('../../utils/errors.js')
 
 Page({
   data: {
@@ -16,7 +16,6 @@ Page({
     loading: true,
     planning: false,
     sending: false,
-    recording: false,
     reviewing: false,
     error: '',
     hint: '',
@@ -46,12 +45,10 @@ Page({
   },
   onLoad(query) {
     this.setData({ id: query.id })
-    voice.prepare().catch(() => {})
     this.boot()
   },
   onUnload() {
     classroom.stopLive(this)
-    voice.cancel()
   },
   boot() {
     const id = this.data.id
@@ -160,40 +157,25 @@ Page({
   onRetry() {
     classroom.onRetry(this, startPrompt(this.data.course, this.data.displayTitle))
   },
-  onMicTap() {
-    if (this.data.sending) return
-    if (this.data.recording) {
-      voice.end().then((text) => {
-        this.setData({
-          recording: false,
-          draft: voice.appendDraft(this.data.draft, text)
-        })
-      }).catch((err) => {
-        this.setData({ recording: false })
-        wx.showToast({ title: voice.friendlyVoiceError(err), icon: 'none' })
+  onClear() {
+    classroom.stopLive(this)
+    const page = this
+    const afterClear = function () {
+      writeSession(page.sessionKey(), blankSession(page.data.displayTitle || ''))
+      page.setData({
+        error: '',
+        followUps: [],
+        thread: [],
+        hint: '',
+        thinking: false,
+        thinkHint: '',
+        waitSec: 0
       })
-      return
+      classroom.startCourseFlow(page, page.data.course)
     }
-    this._voiceBase = this.data.draft || ''
-    voice.begin({
-      onPartial: (text) => {
-        this.setData({ draft: voice.appendDraft(this._voiceBase || '', text) })
-      }
-    }).then(() => {
-      this.setData({ recording: true })
-    }).catch((err) => {
-      this.setData({ recording: false })
-      wx.showToast({ title: voice.friendlyVoiceError(err), icon: 'none' })
-    })
+    classroom.clearHistory(this).then(afterClear, afterClear)
   },
   friendlyError(err) {
-    const msg = (err && err.message) || '加载失败'
-    if (msg.indexOf('wechat id config') >= 0) {
-      return 'Zion 读不到微信小程序配置。请核对编辑器「登录设置 / 微信」与微信开发者工具 AppID 是否一致。'
-    }
-    if (msg.indexOf('invalid code') >= 0 || msg.indexOf('FAILED_TO_GET_MINI_APP_SESSION_KEY') >= 0) {
-      return '微信登录 code 无效，请用微信开发者工具打开本小程序后再试。'
-    }
-    return msg
+    return friendlyError(err, '加载失败')
   }
 })

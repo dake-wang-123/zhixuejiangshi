@@ -456,70 +456,68 @@ page {
   color: #4B6EF5;
 }
 
-.composer {
+.wx-composer {
   position: fixed;
   left: 0;
   right: 0;
   bottom: 0;
   z-index: 80;
-  padding: 16rpx 40rpx 48rpx;
-  background: #FFFFFF;
-  border-top: 1rpx solid #E5E5E5;
+  background: #F7F7F7;
+  border-top: 1rpx solid #EDEDED;
+  padding: 12rpx 16rpx 20rpx;
+  box-sizing: border-box;
 }
 
-.study-page.tabbed .composer {
+.study-page.tabbed .wx-composer {
   bottom: 148rpx;
-  padding-bottom: 16rpx;
+  padding-bottom: 12rpx;
 }
 
-.composer-bar {
-  display: flex;
-  align-items: flex-end;
-}
-
-.plus,
-.send {
-  width: 72rpx;
-  height: 72rpx;
-  padding: 0;
-  margin: 0;
-  border-radius: 20rpx;
+.wx-bar {
   display: flex;
   align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  line-height: 72rpx;
-  background: #F3F4F6;
 }
 
-.plus::after,
-.send::after {
-  border: none;
-}
-
-.plus.on {
-  background: #D64545;
-}
-
-.send {
-  background: #4B6EF5;
-}
-
-.send.off {
-  background: #C5CDE8;
-}
-
-.draft {
-  flex: 1;
-  min-height: 96rpx;
-  max-height: 240rpx;
-  margin: 0 12rpx;
-  padding: 24rpx 24rpx;
-  box-sizing: border-box;
+.wx-plus {
+  width: 64rpx;
+  height: 64rpx;
+  line-height: 58rpx;
+  text-align: center;
+  font-size: 44rpx;
+  color: #333333;
   background: #FFFFFF;
   border: 1rpx solid #E5E5E5;
-  border-radius: 24rpx;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.wx-plus-on {
+  background: #F0F0F0;
+}
+
+.wx-input {
+  flex: 1;
+  height: 72rpx;
+  min-height: 72rpx;
+  margin: 0 16rpx;
+  padding: 0 20rpx;
+  box-sizing: border-box;
+  background: #FFFFFF;
+  border-radius: 8rpx;
   font-size: 32rpx;
-  line-height: 1.6;
+  line-height: 72rpx;
   color: #333333;
+}
+
+.wx-send {
+  flex-shrink: 0;
+  min-width: 88rpx;
+  text-align: center;
+  font-size: 32rpx;
+  line-height: 72rpx;
+  color: #B8B8B8;
+}
+
+.wx-send.ready {
+  color: #07C160;
 }

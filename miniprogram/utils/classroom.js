@@ -11,7 +11,6 @@ const {
   OPEN_GUIDE_PROMPT
 } = require('./flow.js')
 const history = require('./learn-history.js')
-const voice = require('./voice.js')
 const typewriter = require('./typewriter.js')
 const { decorateThread } = require('./markdown.js')
 
@@ -172,12 +171,6 @@ function askZhixue(page, text) {
   startWaitClock(page)
   const account = getApp().globalData.account || {}
   const userId = page.cozeUserId(account)
-  const extra = {
-    accountId: account.id || '',
-    lessonCode: storedLessonCode(page),
-    topicTitle: (page.data && page.data.displayTitle) || preview.topicTitle || '',
-    historyJson: preview.conversationId ? '[]' : JSON.stringify(history.packAdditional(base))
-  }
   let typed = ''
   return chatWithCoze(prompt, userId, preview.conversationId || '', getApp().getToken(), function onTick(result) {
     persist(page, {
@@ -194,7 +187,7 @@ function askZhixue(page, text) {
       id: 'coze-live-' + (result.chatId || 'turn'),
       followUps: []
     })
-  }, extra).then((result) => {
+  }).then((result) => {
     persist(page, {
       messages: mergeLiveThread(pending, result),
       followUps: result.followUps || [],
@@ -294,18 +287,17 @@ function clearHistory(page) {
 }
 
 function onPlus(page) {
-  const recording = !!(page.data && page.data.recording)
-  const items = recording ? ['结束并转成文字'] : ['语音输入']
+  const items = []
   if (typeof page.onClear === 'function') items.push('重新开始')
   if (page.data && page.data.error) items.push('再问一次')
+  if (!items.length) {
+    wx.showToast({ title: '从课程目录点课即可换课', icon: 'none' })
+    return
+  }
   wx.showActionSheet({
     itemList: items,
     success: (res) => {
       const name = items[res.tapIndex]
-      if (name.indexOf('语音') >= 0 || name.indexOf('结束') >= 0) {
-        if (typeof page.onMicTap === 'function') page.onMicTap()
-        return
-      }
       if (name === '重新开始' && typeof page.onClear === 'function') page.onClear()
       if (name === '再问一次' && typeof page.onRetry === 'function') page.onRetry()
     }
@@ -337,39 +329,6 @@ function onRetry(page, fallbackPrompt) {
   askZhixue(page, lastUser || fallbackPrompt)
 }
 
-function bindMic(page) {
-  return {
-    onMicTap: function () {
-      if (page.data.sending) return
-      if (page.data.recording) {
-        voice.end().then((text) => {
-          page.setData({
-            recording: false,
-            draft: voice.appendDraft(page.data.draft, text)
-          })
-        }).catch((err) => {
-          page.setData({ recording: false })
-          wx.showToast({ title: voice.friendlyVoiceError(err), icon: 'none' })
-        })
-        return
-      }
-      voice.begin({
-        onPartial: function (text) {
-          page.setData({ draft: voice.appendDraft(page._voiceBase || '', text) })
-        }
-      }).then(() => {
-        page._voiceBase = page.data.draft || ''
-        page.setData({ recording: true })
-      }).catch((err) => {
-        page.setData({ recording: false })
-        wx.showToast({ title: voice.friendlyVoiceError(err), icon: 'none' })
-      })
-    },
-    onMicStart: function () {},
-    onMicEnd: function () {}
-  }
-}
-
 module.exports = {
   paint: paint,
   persist: persist,
@@ -381,6 +340,5 @@ module.exports = {
   onPlus: onPlus,
   onFollow: onFollow,
   onRetry: onRetry,
-  bindMic: bindMic,
   stopLive: stopLive
 }

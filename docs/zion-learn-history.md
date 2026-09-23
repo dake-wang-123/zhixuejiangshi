@@ -75,12 +75,10 @@ Output  reply_content / conversation_id / raw
 | `user_id` | 文本 | 前端 | 传给 Coze 的 `user_id`，形如 `learn-{帐户id}-{课号}` |
 | `conversation_id` | 文本 | 前端 | 上次存下的 Coze 会话 ID；没有就留空 |
 | `bot_id` | 文本 | 前端 / 默认 | Bot ID |
-| `account_id` | 文本 | 前端 | Zion 帐户 id，写入 `学员_id` |
-| `lesson_code` | 文本 | 前端 | `A01` 或 `open` |
-| `topic_title` | 文本 | 前端 | 课题原题 |
-| `history_json` | 文本 | 前端 | 仅当没有 `conversation_id` 时传入最近 16 条 `[{role,content}]` |
 
-在编辑器里：行为流 → 智学对话 → 输入参数 → 添加上述四个新参数。Run Code 里用 `context.getArg('lesson_code')` 读取，不必再给节点单独加插槽。
+**不要**给「智学对话」再加 `lesson_code` / `topic_title` / `account_id` / `history_json`。线上调用契约只认上面四个入参。多传一个就会变成 `UnknownValueException: lesson_code is not specified in the schema`，并被当成 AI 回复显示出来。课号和对话落库由小程序 GraphQL 直写 `learn_message`，不经过行为流入参。
+
+Run Code 里也不要写 `context.getArg('lesson_code')`。节点入参 schema 里没有这个键时，`getArg` 会立刻抛同样的异常。
 
 ### 写入（Coze 成功之后）
 

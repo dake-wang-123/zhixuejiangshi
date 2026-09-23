@@ -2,6 +2,7 @@ const app = getApp()
 const { graphqlRequest } = require('../../utils/graphql.js')
 const { buildOfficialCatalog, listOfficialCategories } = require('../../utils/official-catalog.js')
 const { PENDING_TOPIC_KEY, PENDING_LESSON_KEY } = require('../../utils/flow.js')
+const { friendlyError } = require('../../utils/errors.js')
 
 const CATALOG_LIST = `
   query CourseCatalog($limit: Int) {
@@ -77,17 +78,7 @@ Page({
     })
   },
   friendlyError(err) {
-    const msg = (err && err.message) || '加载失败'
-    if (msg.indexOf('wechat id config') >= 0) {
-      return 'Zion 读不到微信小程序配置。请核对编辑器「登录设置 / 微信」与微信开发者工具 AppID 是否一致。'
-    }
-    if (msg.indexOf('invalid code') >= 0 || msg.indexOf('FAILED_TO_GET_MINI_APP_SESSION_KEY') >= 0) {
-      return '微信登录 code 无效，请用微信开发者工具打开本小程序后再下拉刷新。'
-    }
-    if (msg.indexOf('未登录') >= 0 || msg.indexOf('无访问权限') >= 0) {
-      return '当前身份无法读取课程目录，请完成登录后再下拉刷新。'
-    }
-    return msg
+    return friendlyError(err, '加载失败')
   },
   onCategory(e) {
     const id = e.currentTarget.dataset.id || ''

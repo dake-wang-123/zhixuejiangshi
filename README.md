@@ -59,7 +59,7 @@ https://zion-app.functorz.com/zero/PO76RBe9KX0/api/graphql-v2
    - 只把令牌填进 Zion 项目密钥，不要加 `Bearer `，不要发到聊天里
    - 保存后 **同步后端**
 3. Actionflow **智学对话**（同步，超时 60 秒）转发密钥并保持 Coze 会话：
-   - 入参：`user_message` / `user_id` / `conversation_id` / `bot_id` / `account_id` / `lesson_code` / `topic_title` / `history_json`
+   - 入参只允许这四个：`user_message` / `user_id` / `conversation_id` / `bot_id`。不要传 `lesson_code`，否则会报 `UnknownValueException`
    - 输出：`reply_content`（`{items,status}` JSON）、`conversation_id`、`raw`（chat id）
    - POST `https://api.coze.cn/v3/chat?conversation_id=...`：`conversation_id` 必须是 **Query**，body 里放了也会被 Coze 丢掉
    - Body：`stream: false`，`auto_save_history: true`，`additional_messages: [{role,content,content_type}]`
@@ -69,6 +69,7 @@ https://zion-app.functorz.com/zero/PO76RBe9KX0/api/graphql-v2
    - 前端每 0.8 秒轮询 retrieve；正文到了用打字机逐段上屏，发送中显示思考气泡
    - Zion 的 TPA **不能**把 `stream` 设为 true（SSE）。缩短等待必须靠扣子端分段输出，提示词见 `docs/zion-coze-stream.md`
    - 表字段、行为流节点、列表绑定见 `docs/zion-learn-history.md`
+   - `lesson_code` 报错与微信输入条见 `docs/zion-chat-composer.md`
 4. Coze `4100` 是令牌本身无效；`4101` 是令牌没有访问该 Bot / 接口的权限。Bot 未发布到 **Agent As API** 时，流程会提示去 coze.cn 发布。
 
 ## 课件 PPT

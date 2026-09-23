@@ -59,28 +59,21 @@
     </view>
     <view id="thread-end"></view>
   </scroll-view>
-  <view class="composer">
-    <view class="composer-bar">
-      <button
-        class="plus {{recording ? 'on' : ''}}"
-        hover-class="none"
-        catchtap="onPlus"
-      >
-        <ui-icon name="{{recording ? 'mic' : 'plus'}}" size="34" color="{{recording ? '#FFFFFF' : '#333333'}}"></ui-icon>
-      </button>
-      <textarea
-        class="draft"
-        placeholder="{{recording ? '正在听，再点左侧结束并转成文字' : (course ? '回答智学的问题' : '回复智学，或输入课题原题')}}"
+  <view class="wx-composer">
+    <view class="wx-bar">
+      <view class="wx-plus" hover-class="wx-plus-on" bindtap="onPlus">+</view>
+      <input
+        class="wx-input"
+        placeholder="{{course ? '回答智学的问题' : '回复智学，或输入课题原题'}}"
         value="{{draft}}"
         bindinput="onDraft"
-        auto-height
-        maxlength="2000"
         confirm-type="send"
         bindconfirm="onSend"
-      ></textarea>
-      <button class="send {{sending ? 'off' : ''}}" hover-class="none" bindtap="onSend" disabled="{{sending}}">
-        <ui-icon name="send" size="32" color="#FFFFFF"></ui-icon>
-      </button>
+        maxlength="2000"
+        cursor-spacing="24"
+        adjust-position
+      />
+      <view class="wx-send {{draft && !sending ? 'ready' : ''}}" bindtap="onSend">发送</view>
     </view>
   </view>
 </view>

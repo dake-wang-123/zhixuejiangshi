@@ -8,7 +8,8 @@ const {
   listCategories
 } = require('../miniprogram/utils/coze-catalog.js')
 const { startPrompt, listFlowSteps, firstLiveIndex, OPEN_GUIDE_PROMPT } = require('../miniprogram/utils/flow.js')
-const { extractReply, chatSettled } = require('../miniprogram/utils/agent.js')
+const { extractReply, chatSettled, isFlowCrash } = require('../miniprogram/utils/agent.js')
+const { friendlyError } = require('../miniprogram/utils/errors.js')
 const { buildCozeCatalog } = require('../miniprogram/utils/catalog.js')
 
 assert.strictEqual(listFlowSteps().length, 0)
@@ -246,6 +247,10 @@ const fakePage = {
 typewriter.play(fakePage, [{ id: 1, role: 'user', content: 'hi' }], 'ABCD')
 assert.ok(fakePage.data.thread[1].content.length >= 1)
 typewriter.stop(fakePage)
+
+assert.strictEqual(isFlowCrash('com.zion.backend.support.actionflow.UnknownValueException: lesson_code is not specified in the schema'), true)
+assert.strictEqual(isFlowCrash('你好，我们开始上课'), false)
+assert.ok(friendlyError(new Error('UnknownValueException: lesson_code is not specified in the schema')).indexOf('合法入参') >= 0)
 
 voice.begin().then(() => {
   throw new Error('voice.begin should reject without wx')

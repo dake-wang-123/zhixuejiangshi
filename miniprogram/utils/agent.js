@@ -222,22 +222,30 @@ function chatSettled(current) {
   return status === 'completed' || status === 'failed' || status === 'canceled'
 }
 
-function runCoze(message, userId, conversationId, token, extra) {
-  const more = extra || {}
+function isFlowCrash(text) {
+  const raw = String(text || '')
+  return raw.indexOf('UnknownValueException') >= 0
+    || raw.indexOf('com.zion.backend') >= 0
+    || raw.indexOf('is not specified in the schema') >= 0
+}
+
+function runCoze(message, userId, conversationId, token) {
   const args = {
     user_message: message,
     user_id: String(userId || ''),
     conversation_id: conversationId || '',
-    bot_id: config.cozeBotId,
-    account_id: more.accountId ? String(more.accountId) : '',
-    lesson_code: more.lessonCode ? String(more.lessonCode) : 'open',
-    topic_title: more.topicTitle ? String(more.topicTitle) : '',
-    history_json: more.historyJson ? String(more.historyJson) : '[]'
+    bot_id: config.cozeBotId
   }
-  return invokeSyncFlow(args, token).then((output) => extractReply(output))
+  return invokeSyncFlow(args, token).then((output) => {
+    const extracted = extractReply(output)
+    if (isFlowCrash(extracted.reply)) {
+      throw new Error(extracted.reply)
+    }
+    return extracted
+  })
 }
 
-function chatWithCoze(message, userId, conversationId, token, onTick, extra) {
+function chatWithCoze(message, userId, conversationId, token, onTick) {
   if (!config.cozeBotId) {
     return Promise.reject(new Error('尚未配置 Coze Bot ID。请打开 miniprogram/config.js，把 cozeBotId 换成控制台里的 Bot ID。'))
   }
@@ -246,7 +254,7 @@ function chatWithCoze(message, userId, conversationId, token, onTick, extra) {
     return extracted
   }
   function once(text, conv, attempt, previous) {
-    return runCoze(text, userId, conv, token, extra).then((extracted) => {
+    return runCoze(text, userId, conv, token).then((extracted) => {
       if (!extracted.conversationId && previous && previous.conversationId) {
         extracted.conversationId = previous.conversationId
       }
@@ -273,10 +281,6 @@ function chatWithCoze(message, userId, conversationId, token, onTick, extra) {
         setTimeout(() => resolve(once(pollMsg, extracted.conversationId, attempt + 1, extracted)), 800)
       })
     })
-  }
-  const firstExtra = extra || {}
-  if (conversationId) {
-    firstExtra.historyJson = '[]'
   }
   return once(message, conversationId || '', 0, null)
 }
@@ -373,5 +377,6 @@ module.exports = {
   parseJson: parseJson,
   extractReply: extractReply,
   visibleItems: visibleItems,
-  chatSettled: chatSettled
+  chatSettled: chatSettled,
+  isFlowCrash: isFlowCrash
 }

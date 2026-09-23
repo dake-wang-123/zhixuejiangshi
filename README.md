@@ -18,10 +18,17 @@
 ## 本地运行
 
 1. 安装[微信开发者工具](https://developers.weixin.qq.com/miniprogram/dev/devtools/download.html)。
-2. 导入目录必须是 `miniprogram/`（或解压后的 `family-edu-miniprogram/`）。这一层要**同时**有 `app.json` 和 `pages/index/index.wxml`。不要导入仓库根目录的上一级，也不要把 zip 当项目打开。
-3. `project.config.json` 里的 AppID 已写成 `wx0277d4abe92dd8a3`，与 Zion 登录设置一致。若导入整个仓库，根目录的 `project.config.json` 已指定 `miniprogramRoot` 为 `miniprogram/`。
-4. 在微信公众平台把 `https://zion-app.functorz.com` 以及上传用的 OSS 域名加入 request 合法域名。
-5. 编译预览。静默登录走 `wx.login` → GraphQL `loginWithWechatMiniApp`。
+2. 导入目录必须是能**直接看到** `app.json` 的那一层：仓库里的 `miniprogram/`，或解压 zip 后的文件夹根。开发者工具 2.02 会在所选目录找 `app.json`，找不到就报「在项目根目录未找到 app.json」。不要选仓库根目录，不要选外层空文件夹，也不要把 `.zip` 当项目打开。
+3. Windows「全部提取」后，先打开文件夹确认第一层就有 `app.json` 和 `pages/`。若路径是 `family-edu-miniprogram\family-edu-miniprogram\app.json`，导入**里面**那一层。
+4. `project.config.json` 里的 AppID 已写成 `wx0277d4abe92dd8a3`，与 Zion 登录设置一致。
+5. 在微信公众平台把 `https://zion-app.functorz.com` 以及上传用的 OSS 域名加入 request 合法域名。
+6. 编译预览。静默登录走 `wx.login` → GraphQL `loginWithWechatMiniApp`。
+
+重新打包（`app.json` 放在 zip 根目录，避免 Windows 解出双层目录）：
+
+```bash
+bash scripts/pack-wechat.sh
+```
 
 上传体验版时，代码质量「启用组件按需注入」必须通过：`app.json` 已写 `"lazyCodeLoading": "requiredComponents"`（基础库 ≥ 2.11.1，当前 `2.32.3`）。`ui-icon`、`step-bar` 只写在用到它们的页面 json 里，不要写进 `app.json` 的全局 `usingComponents`，否则每个页面都会注入进度条，这项检查仍会失败。`sitemap.json` 必须带 `rules`（当前允许全部页面被索引），缺这个字段上传会报 `-80055 Invalid SiteMap`。重新导入本仓库或最新 zip 后再点上传。
 

@@ -29,6 +29,10 @@ if cfg.get('miniprogramRoot') in ('.', './'):
     sys.exit('project.config.json must not set miniprogramRoot to ./')
 if cfg.get('compileType') != 'miniprogram' or not cfg.get('appid'):
     sys.exit('project.config.json missing compileType/appid')
+if app.get('plugins'):
+    sys.exit('app.json must not declare plugins until they are added in 微信公众平台; undeclared plugins crash the simulator')
+if 'miniprogramRoot' in cfg:
+    sys.exit('zip project.config.json must not set miniprogramRoot')
 print('project files ok')
 PY
 
@@ -49,6 +53,8 @@ Windows：
 3. 打开解压目录，再进入 family-edu-miniprogram。
 4. 确认能看到 app.json，再在微信开发者工具里「导入项目」选中这一层。
 5. AppID：wx0277d4abe92dd8a3
+6. 不要把 zip 当项目打开。选中能看到 app.json 的 family-edu-miniprogram 这一层。
+7. 当前包未声明第三方插件，避免模拟器因「插件未授权」启动失败。
 EOF
 
 ZIP_PATH="$OUT_DIR/zhixue-wechat.zip"

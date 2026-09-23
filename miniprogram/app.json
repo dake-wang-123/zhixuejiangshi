@@ -46,11 +46,5 @@
     "scope.record": {
       "desc": "用于学习时把语音转成文字填入输入框"
     }
-  },
-  "plugins": {
-    "WechatSI": {
-      "version": "0.3.6",
-      "provider": "wx069ba97219f66d99"
-    }
   }
 }

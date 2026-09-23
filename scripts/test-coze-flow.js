@@ -101,6 +101,7 @@ assert.ok(looksLikeCatalog('## 0-3岁课程\n1. 听懂婴语\n2. 睡眠引导'))
 assert.ok(!looksLikeCatalog('你好，我们开始上课'))
 assert.ok(!isAdmin({ phoneNumber: '13800000000' }))
 assert.ok(isAdmin({ phoneNumber: '17742415497' }))
+assert.ok(isAdmin({ id: '1000000000000006' }))
 assert.ok(!unlockAdmin('13800000000'))
 
 console.log('coze catalog and flow tests passed')

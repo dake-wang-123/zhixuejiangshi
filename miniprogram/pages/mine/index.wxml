@@ -9,18 +9,18 @@
         <text class="hero-title">我的</text>
       </view>
     </view>
-    <text class="hero-sub">微信静默登录后，可以维护讲师资料、查看会员，并给运营留言。</text>
+    <text class="hero-sub">当前为管理员测试登录，可直接上传课程归档、走智学问答。</text>
   </view>
   <view class="error" wx:if="{{loginError}}">{{loginError}}</view>
   <view class="card" wx:if="{{account}}">
-    <view class="title">{{account.username || '家庭教育讲师'}}</view>
+    <view class="title">{{account.username || '家庭教育讲师'}}{{isAdmin ? ' · 管理员' : ''}}</view>
     <view class="muted">账号 {{account.id}}</view>
     <view class="muted" wx:if="{{account.phoneNumber}}">手机 {{account.phoneNumber}}</view>
   </view>
   <view class="card" wx:else>
     <view class="title">尚未登录</view>
-    <view class="desc">小程序启动时会调用 wx.login，把 code 交给 Zion 的 loginWithWechatMiniApp。</view>
-    <button class="btn" bindtap="onRelogin">重新登录</button>
+    <view class="desc">点下面直接进入已登记的管理员测试账号，无需微信 code。</view>
+    <button class="btn" bindtap="onRelogin">管理员登录</button>
   </view>
   <view class="card">
     <view class="section-head" style="margin-top: 0;">

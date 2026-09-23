@@ -8,7 +8,12 @@ module.exports = {
   sourceLecturer: '讲师上传',
   sourceAdmin: '管理员上传',
   adminPhones: ['17742415497'],
-  adminAccountIds: [],
+  adminAccountIds: ['1000000000000006'],
+  devAdmin: {
+    enabled: true,
+    username: 'zhixue-admin',
+    password: 'ZhixueAdmin2026'
+  },
   asyncFlowId: '8e640419-2243-41b5-92c4-0dd349b97f2d',
   pptFlowId: 'c46e09e4-fd97-4027-b27b-87d6cd5b8a63',
   pptGenerateTpaId: 'yv04e96e8',

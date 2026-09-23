@@ -1,4 +1,6 @@
 const auth = require('./utils/auth.js')
+const config = require('./config.js')
+const { isAdmin } = require('./utils/admin.js')
 
 App({
   globalData: {
@@ -11,12 +13,14 @@ App({
   },
   ensureLogin() {
     const cached = auth.getToken()
-    if (cached) {
+    const account = auth.getAccount()
+    const wantAdmin = !!(config.devAdmin && config.devAdmin.enabled)
+    if (cached && (!wantAdmin || isAdmin(account))) {
       this.globalData.token = cached
-      this.globalData.account = auth.getAccount()
-      return auth.fetchAccount(cached).then((account) => {
-        this.globalData.account = account
-        return { token: cached, account: account }
+      this.globalData.account = account
+      return auth.fetchAccount(cached).then((fresh) => {
+        this.globalData.account = fresh
+        return { token: cached, account: fresh }
       }).catch(() => this.relLogin())
     }
     return this.relLogin()

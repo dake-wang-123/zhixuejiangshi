@@ -76,18 +76,8 @@ Page({
   onFollow(e) {
     classroom.onFollow(this, e.currentTarget.dataset.text)
   },
-  onStepBar(e) {
-    classroom.onStepBar(this, e.detail.index)
-  },
   onRetry() {
     classroom.onRetry(this, startPrompt(this.data.course, this.data.displayTitle))
-  },
-  onComplete() {
-    classroom.onComplete(this)
-  },
-  onBackLive() {
-    const session = require('../../utils/session.js').readSession(this.sessionKey())
-    classroom.paint(this, session || {}, classroom.liveIndexOf(session || {}))
   },
   onClear() {
     writeSession(OPEN_SESSION_ID, blankSession(''))

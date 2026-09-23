@@ -30,7 +30,7 @@
 bash scripts/pack-wechat.sh
 ```
 
-上传体验版时，代码质量「启用组件按需注入」必须通过：`app.json` 已写 `"lazyCodeLoading": "requiredComponents"`（基础库 ≥ 2.11.1，当前 `2.32.3`）。`ui-icon`、`step-bar` 只写在用到它们的页面 json 里，不要写进 `app.json` 的全局 `usingComponents`，否则每个页面都会注入进度条，这项检查仍会失败。`sitemap.json` 必须带 `rules`（当前允许全部页面被索引），缺这个字段上传会报 `-80055 Invalid SiteMap`。重新导入本仓库或最新 zip 后再点上传。
+上传体验版时，代码质量「启用组件按需注入」必须通过：`app.json` 已写 `"lazyCodeLoading": "requiredComponents"`（基础库 ≥ 2.11.1，当前 `2.32.3`）。`ui-icon` 只写在用到它的页面 json 里，不要写进 `app.json` 的全局 `usingComponents`。`sitemap.json` 必须带 `rules`（当前允许全部页面被索引），缺这个字段上传会报 `-80055 Invalid SiteMap`。重新导入本仓库或最新 zip 后再点上传。
 
 后端地址写在 `miniprogram/config.js`：
 
@@ -59,10 +59,12 @@ https://zion-app.functorz.com/zero/PO76RBe9KX0/api/graphql-v2
    - 授权工作空间必须包含当前 Bot
    - 只把令牌填进 Zion 项目密钥，不要加 `Bearer `，不要发到聊天里
    - 保存后 **同步后端**
-3. Actionflow **智学对话**（异步，超时 180 秒）已同步。组装节点会去掉重复的 `Bearer` 前缀，并在 Run Code 里用 `callThirdPartyApi` 发送 OBJECT 请求体（`bot_id` 为 TEXT，`additional_messages` 为一条 user 文本）。轮询节点会等到 Coze 写出助手正文，并收集 `follow_up` 追问建议（用 `__FOLLOW_UPS__` JSON 附在回复末尾，小程序拆成建议按钮）。
+3. Actionflow **智学对话**（同步，超时 30 秒）只做密钥转发，不再在服务端空等、也不改写 Coze 正文。
    - 入参：`user_message` / `user_id` / `conversation_id` / `bot_id`
-   - 节点：组装并调用智学 → Run Code **轮询智学回复**（TPA **智学消息** `r43leo7de`）
+   - 节点：组装并 POST 智学 TPA `mu6ckpzl` → 读取智学回复（TPA **智学消息** `r43leo7de` 只取一次）
    - 输出：`reply_content`、`conversation_id`、`raw`（chat id）
+   - 小程序用 `fz_invoke_action_flow` 直调。正文未到时每 500ms 再取一次消息，不再创建 180 秒异步任务，也不再二次跑 `__POLL_CHAT__` 长循环。
+   - Coze 的 `follow_up` 原样拆成建议按钮；小程序不再解析环节、不再画进度条、不再提供「完成本环节」。
 4. Coze `4100` 是令牌本身无效；`4101` 是令牌没有访问该 Bot / 接口的权限。Bot 未发布到 **Agent As API** 时，流程会提示去 coze.cn 发布。
 5. 最近一次运行时：任务 `1150000000000012` COMPLETED，返回亲子倾听要点正文（已过滤 verbose 调试 JSON）。
 
@@ -90,8 +92,8 @@ https://zion-app.functorz.com/zero/PO76RBe9KX0/api/graphql-v2
 
 - 教案不是独立表，而是课程的 `original_file` + `ai_analysis`。讲师上传 `source_type = 讲师上传`，解析中为 `解析中`，解析完为 `待审核`。
 - 上架课由管理员把 `status` 改为 `已上架`。登录用户可读「已上架 **或** 自己上传」的课程；课程 Tab 客户端再筛一层已上架。
-- 再次通跑智学：未选课发「你好」，智能体引导输入《0-18岁家庭教育指导服务课程体系》课题或上传教案，再走它自己的十步交付法。知识库目前列不出 60 课清单。管理员在「我的 → 课程归档上传」上传分类文件/课题原件，只整理文件里的标题和分类并上架；学员点课只把原题发给智学。
-- 学习环节只调用 Coze 智学。用户回答原样回传，智学的问题原样展示。进度条只在智学自己列出环节后出现。「完成本环节」只把红格变绿，不向智学另发指令。输入框支持按住麦克风转文字。进度写入 `study_record.progress`。
+- 再次通跑智学：未选课发「你好」，智能体引导输入课题或上传教案，再走它自己的问答。知识库目前列不出 60 课清单。管理员在「我的 → 课程归档上传」上传分类文件/课题原件，只整理文件里的标题和分类并上架；学员点课只把原题发给智学。
+- 学习环节只呈现 Coze 智学自己的问答。用户回答原样回传，智学的问题原样展示，不做本地环节解读。输入框支持按住麦克风转文字。进度写入 `study_record.progress`。
 - 登录用户可插入自己的课程、学习记录、用户资料、反馈；匿名角色没有任何表权限，也不能调用 Actionflow / TPA / ZAI。
 - 课程分类字段在 GraphQL 里是关系对象 `category_id { id name }`，不是标量外键。
 - 资料 upsert 约束名：`user_profile_user_id_key`。反馈外键写入 `user_id_id`。

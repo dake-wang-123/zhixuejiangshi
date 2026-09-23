@@ -53,12 +53,7 @@
       </view>
       <view class="grow">
         <view class="title">{{item.displayTitle}}</view>
-        <view class="muted" wx:if="{{item.stepCount}}">第 {{item.currentIndex + 1}} / {{item.stepCount}} 环节 · {{item.stepTitle}}</view>
-        <view class="muted" wx:else>{{item.stepTitle || '按智学问答继续'}}</view>
-        <view class="progress-line">
-          <view class="fill" style="width: {{item.percent}}%;"></view>
-        </view>
-        <view class="muted" style="margin-top: 8rpx;">已完成 {{item.completedCount || 0}} 环节</view>
+        <view class="muted">{{item.stepTitle || '按智学问答继续'}}</view>
         <view class="row">
           <button
             class="btn mini"

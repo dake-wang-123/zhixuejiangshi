@@ -2,24 +2,8 @@
   <view class="study-head">
     <view class="muted">智学伴练</view>
     <view class="title">{{displayTitle}}</view>
-    <view class="muted" wx:if="{{course}}">已把课题原题发给智学，按它的十步交付法问答推进，不另编环节。</view>
-    <view class="muted" wx:else>未选课时智学先给引导语。可从课程目录点课，或按引导输入《0-18岁》课题原题。</view>
-    <step-bar
-      wx:if="{{steps.length}}"
-      steps="{{steps}}"
-      current="{{currentIndex}}"
-      completedCount="{{completedCount}}"
-      finished="{{finished}}"
-      bindchange="onStepBar"
-    ></step-bar>
-    <view class="review-banner" wx:if="{{reviewing}}" bindtap="onBackLive">
-      正在回看「{{currentStep.title}}」。点这里回到当前环节继续学。
-    </view>
-    <view class="step-goal" wx:if="{{currentStep}}">
-      <text class="muted">{{currentStep.group}}</text>
-      <text class="goal">{{currentStep.title}}</text>
-      <text class="muted" wx:if="{{currentStep.goal}}">{{currentStep.goal}}</text>
-    </view>
+    <view class="muted" wx:if="{{course}}">已把课题原题发给智学。下面是智能体自己的问答，小程序原样呈现。</view>
+    <view class="muted" wx:else>未选课时智学先给引导语。可从课程目录点课，或按引导输入课题原题。</view>
   </view>
   <view class="error" wx:if="{{error}}">{{error}}</view>
   <scroll-view scroll-y class="thread" scroll-into-view="{{scrollInto}}" scroll-with-animation>
@@ -31,7 +15,7 @@
       wx:for="{{thread}}"
       wx:key="id"
     >{{item.content}}</view>
-    <view class="follow-wrap" wx:if="{{followUps.length && !sending && !reviewing}}">
+    <view class="follow-wrap" wx:if="{{followUps.length && !sending}}">
       <view class="muted">智学建议</view>
       <view
         class="follow"
@@ -46,7 +30,7 @@
       <text>智学回复中…</text>
     </view>
   </scroll-view>
-  <view class="composer" wx:if="{{!reviewing}}">
+  <view class="composer">
     <view class="draft-row">
       <textarea
         class="draft"
@@ -70,7 +54,6 @@
     <view class="row composer-actions">
       <button class="btn btn-ghost mini" size="mini" bindtap="onClear">重新开始</button>
       <button class="btn btn-ghost mini" size="mini" bindtap="onRetry" wx:if="{{error}}" disabled="{{sending}}">再问一次</button>
-      <button class="btn btn-ghost mini" size="mini" bindtap="onComplete" wx:if="{{steps.length && !finished}}" disabled="{{sending}}">完成本环节</button>
       <button class="btn mini" size="mini" bindtap="onSend" disabled="{{sending}}">发送</button>
     </view>
   </view>

@@ -4,7 +4,7 @@ const {
   firstLiveIndex
 } = require('./flow.js')
 
-const SESSION_KEY = 'zhixue_sessions_v7'
+const SESSION_KEY = 'zhixue_sessions_v8'
 const FOLLOW_MARK = '__FOLLOW_UPS__'
 
 function loadAll() {
@@ -65,8 +65,7 @@ function visibleMessages(messages) {
 function hasAssistant(messages, stageIndex) {
   return (messages || []).some((item) => {
     if (item.role !== 'assistant' || item.hidden || item.failed) return false
-    if (stageIndex == null) return true
-    return Number(item.stageIndex) === Number(stageIndex)
+    return true
   })
 }
 

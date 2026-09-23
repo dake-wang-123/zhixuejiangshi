@@ -101,6 +101,14 @@ function invokeAsyncFlow(args, token, flowId) {
     .then((data) => data.fz_create_action_flow_task)
 }
 
+function invokeSyncFlow(args, token, flowId) {
+  const query = `mutation RunSync($args: Json!, $actionFlowId: String!) {
+    fz_invoke_action_flow_default_by_latest_version(actionFlowId: $actionFlowId, args: $args)
+  }`
+  return graphqlRequest(query, { args: args, actionFlowId: flowId || config.asyncFlowId }, token)
+    .then((data) => data.fz_invoke_action_flow_default_by_latest_version)
+}
+
 function pollFlowTask(taskId, token, options) {
   const opts = options || {}
   const query = `query FlowResult($taskId: Long!) {
@@ -124,13 +132,13 @@ function pollFlowTask(taskId, token, options) {
 }
 
 function extractReply(row) {
-  let output = row && row.output
-  if (output == null) return { reply: '', conversationId: '' }
+  let output = row && row.output !== undefined ? row.output : row
+  if (output == null) return { reply: '', conversationId: '', chatId: '' }
   if (typeof output === 'string') {
     try {
       output = JSON.parse(output)
     } catch (e) {
-      return { reply: output, conversationId: '' }
+      return { reply: output, conversationId: '', chatId: '' }
     }
   }
   const data = output.data || output
@@ -155,10 +163,7 @@ function extractReply(row) {
     reply = reply.split('\n{"msg_type"')[0]
   }
   const conversationId = output.conversation_id || data.conversation_id || ''
-  const chatId = output.raw || data.id || output.id || ''
-  if (!reply && (conversationId || chatId)) {
-    reply = '智学已受理，但还没有拿到助手文本。请稍后再发「继续」。'
-  }
+  const chatId = output.raw || data.id || output.id || output.chat_id || ''
   const split = stripFollowUps(reply || '')
   let followUps = split.followUps || []
   if (Array.isArray(messages)) {
@@ -185,6 +190,10 @@ function needsPoll(reply) {
   return !text || text.indexOf('仍在生成中') >= 0 || text.indexOf('请稍后再发') >= 0
 }
 
+function wait(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
 function runCoze(message, userId, conversationId, token) {
   const args = {
     user_message: message,
@@ -192,37 +201,31 @@ function runCoze(message, userId, conversationId, token) {
     conversation_id: conversationId || '',
     bot_id: config.cozeBotId
   }
-  return invokeAsyncFlow(args, token).then((taskId) => pollFlowTask(taskId, token, {
-    maxAttempts: 90,
-    intervalMs: 2000
-  })).then((row) => {
-    if (row.status === 'FAILED') {
-      throw new Error('智学流程失败。请在 Zion 检查 Actionflow「智学对话」是否已同步，以及智学 / 智学消息 TPA 的 Authorization。')
-    }
-    return extractReply(row)
-  })
+  return invokeSyncFlow(args, token).then((output) => extractReply(output))
 }
 
 function chatWithCoze(message, userId, conversationId, token) {
   if (!config.cozeBotId) {
     return Promise.reject(new Error('尚未配置 Coze Bot ID。请打开 miniprogram/config.js，把 cozeBotId 换成控制台里的 Bot ID。'))
   }
-  return runCoze(message, userId, conversationId, token).then((extracted) => {
-    if (needsPoll(extracted.reply) && extracted.conversationId && extracted.chatId) {
+  function once(text, conv, attempt) {
+    return runCoze(text, userId, conv, token).then((extracted) => {
+      if (!needsPoll(extracted.reply)) return extracted
+      if (!extracted.conversationId || !extracted.chatId) {
+        throw new Error(extracted.reply || '智学未返回会话，请稍后重试。')
+      }
+      if (attempt >= 80) {
+        throw new Error('智学还在生成回复，请稍后再试。')
+      }
       const pollMsg = '__POLL_CHAT__|' + extracted.conversationId + '|' + extracted.chatId
-      return runCoze(pollMsg, userId, extracted.conversationId, token).then((again) => {
+      return wait(500).then(() => once(pollMsg, extracted.conversationId, attempt + 1)).then((again) => {
         if (!again.conversationId) again.conversationId = extracted.conversationId
         if (!again.chatId) again.chatId = extracted.chatId
         return again
       })
-    }
-    return extracted
-  }).then((extracted) => {
-    if (!extracted.reply || needsPoll(extracted.reply)) {
-      throw new Error('智学还在生成回复，请稍后再试。')
-    }
-    return extracted
-  })
+    })
+  }
+  return once(message, conversationId || '', 0)
 }
 
 function parseFlowOutput(row) {
@@ -314,5 +317,7 @@ module.exports = {
   chatWithCoze: chatWithCoze,
   generatePpt: generatePpt,
   openPptUrl: openPptUrl,
-  parseJson: parseJson
+  parseJson: parseJson,
+  extractReply: extractReply,
+  needsPoll: needsPoll
 }

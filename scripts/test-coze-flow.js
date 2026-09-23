@@ -5,7 +5,8 @@ const {
   matchCanonical,
   listCategories
 } = require('../miniprogram/utils/coze-catalog.js')
-const { startPrompt, listFlowSteps, firstLiveIndex, parseListedSteps, detectAdvance, OPEN_GUIDE_PROMPT } = require('../miniprogram/utils/flow.js')
+const { startPrompt, listFlowSteps, firstLiveIndex, OPEN_GUIDE_PROMPT } = require('../miniprogram/utils/flow.js')
+const { extractReply, needsPoll } = require('../miniprogram/utils/agent.js')
 const { buildCozeCatalog } = require('../miniprogram/utils/catalog.js')
 
 assert.strictEqual(listFlowSteps().length, 0)
@@ -65,10 +66,16 @@ assert.strictEqual(packed.categoryCount, 2)
 assert.strictEqual(packed.catalogCount, 3)
 assert.strictEqual(packed.matchedCount, 1)
 
-const steps = parseListedSteps('1. 选择课题\n2. 自我介绍\n3. 破题')
-assert.strictEqual(steps[0].title, '选择课题')
-assert.strictEqual(detectAdvance('现在进入自我介绍', steps, 0), 1)
-assert.strictEqual(detectAdvance('现在进入自我介绍和破题', steps, 1), 2)
+const extracted = extractReply({
+  reply_content: '请先告诉我课题原题。\n\n__FOLLOW_UPS__["幼小衔接六大核心维度实操指南"]',
+  conversation_id: 'cid-1',
+  raw: 'chat-1'
+})
+assert.strictEqual(extracted.reply, '请先告诉我课题原题。')
+assert.deepStrictEqual(extracted.followUps, ['幼小衔接六大核心维度实操指南'])
+assert.ok(needsPoll(''))
+assert.ok(needsPoll('智学仍在生成中，请稍后再发「继续」。'))
+assert.ok(!needsPoll(extracted.reply))
 
 const { titleFromSource, categoryFromSource, looksLikeCatalog } = require('../miniprogram/utils/archive-upload.js')
 const { isAdmin, unlockAdmin } = require('../miniprogram/utils/admin.js')

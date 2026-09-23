@@ -1,7 +1,6 @@
 const { formatAnalysis, matchCategory } = require('./analysis.js')
 const { buildStudySteps, progressToRatio } = require('./study.js')
 const { readSession } = require('./session.js')
-const { firstLiveIndex } = require('./flow.js')
 const { matchCanonical, listCanonical, listCategories } = require('./coze-catalog.js')
 
 function resolveCategory(course, view, categories) {
@@ -25,10 +24,7 @@ function decorateCourse(course, categories) {
   const canonical = matchCanonical(item.title, view && view.courseName)
   const displayTitle = canonical ? canonical.title : (item.title || '未命名课程')
   const session = readSession(item.id)
-  const sessionSteps = (session && session.steps) || []
-  const stepCount = sessionSteps.length
-  const completedCount = session ? Number(session.completedCount || 0) : firstLiveIndex()
-  const cursorStep = stepCount ? Math.min(completedCount, Math.max(0, stepCount - 1)) : 0
+  const replies = ((session && session.messages) || []).filter((msg) => msg.role === 'assistant' && !msg.failed).length
   return Object.assign({}, item, {
     view: view || { summaryText: '', chapters: [], tags: [], topics: [], direction: '', courseName: '' },
     canonical: canonical,
@@ -40,24 +36,20 @@ function decorateCourse(course, categories) {
     categoryKey: String(category.id),
     categoryName: (canonical && canonical.category) || category.name,
     analysisStepCount: (built.steps && built.steps.length) || 0,
-    stepCount: stepCount,
-    completedCount: completedCount,
-    cursorStep: cursorStep
+    stepCount: 0,
+    completedCount: replies,
+    cursorStep: 0
   })
 }
 
 function decorateStudyRow(row, categories) {
   const course = decorateCourse((row && row.course) || {}, categories)
-  const total = course.stepCount || 0
   const completedCount = course.completedCount || 0
-  const percent = total ? Math.round((completedCount / total) * 100) : Math.round(progressToRatio(row.progress) * 100)
-  const currentIndex = total ? Math.min(completedCount, Math.max(0, total - 1)) : 0
-  const session = readSession(course.id)
-  const steps = (session && session.steps) || []
-  const current = steps[currentIndex]
-  const stepTitle = current
-    ? current.title
-    : (completedCount >= total && total ? '已学完' : (course.matched ? '智学伴练' : '未匹配智学目录'))
+  const percent = Math.round(progressToRatio(row.progress) * 100)
+  const currentIndex = 0
+  const stepTitle = completedCount
+    ? '智学已回复 ' + completedCount + ' 次'
+    : (course.matched ? '进入智学问答' : '按智学引导输入课题')
   return Object.assign({}, row, {
     course: course,
     displayTitle: course.displayTitle,

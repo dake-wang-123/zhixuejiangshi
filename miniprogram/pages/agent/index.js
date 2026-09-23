@@ -1,6 +1,12 @@
 const app = getApp()
 const classroom = require('../../utils/classroom.js')
-const { ensureFlowSession, OPEN_SESSION_ID, blankSession, writeSession } = require('../../utils/session.js')
+const {
+  ensureFlowSession,
+  blankSession,
+  writeSession,
+  conversationScope,
+  stableUserId
+} = require('../../utils/session.js')
 const { startPrompt, PENDING_TOPIC_KEY, PENDING_LESSON_KEY } = require('../../utils/flow.js')
 const voice = require('../../utils/voice.js')
 
@@ -30,10 +36,13 @@ Page({
     topicDraft: ''
   },
   sessionKey() {
-    return OPEN_SESSION_ID
+    return conversationScope({
+      lessonCode: this.data.lessonCode,
+      title: this.data.course && (this.data.course.title || this.data.displayTitle)
+    })
   },
   cozeUserId(account) {
-    return 'learn-' + (account.id || 'guest') + '-open'
+    return stableUserId(account, this.sessionKey())
   },
   onShow() {
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
@@ -51,24 +60,23 @@ Page({
       if (!pending) pending = wx.getStorageSync(PENDING_TOPIC_KEY) || ''
       if (pending) wx.removeStorageSync(PENDING_TOPIC_KEY)
     } catch (e) {}
-    ensureFlowSession(OPEN_SESSION_ID, pending)
+    if (pending) {
+      this.setData({
+        displayTitle: pending,
+        lessonCode: lessonCode,
+        course: { title: pending, displayTitle: pending, lessonCode: lessonCode }
+      })
+    }
+    ensureFlowSession(this.sessionKey(), pending)
     voice.prepare().catch(() => {})
     app.ensureLogin().then(() => {
       if (pending) {
         this.setData({
-          displayTitle: pending,
-          lessonCode: lessonCode,
-          course: { title: pending, displayTitle: pending, lessonCode: lessonCode },
           planning: true,
           hint: lessonCode ? ('正在把 ' + lessonCode + ' 课题发给智学…') : '正在把课题发给智学…'
         })
         return classroom.startOpenFlow(this, pending)
       }
-      this.setData({
-        displayTitle: '智学伴练',
-        lessonCode: '',
-        course: null
-      })
       return classroom.startOpenFlow(this)
     }).catch((err) => {
       this.setData({ error: this.friendlyError(err), planning: false })
@@ -109,7 +117,7 @@ Page({
   },
   onClear() {
     voice.cancel()
-    writeSession(OPEN_SESSION_ID, blankSession(''))
+    writeSession(this.sessionKey(), blankSession(''))
     this.setData({
       error: '',
       followUps: [],

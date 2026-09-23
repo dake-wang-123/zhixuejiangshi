@@ -193,14 +193,16 @@ function extractReply(row) {
         followUps.push(String(item.content).trim())
       }
     })
+    const status = bundle.status || ''
+    const settled = status === 'completed' || status === 'failed' || status === 'canceled'
     return {
       reply: shown.map((item) => item.content).join('\n\n'),
       items: shown,
       followUps: followUps,
-      status: bundle.status || '',
+      status: status,
       conversationId: conversationId,
       chatId: chatId,
-      pending: true
+      pending: !settled
     }
   }
   const split = stripFollowUps(reply || '')
@@ -215,14 +217,9 @@ function extractReply(row) {
   }
 }
 
-function chatSettled(current, previous) {
+function chatSettled(current) {
   const status = String((current && current.status) || '')
-  if (status === 'completed' || status === 'failed' || status === 'canceled') return true
-  if (current && current.followUps && current.followUps.length && current.reply) return true
-  if (current && current.reply && previous && previous.reply === current.reply) {
-    return (previous.items || []).length === (current.items || []).length
-  }
-  return false
+  return status === 'completed' || status === 'failed' || status === 'canceled'
 }
 
 function runCoze(message, userId, conversationId, token) {
@@ -252,17 +249,24 @@ function chatWithCoze(message, userId, conversationId, token, onTick) {
         extracted.chatId = previous.chatId
       }
       emit(extracted)
-      if (!extracted.pending && extracted.reply) return extracted
       if (!extracted.conversationId || !extracted.chatId) {
+        if (!extracted.pending && extracted.reply) return extracted
         throw new Error(extracted.reply || '智学未返回会话，请稍后重试。')
       }
-      if (chatSettled(extracted, previous)) return extracted
+      if (chatSettled(extracted)) {
+        if (extracted.status === 'failed' || extracted.status === 'canceled') {
+          throw new Error(extracted.reply || '智学本轮对话失败，请稍后重试。')
+        }
+        if (extracted.reply || extracted.followUps.length || attempt >= 6) return extracted
+      }
       if (attempt >= 80) {
         if (extracted.reply) return extracted
         throw new Error('智学还在生成回复，请稍后再试。')
       }
       const pollMsg = '__POLL_CHAT__|' + extracted.conversationId + '|' + extracted.chatId
-      return once(pollMsg, extracted.conversationId, attempt + 1, extracted)
+      return new Promise((resolve) => {
+        setTimeout(() => resolve(once(pollMsg, extracted.conversationId, attempt + 1, extracted)), 1200)
+      })
     })
   }
   return once(message, conversationId || '', 0, null)

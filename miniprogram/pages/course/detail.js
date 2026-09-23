@@ -1,7 +1,7 @@
 const app = getApp()
 const { graphqlRequest, eqBigint, andWhere } = require('../../utils/graphql.js')
 const classroom = require('../../utils/classroom.js')
-const { ensureFlowSession } = require('../../utils/session.js')
+const { ensureFlowSession, stableUserId } = require('../../utils/session.js')
 const { startPrompt, PENDING_TOPIC_KEY } = require('../../utils/flow.js')
 const { matchCanonical, loadCachedCatalog } = require('../../utils/coze-catalog.js')
 const voice = require('../../utils/voice.js')
@@ -37,7 +37,7 @@ Page({
     return this.data.id
   },
   cozeUserId(account) {
-    return 'learn-' + (account.id || 'guest') + '-c' + this.data.id
+    return stableUserId(account, this.sessionKey())
   },
   onLoad(query) {
     this.setData({ id: query.id })

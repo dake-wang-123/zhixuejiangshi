@@ -4,8 +4,22 @@ const {
   firstLiveIndex
 } = require('./flow.js')
 
-const SESSION_KEY = 'zhixue_sessions_v9'
+const SESSION_KEY = 'zhixue_sessions_v10'
 const FOLLOW_MARK = '__FOLLOW_UPS__'
+
+function conversationScope(opts) {
+  const lesson = String((opts && (opts.lessonCode || opts.lesson_code)) || '').trim()
+  const title = String((opts && (opts.title || opts.topicTitle || opts.displayTitle)) || '').trim()
+  if (lesson) return 'lesson:' + lesson
+  if (title) return 'topic:' + title
+  return OPEN_SESSION_ID
+}
+
+function stableUserId(account, scope) {
+  const uid = (account && (account.id || account.userId)) || 'guest'
+  const safe = String(scope || OPEN_SESSION_ID).replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 40)
+  return ('learn-' + uid + '-' + safe).slice(0, 64)
+}
 
 function loadAll() {
   try {
@@ -86,6 +100,8 @@ module.exports = {
   OPEN_SESSION_ID: OPEN_SESSION_ID,
   FLOW_VERSION: FLOW_VERSION,
   SESSION_KEY: SESSION_KEY,
+  conversationScope: conversationScope,
+  stableUserId: stableUserId,
   readSession: readSession,
   writeSession: writeSession,
   blankSession: blankSession,

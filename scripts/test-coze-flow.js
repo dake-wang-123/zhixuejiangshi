@@ -108,8 +108,36 @@ const streamed = extractReply({
 assert.strictEqual(streamed.reply, '先做自我介绍。')
 assert.deepStrictEqual(streamed.followUps, ['幼小衔接六大核心维度实操指南'])
 assert.strictEqual(streamed.items.length, 1)
-assert.ok(!chatSettled({ reply: '', items: [] }, null))
-assert.ok(chatSettled({ reply: '先做自我介绍。', items: streamed.items, followUps: streamed.followUps }, streamed))
+assert.strictEqual(streamed.status, 'in_progress')
+assert.ok(streamed.pending)
+assert.ok(!chatSettled(streamed))
+assert.ok(!chatSettled({ reply: '先做自我介绍。', items: streamed.items, followUps: streamed.followUps }))
+assert.ok(chatSettled({ status: 'completed', reply: '先做自我介绍。' }))
+assert.ok(chatSettled({ status: 'failed' }))
+
+const completedTurn = extractReply({
+  reply_content: JSON.stringify({
+    status: 'completed',
+    items: [
+      { role: 'assistant', type: 'answer', content: '第一步：先做自我介绍。' },
+      { role: 'assistant', type: 'answer', content: '上一课的长文不在这里。' },
+      { role: 'user', type: 'question', content: '听懂婴语' }
+    ]
+  }),
+  conversation_id: '7370000000000001',
+  raw: '7370000000000002'
+})
+assert.strictEqual(completedTurn.pending, false)
+assert.ok(chatSettled(completedTurn))
+assert.strictEqual(completedTurn.conversationId, '7370000000000001')
+assert.strictEqual(completedTurn.chatId, '7370000000000002')
+
+const { conversationScope, stableUserId } = require('../miniprogram/utils/session.js')
+assert.strictEqual(conversationScope({}), 'open')
+assert.strictEqual(conversationScope({ lessonCode: 'A01', title: '听懂婴语' }), 'lesson:A01')
+assert.strictEqual(conversationScope({ title: '听懂“婴语”：读懂宝宝的哭声与信号' }), 'topic:听懂“婴语”：读懂宝宝的哭声与信号')
+assert.ok(stableUserId({ id: '1000000000000006' }, 'lesson:A01').indexOf('1000000000000006') >= 0)
+assert.ok(stableUserId({ id: '1000000000000006' }, 'lesson:A01').indexOf('lesson_A01') >= 0)
 
 const { titleFromSource, categoryFromSource, looksLikeCatalog, uniqueCourses } = require('../miniprogram/utils/archive-upload.js')
 const { isAdmin, unlockAdmin } = require('../miniprogram/utils/admin.js')

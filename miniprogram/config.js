@@ -20,6 +20,7 @@ module.exports = {
   pptExportTpaId: 'hgf937snh',
   cozeTpaId: 'mu6ckpzl',
   cozeMessageTpaId: 'r43leo7de',
+  cozeRetrieveTpaId: 'y88cn638j',
   cozeBotId: '7683760370368380964',
   agents: {
     structure: {

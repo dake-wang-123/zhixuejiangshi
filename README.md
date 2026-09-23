@@ -58,12 +58,15 @@ https://zion-app.functorz.com/zero/PO76RBe9KX0/api/graphql-v2
    - 授权工作空间必须包含当前 Bot
    - 只把令牌填进 Zion 项目密钥，不要加 `Bearer `，不要发到聊天里
    - 保存后 **同步后端**
-3. Actionflow **智学对话**（同步）只做密钥转发：先 POST 智学原文，再按需 GET 消息列表。不拼接、不等待完整答案。
+3. Actionflow **智学对话**（同步，超时 60 秒）转发密钥并保持 Coze 会话：
    - 入参：`user_message` / `user_id` / `conversation_id` / `bot_id`
-   - 输出：`reply_content`（Coze 消息 JSON）、`conversation_id`、`raw`（chat id）
-   - 小程序发出后立刻取消息，Coze 每写出一条就上屏，包括它自己的每一步问答。没有本地环节条，也没有「学习」页。
+   - 输出：`reply_content`（`{items,status}` JSON）、`conversation_id`、`raw`（chat id）
+   - POST `https://api.coze.cn/v3/chat?conversation_id=...`：`conversation_id` 必须是 **Query**，body 里放了也会被 Coze 丢掉
+   - Body：`stream: false`，`auto_save_history: true`，`additional_messages: [{role,content,content_type}]`
+   - 轮询 GET `/v3/chat/retrieve`（`y88cn638j`）等到 `completed`，再 GET `/v3/chat/message/list`，**按 chat_id 过滤**，只展示本轮 `type=answer`
+   - 小程序按「用户 + 课号」把 Coze 返回的 `conversation_id` 存进 `zhixue_sessions_v10`。不要把 `用户ID+课程ID` 直接当 conversation_id 发给 Coze
+   - 配置清单与绑定路径见 `docs/zion-coze-v3.md`
 4. Coze `4100` 是令牌本身无效；`4101` 是令牌没有访问该 Bot / 接口的权限。Bot 未发布到 **Agent As API** 时，流程会提示去 coze.cn 发布。
-5. 最近一次运行时：任务 `1150000000000012` COMPLETED，返回亲子倾听要点正文（已过滤 verbose 调试 JSON）。
 
 ## 课件 PPT
 
@@ -91,7 +94,7 @@ https://zion-app.functorz.com/zero/PO76RBe9KX0/api/graphql-v2
 - 教案不是独立表，而是课程的 `original_file` + `ai_analysis`。讲师上传 `source_type = 讲师上传`，解析中为 `解析中`，解析完为 `待审核`。
 - 上架课由管理员把 `status` 改为 `已上架`。登录用户可读「已上架 **或** 自己上传」的课程；课程 Tab 客户端再筛一层已上架。
 - 再次通跑智学：未选课发「你好」，智能体引导输入课题或上传教案，再走它自己的问答。知识库目前列不出 60 课清单。管理员在「我的 → 课程归档上传」上传 TXT/MD/JSON 目录或「分类-课题」文件名：先抽出标题分类，再按智学内置目录宽松对齐原题（如「听懂婴语」对齐「听懂“婴语”：读懂宝宝的哭声与信号」）。对上的用智能体原题归档；对不上的仍入库，点课把抽出的标题发给智学。Word/PDF 读不到正文，请靠文件名或粘贴目录。
-- 智学页只呈现 Coze 自己的问答，每条消息随到随画。用户回答原样回传。输入框旁点麦克风说话，再点一次结束。语音识别会尝试微信「同声传译」插件；为避免未开通插件时模拟器启动失败，`app.json` 里不预置 `plugins`。若要启用转文字：微信公众平台 → 设置 → 第三方设置 → 添加「同声传译」，再在 `app.json` 加上该插件。用户隐私保护指引需声明麦克风。
+- 智学页只呈现 Coze 自己的问答。同一课反复进入会带上上次的 `conversation_id`，10 步引导不会丢。用户回答原样回传。输入框旁点麦克风说话，再点一次结束。语音识别会尝试微信「同声传译」插件；为避免未开通插件时模拟器启动失败，`app.json` 里不预置 `plugins`。若要启用转文字：微信公众平台 → 设置 → 第三方设置 → 添加「同声传译」，再在 `app.json` 加上该插件。用户隐私保护指引需声明麦克风。
 - 测试时小程序启动即用管理员账号 `zhixue-admin` 登录（`config.devAdmin`），「我的」里直接有课程归档上传。关掉 `devAdmin.enabled` 后仍走微信静默登录。
 - 登录用户可插入自己的课程、学习记录、用户资料、反馈；匿名角色没有任何表权限，也不能调用 Actionflow / TPA / ZAI。
 - 课程分类字段在 GraphQL 里是关系对象 `category_id { id name }`，不是标量外键。

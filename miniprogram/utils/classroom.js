@@ -37,8 +37,9 @@ function scrollBottom(page) {
 
 function mergeLiveThread(base, result) {
   const items = (result && result.items) || []
+  const chatId = (result && result.chatId) || ''
   const bubbles = items.map((item, index) => ({
-    id: 'coze-' + index + '-' + (item.type || 'answer'),
+    id: 'coze-' + (item.id || chatId || 'live') + '-' + index,
     role: 'assistant',
     hidden: false,
     content: item.content

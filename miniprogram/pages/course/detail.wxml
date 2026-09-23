@@ -11,7 +11,7 @@
   <block wx:if="{{!loading && course && !matched}}">
     <view class="study-head">
       <view class="title">{{displayTitle}}</view>
-      <view class="muted">这个标题对不上智学知识库里的 60 门课，不能改写后开课。请到学习页自行输入课题原题。</view>
+      <view class="muted">这个标题对不上智学刚调取的课程目录，不能改写后开课。请到学习页自行输入课题原题。</view>
       <button class="btn" bindtap="onGoInput">去学习页输入课题</button>
     </view>
   </block>

@@ -56,7 +56,7 @@ function decorateStudyRow(row, categories) {
     matched: course.matched,
     categoryKey: course.categoryKey,
     categoryName: course.categoryName,
-    stepCount: total,
+    stepCount: 0,
     percent: Math.min(100, percent),
     currentIndex: currentIndex,
     completedCount: completedCount,

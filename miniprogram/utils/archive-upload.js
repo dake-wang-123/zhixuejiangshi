@@ -1,4 +1,4 @@
-const { parseCozeCatalog, cleanTitle, cleanCategory, normalizeTitle } = require('./coze-catalog.js')
+const { parseCozeCatalog, cleanTitle, cleanCategory, normalizeTitle, alignWithCoze } = require('./coze-catalog.js')
 
 function stripExt(name) {
   return String(name || '').replace(/\.[A-Za-z0-9]{1,8}$/, '')
@@ -63,16 +63,12 @@ function uniqueCourses(items) {
   const out = []
   const seen = {}
   ;(items || []).forEach((item) => {
-    const title = cleanTitle(item && item.title)
-    if (!title) return
-    const key = normalizeTitle(title) + '|' + normalizeTitle(item.category)
+    const aligned = alignWithCoze(item && item.title, item && item.category, item && item.description)
+    if (!aligned.title) return
+    const key = normalizeTitle(aligned.title) + '|' + normalizeTitle(aligned.category)
     if (seen[key]) return
     seen[key] = true
-    out.push({
-      title: title,
-      category: cleanCategory((item && item.category) || ''),
-      description: String((item && item.description) || '').trim()
-    })
+    out.push(aligned)
   })
   return out
 }
@@ -82,5 +78,6 @@ module.exports = {
   categoryFromSource: categoryFromSource,
   parseUploadCatalog: parseUploadCatalog,
   looksLikeCatalog: looksLikeCatalog,
-  uniqueCourses: uniqueCourses
+  uniqueCourses: uniqueCourses,
+  alignWithCoze: alignWithCoze
 }

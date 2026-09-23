@@ -1,6 +1,12 @@
 .file-row {
+  display: flex;
+  align-items: flex-start;
   padding: 12rpx 0;
   border-bottom: 1rpx solid #F3EADF;
+}
+.file-row .chip {
+  flex-shrink: 0;
+  margin-top: 8rpx;
 }
 .cats {
   white-space: nowrap;

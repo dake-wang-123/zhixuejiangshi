@@ -9,14 +9,14 @@
         <text class="hero-title">课程归档上传</text>
       </view>
     </view>
-    <text class="hero-sub">智学知识库当前列不出 60 课目录。管理员在此上传分类文件或课题原件，系统只整理文件里的标题和分类，不改写题目。归档后学员点课即进入智学问答。</text>
+    <text class="hero-sub">上传 TXT / MD / JSON 目录，或按「分类-课题.docx」命名的文件。系统先抽出标题和分类，再按智学内置目录对齐原题；对上的用智能体原题归档，对不上的仍按抽出的标题入库，点课把该标题发给智学。</text>
   </view>
 
   <view class="error" wx:if="{{error}}">{{error}}</view>
 
   <view class="card">
     <view class="title">1. 上传课题文件</view>
-    <view class="muted">可多选。文件名如「0-3岁课程-听懂婴语.docx」会拆出分类和标题；TXT / MD 会读正文标题。</view>
+    <view class="muted">可多选。文件名如「0-3岁课程-听懂婴语.docx」会拆出分类和标题，并尝试对齐智学「听懂“婴语”：…」原题。TXT / MD / JSON 会读正文目录。Word / PDF 读不到正文，请靠文件名或下方粘贴目录。</view>
     <button class="btn btn-ghost" bindtap="onChoose" disabled="{{submitting}}">选择文件（可多选）</button>
     <view class="muted" wx:if="{{files.length}}">已选 {{files.length}} 个</view>
     <view class="file-row" wx:for="{{files}}" wx:key="name">
@@ -55,17 +55,20 @@
 
   <view class="card" wx:if="{{preview.length}}">
     <view class="title">本次将归档 {{preview.length}} 门</view>
+    <view class="muted">已对齐智学 {{matchedCount}} 门 · 未匹配 {{unmatchedCount}} 门（未匹配仍归档，点课发送抽出的标题）</view>
     <view class="file-row" wx:for="{{preview}}" wx:key="title">
       <view class="grow">
         <view class="desc">{{item.title}}</view>
         <view class="muted">{{item.category || '未标注分类'}}</view>
+        <view class="muted" wx:if="{{item.matched && item.sourceTitle && item.sourceTitle !== item.title}}">文件标题：{{item.sourceTitle}}</view>
       </view>
+      <text class="chip {{item.matched ? '' : 'chip-warn'}}">{{item.matched ? '已对齐智学' : '未匹配'}}</text>
     </view>
   </view>
 
   <view class="card" wx:if="{{lastResult}}">
     <view class="title">上次归档</view>
-    <view class="desc">新增 {{lastResult.inserted}} 门，目录现有 {{lastResult.catalogCount}} 门 / {{lastResult.categoryCount}} 类。</view>
+    <view class="desc">新增 {{lastResult.inserted}} 门（对齐智学 {{lastResult.matchedCount}} 门），目录现有 {{lastResult.catalogCount}} 门 / {{lastResult.categoryCount}} 类。</view>
     <button class="btn" bindtap="onGoCatalog">去课程目录点课学习</button>
   </view>
 </view>

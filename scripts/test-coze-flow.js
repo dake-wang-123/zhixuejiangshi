@@ -3,6 +3,8 @@ const {
   parseCozeCatalog,
   setCatalog,
   matchCanonical,
+  matchCanonicalLoose,
+  alignWithCoze,
   listCategories
 } = require('../miniprogram/utils/coze-catalog.js')
 const { startPrompt, listFlowSteps, firstLiveIndex, OPEN_GUIDE_PROMPT } = require('../miniprogram/utils/flow.js')
@@ -55,6 +57,23 @@ setCatalog({
 assert.strictEqual(listCategories().length, 2)
 assert.ok(matchCanonical('听懂“婴语”：读懂宝宝的哭声与信号'))
 assert.strictEqual(matchCanonical('亲子沟通：倾听与表达'), null)
+assert.strictEqual(matchCanonical('听懂婴语'), null)
+assert.strictEqual(
+  matchCanonicalLoose('听懂婴语').title,
+  '听懂“婴语”：读懂宝宝的哭声与信号'
+)
+assert.strictEqual(
+  matchCanonicalLoose('宝宝睡眠引导', '0-3岁课程').title,
+  '宝宝睡眠引导：告别抱睡奶睡夜醒'
+)
+assert.strictEqual(matchCanonicalLoose('AI'), null)
+assert.strictEqual(matchCanonicalLoose('亲子沟通：倾听与表达'), null)
+assert.strictEqual(alignWithCoze('听懂婴语', '0-3岁课程').matched, true)
+assert.strictEqual(
+  alignWithCoze('听懂婴语', '0-3岁课程').title,
+  '听懂“婴语”：读懂宝宝的哭声与信号'
+)
+assert.strictEqual(alignWithCoze('课堂管理随手记', '其他').matched, false)
 assert.strictEqual(startPrompt({ title: '听懂“婴语”：读懂宝宝的哭声与信号' }), '听懂“婴语”：读懂宝宝的哭声与信号')
 assert.ok(startPrompt({ title: '听懂“婴语”：读懂宝宝的哭声与信号' }).indexOf('开始学习') < 0)
 
@@ -92,13 +111,25 @@ assert.strictEqual(streamed.items.length, 1)
 assert.ok(!chatSettled({ reply: '', items: [] }, null))
 assert.ok(chatSettled({ reply: '先做自我介绍。', items: streamed.items, followUps: streamed.followUps }, streamed))
 
-const { titleFromSource, categoryFromSource, looksLikeCatalog } = require('../miniprogram/utils/archive-upload.js')
+const { titleFromSource, categoryFromSource, looksLikeCatalog, uniqueCourses } = require('../miniprogram/utils/archive-upload.js')
 const { isAdmin, unlockAdmin } = require('../miniprogram/utils/admin.js')
 assert.strictEqual(titleFromSource('0-3岁课程-听懂婴语.docx', ''), '听懂婴语')
 assert.strictEqual(categoryFromSource('0-3岁课程-听懂婴语.docx', '', ''), '0-3岁课程')
 assert.strictEqual(titleFromSource('x.txt', '# 幼小衔接六大核心维度实操指南\n正文'), '幼小衔接六大核心维度实操指南')
 assert.ok(looksLikeCatalog('## 0-3岁课程\n1. 听懂婴语\n2. 睡眠引导'))
 assert.ok(!looksLikeCatalog('你好，我们开始上课'))
+const fromFiles = uniqueCourses([
+  { title: titleFromSource('0-3岁课程-听懂婴语.docx', ''), category: categoryFromSource('0-3岁课程-听懂婴语.docx', '', '') },
+  { title: '睡眠引导', category: '0-3岁课程' },
+  { title: '课堂管理随手记', category: '其他' }
+])
+assert.strictEqual(fromFiles.length, 3)
+assert.strictEqual(fromFiles[0].title, '听懂“婴语”：读懂宝宝的哭声与信号')
+assert.strictEqual(fromFiles[0].matched, true)
+assert.strictEqual(fromFiles[1].title, '宝宝睡眠引导：告别抱睡奶睡夜醒')
+assert.strictEqual(fromFiles[1].matched, true)
+assert.strictEqual(fromFiles[2].title, '课堂管理随手记')
+assert.strictEqual(fromFiles[2].matched, false)
 assert.ok(!isAdmin({ phoneNumber: '13800000000' }))
 assert.ok(isAdmin({ phoneNumber: '17742415497' }))
 assert.ok(isAdmin({ id: '1000000000000006' }))

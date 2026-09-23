@@ -276,6 +276,63 @@ function matchCanonical() {
   return null
 }
 
+function matchCanonicalLoose(title, category) {
+  const exact = matchCanonical(title)
+  if (exact) return exact
+  const key = normalizeTitle(title)
+  const catKey = normalizeTitle(category)
+  const courses = CATALOG.courses || []
+  if (!key || key.length < 4) {
+    if (!catKey) return null
+    const sameCat = courses.filter((item) => normalizeTitle(item.category) === catKey)
+    return sameCat.length === 1 ? sameCat[0] : null
+  }
+  const hits = []
+  courses.forEach((item) => {
+    const topic = normalizeTitle(item.title)
+    if (!topic) return
+    if (topic.indexOf(key) >= 0 || (key.length >= 8 && key.indexOf(topic) >= 0)) hits.push(item)
+  })
+  if (!hits.length) return null
+  if (catKey) {
+    const sameCat = hits.filter((item) => normalizeTitle(item.category) === catKey)
+    if (sameCat.length === 1) return sameCat[0]
+    if (sameCat.length) return closestTitle(sameCat, key)
+  }
+  if (hits.length === 1) return hits[0]
+  return closestTitle(hits, key)
+}
+
+function closestTitle(items, key) {
+  const list = (items || []).slice()
+  list.sort((a, b) => {
+    const da = Math.abs(normalizeTitle(a.title).length - key.length)
+    const db = Math.abs(normalizeTitle(b.title).length - key.length)
+    return da - db
+  })
+  return list[0] || null
+}
+
+function alignWithCoze(title, category, description) {
+  const hit = matchCanonicalLoose(title, category)
+  if (!hit) {
+    return {
+      title: cleanTitle(title),
+      category: cleanCategory(category),
+      description: String(description || '').trim(),
+      matched: false,
+      agentTitle: ''
+    }
+  }
+  return {
+    title: hit.title,
+    category: hit.category || cleanCategory(category),
+    description: String(description || hit.description || '').trim(),
+    matched: true,
+    agentTitle: hit.title
+  }
+}
+
 function fetchCozeCatalog(token, userId, options) {
   const { chatWithCoze } = require('./agent.js')
   const opts = options || {}
@@ -314,5 +371,7 @@ module.exports = {
   listCanonical: listCanonical,
   listCategories: listCategories,
   matchCanonical: matchCanonical,
+  matchCanonicalLoose: matchCanonicalLoose,
+  alignWithCoze: alignWithCoze,
   fetchCozeCatalog: fetchCozeCatalog
 }

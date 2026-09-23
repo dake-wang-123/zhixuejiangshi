@@ -15,7 +15,9 @@ const {
   listCategories,
   loadCachedCatalog,
   mergeCatalog,
-  normalizeTitle
+  normalizeTitle,
+  alignWithCoze,
+  fetchCozeCatalog
 } = require('../../utils/coze-catalog.js')
 
 Page({
@@ -25,6 +27,8 @@ Page({
     category: '',
     categories: [],
     preview: [],
+    matchedCount: 0,
+    unmatchedCount: 0,
     progress: '',
     submitting: false,
     error: '',
@@ -45,7 +49,16 @@ Page({
         return
       }
       this.setData({ error: '' })
-      return this.loadRemoteCategories()
+      this.setData({ progress: '正在核对智学内置目录…' })
+      return fetchCozeCatalog(app.getToken(), 'admin-catalog-' + (next.id || 'guest'), { fresh: false }).then(() => {
+        this.setData({ categories: listCategories(), progress: '' })
+        this.refreshPreview()
+        return this.loadRemoteCategories()
+      }).catch(() => {
+        this.setData({ progress: '' })
+        this.refreshPreview()
+        return this.loadRemoteCategories()
+      })
     }).catch((err) => {
       this.setData({ error: (err && err.message) || '请先登录' })
     })
@@ -103,7 +116,13 @@ Page({
     }
   },
   refreshPreview() {
-    this.setData({ preview: this.collectDrafts() })
+    const preview = this.collectDrafts()
+    const matchedCount = preview.filter((item) => item.matched).length
+    this.setData({
+      preview: preview,
+      matchedCount: matchedCount,
+      unmatchedCount: preview.length - matchedCount
+    })
   },
   collectDrafts() {
     const fallback = (this.data.category || '').trim()
@@ -155,10 +174,20 @@ Page({
     const seen = {}
     rows.forEach((item) => {
       if (!item || !item.title) return
-      const key = normalizeTitle(item.title) + '|' + normalizeTitle(item.category)
+      const sourceTitle = item.title
+      const aligned = alignWithCoze(item.title, item.category, item.description)
+      const row = Object.assign({}, item, {
+        title: aligned.title,
+        category: aligned.category,
+        description: aligned.description || item.description || '',
+        matched: aligned.matched,
+        agentTitle: aligned.agentTitle || '',
+        sourceTitle: sourceTitle
+      })
+      const key = normalizeTitle(row.title) + '|' + normalizeTitle(row.category)
       if (seen[key]) return
       seen[key] = true
-      unique.push(item)
+      unique.push(row)
     })
     return unique
   },
@@ -174,7 +203,7 @@ Page({
       wx.showToast({ title: '请先选择文件或粘贴目录', icon: 'none' })
       return
     }
-    this.setData({ submitting: true, error: '', progress: '正在登录…', preview: drafts })
+    this.setData({ submitting: true, error: '', progress: '正在登录…', preview: drafts, matchedCount: drafts.filter((item) => item.matched).length, unmatchedCount: drafts.filter((item) => !item.matched).length })
     app.ensureLogin().then(() => {
       if (!isAdmin(app.globalData.account || {})) throw new Error('仅管理员可归档课程')
       return this.archiveAll(drafts, app.globalData.account, app.getToken())
@@ -185,6 +214,8 @@ Page({
         files: [],
         text: '',
         preview: [],
+        matchedCount: 0,
+        unmatchedCount: 0,
         lastResult: result,
         categories: listCategories()
       })
@@ -219,6 +250,7 @@ Page({
       })
       return {
         inserted: acc.inserted,
+        matchedCount: drafts.filter((item) => item.matched).length,
         catalogCount: (packed.courses || []).length,
         categoryCount: (packed.categories || []).length
       }
@@ -237,6 +269,7 @@ Page({
           draft.title = title
           draft.category = category
           draft.description = description
+          if (typeof analyzed.matched === 'boolean') draft.matched = analyzed.matched
           return this.ensureCategory(category, token).then((finalCatId) => {
             return this.insertCourse({
               title: title,
@@ -252,29 +285,42 @@ Page({
     })
   },
   analyzeIfNeeded(draft, token) {
+    if (draft.matched) {
+      return Promise.resolve({
+        title: draft.title,
+        category: draft.category,
+        description: draft.description || '',
+        analysis: null,
+        matched: true
+      })
+    }
     const fullText = String(draft.fullText || '').trim()
     if (fullText.length < 80) {
       return Promise.resolve({
         title: draft.title,
         category: draft.category,
         description: draft.description || '',
-        analysis: null
+        analysis: null,
+        matched: false
       })
     }
     this.setData({ progress: '正在解析「' + draft.title + '」标题与分类…' })
     return parseLessonPlan(fullText, token).then((parsed) => {
       const view = formatAnalysis(parsed) || {}
+      const aligned = alignWithCoze(view.courseName || draft.title, view.direction || draft.category, view.summaryText || draft.description)
       return {
-        title: view.courseName || draft.title,
-        category: view.direction || draft.category,
-        description: view.summaryText || draft.description || '',
-        analysis: parsed
+        title: aligned.title,
+        category: aligned.category,
+        description: aligned.description || draft.description || '',
+        analysis: parsed,
+        matched: aligned.matched
       }
     }).catch(() => ({
       title: draft.title,
       category: draft.category,
       description: draft.description || '',
-      analysis: null
+      analysis: null,
+      matched: false
     }))
   },
   ensureCategory(name, token) {

@@ -58,7 +58,7 @@
       <ui-icon name="folder" size="32" color="#5C7A5A"></ui-icon>
       <text class="name">管理员</text>
     </view>
-    <view class="muted">智学知识库列不出 60 课时，在此上传分类文件或课题原件，标题归档到课程目录后供点课学习。</view>
+    <view class="muted">上传分类目录或课题文件后，标题会先抽出再和智学内置课题对齐，对上的按原题进目录。</view>
     <button class="btn" bindtap="onAdminUpload">课程归档上传</button>
   </view>
   <view class="card" wx:else>

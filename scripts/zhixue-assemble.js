@@ -7,6 +7,8 @@ if (!/^\d{10,}$/.test(botId)) {
 var userId = String(context.getArg('user_id') || 'lecturer');
 var message = String(context.getArg('user_message') || '');
 var conv = String(context.getArg('conversation_id') || '');
+var lessonCode = String(context.getArg('lesson_code') || 'open') || 'open';
+var topicTitle = String(context.getArg('topic_title') || '');
 var POST_TPA = 'mu6ckpzl';
 var LIST_TPA = 'r43leo7de';
 var RETRIEVE_TPA = 'y88cn638j';
@@ -106,6 +108,92 @@ function readChat(auth, convId, chatId) {
   }
   return packReply(packItems(listed, chatId), status || 'in_progress');
 }
+function accountId() {
+  var raw = context.getArg('account_id');
+  if (raw === 0 || raw) return String(raw);
+  try {
+    var info = context.getSsoUserInfo();
+    if (info && info.id) return String(info.id);
+    if (info && info.userId) return String(info.userId);
+    if (info && info.account && info.account.id) return String(info.account.id);
+  } catch (e) {}
+  return '';
+}
+function asAccountId(raw) {
+  var n = Number(raw);
+  if (isFinite(n) && n > 0) return n;
+  return raw;
+}
+function historyMessages() {
+  var raw = context.getArg('history_json');
+  var list = [];
+  try {
+    list = JSON.parse(String(raw || '[]'));
+  } catch (e) {
+    list = [];
+  }
+  if (!Array.isArray(list)) list = [];
+  var out = [];
+  var start = list.length > 16 ? list.length - 16 : 0;
+  for (var i = start; i < list.length; i++) {
+    var item = list[i] || {};
+    var role = item.role === 'assistant' ? 'assistant' : 'user';
+    var content = String(item.content || '').trim();
+    if (!content) continue;
+    if (content.indexOf('__POLL_CHAT__|') === 0) continue;
+    out.push({ role: role, content: content, content_type: 'text' });
+  }
+  return out;
+}
+function persistTurn(convId, chatId, packed, userText) {
+  if (!isCozeId(convId)) return;
+  var blob = asObj(packed);
+  if (String(blob.status || '') !== 'completed') return;
+  var uid = accountId();
+  if (!uid) return;
+  var listed = Array.isArray(blob.items) ? blob.items : [];
+  var objects = [];
+  var seen = {};
+  function add(role, content, typ, mid) {
+    var text = String(content || '').trim();
+    if (!text) return;
+    if (role !== 'user' && role !== 'assistant') return;
+    if (typ === 'verbose' || typ === 'function_call' || typ === 'tool_response' || typ === 'tool_output' || typ === 'follow_up') return;
+    if (text.indexOf('__POLL_CHAT__|') === 0) return;
+    var key = String(mid || (convId + '|' + chatId + '|' + role + '|' + objects.length));
+    if (seen[key]) return;
+    seen[key] = true;
+    objects.push({
+      lesson_code: lessonCode,
+      topic_title: topicTitle,
+      role: role,
+      content: text,
+      content_type: 'text',
+      conversation_id: convId,
+      chat_id: String(chatId || ''),
+      message_key: key,
+      account_id: asAccountId(uid)
+    });
+  }
+  for (var i = 0; i < listed.length; i++) {
+    var item = listed[i] || {};
+    add(item.role, item.content, item.type, item.id);
+  }
+  if (userText && userText.indexOf('__POLL_CHAT__|') !== 0) {
+    add('user', userText, 'question', convId + '|' + chatId + '|user|prompt');
+  }
+  if (!objects.length) return;
+  try {
+    context.runGql(
+      'InsertLearnMessages',
+      'mutation InsertLearnMessages($objects: [learn_message_insert_input!]!) { insert_learn_message(objects: $objects, on_conflict: { constraint: learn_message_key_key, update_columns: [] }) { affected_rows } }',
+      { objects: objects },
+      { role: 'admin' }
+    );
+  } catch (e) {
+    context.log('learn_message persist failed: ' + String(e && e.message ? e.message : e));
+  }
+}
 
 var auth = normalizeAuth(context.getArg('api_key'));
 var tpaCode = 0;
@@ -125,14 +213,15 @@ if (message.indexOf('__POLL_CHAT__|') === 0) {
     tpaMsg = '智学未返回会话，请稍后重试。';
   }
 } else {
+  var additional = [];
+  if (!convId) additional = historyMessages();
+  additional.push({ role: 'user', content: message, content_type: 'text' });
   var fzBody = {
     bot_id: botId,
     user_id: userId,
     stream: false,
     auto_save_history: true,
-    additional_messages: [
-      { role: 'user', content: message, content_type: 'text' }
-    ]
+    additional_messages: additional
   };
   var postArgs = {
     fz_body: fzBody,
@@ -157,6 +246,8 @@ if (message.indexOf('__POLL_CHAT__|') === 0) {
     }
   }
 }
+
+persistTurn(convId, chatId, tpaMsg, message);
 
 context.setReturn('authorization', auth);
 context.setReturn('bot_id', botId);

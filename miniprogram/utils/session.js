@@ -3,6 +3,7 @@ const {
   OPEN_SESSION_ID,
   firstLiveIndex
 } = require('./flow.js')
+const { lessonCodeOf } = require('./learn-history.js')
 
 const SESSION_KEY = 'zhixue_sessions_v10'
 const FOLLOW_MARK = '__FOLLOW_UPS__'
@@ -64,12 +65,51 @@ function blankSession(topicTitle) {
 function ensureFlowSession(courseId, topicTitle) {
   const existing = readSession(courseId)
   if (existing && existing.flowVersion === FLOW_VERSION) {
-    if (topicTitle && existing.topicTitle && existing.topicTitle !== topicTitle) {
+    if (topicTitle && existing.topicTitle && existing.topicTitle !== topicTitle && !(existing.messages || []).length) {
       return writeSession(courseId, blankSession(topicTitle))
     }
     return existing
   }
+  if (existing && (existing.messages || []).length) {
+    return writeSession(courseId, {
+      flowVersion: FLOW_VERSION,
+      topicTitle: topicTitle || existing.topicTitle || '',
+      conversationId: existing.conversationId || '',
+      chatId: existing.chatId || '',
+      messages: existing.messages,
+      followUps: existing.followUps || []
+    })
+  }
   return writeSession(courseId, blankSession(topicTitle))
+}
+
+function hydrateSession(courseId, remote, topicTitle) {
+  const local = readSession(courseId) || blankSession(topicTitle)
+  const remoteMessages = (remote && remote.messages) || []
+  const localMessages = local.messages || []
+  const messages = remoteMessages.length >= localMessages.length ? remoteMessages : localMessages
+  const conversationId = (remote && remote.conversationId) || local.conversationId || ''
+  const chatId = (remote && remote.chatId) || local.chatId || ''
+  const title = topicTitle || (remote && remote.topicTitle) || local.topicTitle || ''
+  return writeSession(courseId, {
+    flowVersion: FLOW_VERSION,
+    messages: messages,
+    followUps: (local.followUps || []).length ? local.followUps : ((remote && remote.followUps) || []),
+    conversationId: conversationId,
+    chatId: chatId,
+    topicTitle: title,
+    completedCount: firstLiveIndex(),
+    currentIndex: firstLiveIndex()
+  })
+}
+
+function storedLessonCode(page) {
+  if (page && typeof page.lessonCode === 'function') return lessonCodeOf(page.lessonCode())
+  const data = (page && page.data) || {}
+  return lessonCodeOf(data.lessonCode || (data.course && data.course.lessonCode), conversationScope({
+    lessonCode: data.lessonCode,
+    title: data.course && (data.course.title || data.displayTitle)
+  }))
 }
 
 function visibleMessages(messages) {
@@ -106,6 +146,8 @@ module.exports = {
   writeSession: writeSession,
   blankSession: blankSession,
   ensureFlowSession: ensureFlowSession,
+  hydrateSession: hydrateSession,
+  storedLessonCode: storedLessonCode,
   visibleMessages: visibleMessages,
   hasAssistant: hasAssistant,
   stripFollowUps: stripFollowUps

@@ -122,22 +122,26 @@ Page({
   onClear() {
     classroom.stopLive(this)
     voice.cancel()
-    writeSession(this.sessionKey(), blankSession(''))
-    this.setData({
-      error: '',
-      followUps: [],
-      thread: [],
-      steps: [],
-      planning: false,
-      displayTitle: '智学伴练',
-      lessonCode: '',
-      course: null,
-      hint: '',
-      thinking: false,
-      thinkHint: '',
-      waitSec: 0
-    })
-    classroom.startOpenFlow(this)
+    const page = this
+    const afterClear = function () {
+      writeSession(page.sessionKey(), blankSession(''))
+      page.setData({
+        error: '',
+        followUps: [],
+        thread: [],
+        steps: [],
+        planning: false,
+        displayTitle: '智学伴练',
+        lessonCode: '',
+        course: null,
+        hint: '',
+        thinking: false,
+        thinkHint: '',
+        waitSec: 0
+      })
+      classroom.startOpenFlow(page)
+    }
+    classroom.clearHistory(this).then(afterClear, afterClear)
   },
   onMicTap() {
     if (this.data.sending) return

@@ -19,8 +19,8 @@
   </view>
   <view class="error" wx:if="{{error}}">{{error}}</view>
   <scroll-view scroll-y class="thread" scroll-into-view="{{scrollInto}}" scroll-with-animation>
-    <view class="empty cat-table-empty" wx:if="{{planning && !thread.length}}">正在向智学取引导…</view>
-    <view class="empty cat-table-empty" wx:elif="{{!thread.length && !sending}}">智学引导语马上出现。未选课时按它的问题作答，选了课会直接进入该课题流程。</view>
+    <view class="empty cat-table-empty" wx:if="{{planning && !thread.length}}">{{hint || '正在恢复上次学习记录…'}}</view>
+    <view class="empty cat-table-empty" wx:elif="{{!thread.length && !sending}}">还没有本课的学习记录。未选课时智学会先给引导语；选了课会按该课题继续。</view>
     <view
       id="m-{{item.id}}"
       class="bubble {{item.role === 'user' ? 'me' : 'bot'}}"

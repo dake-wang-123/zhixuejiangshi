@@ -222,17 +222,22 @@ function chatSettled(current) {
   return status === 'completed' || status === 'failed' || status === 'canceled'
 }
 
-function runCoze(message, userId, conversationId, token) {
+function runCoze(message, userId, conversationId, token, extra) {
+  const more = extra || {}
   const args = {
     user_message: message,
     user_id: String(userId || ''),
     conversation_id: conversationId || '',
-    bot_id: config.cozeBotId
+    bot_id: config.cozeBotId,
+    account_id: more.accountId ? String(more.accountId) : '',
+    lesson_code: more.lessonCode ? String(more.lessonCode) : 'open',
+    topic_title: more.topicTitle ? String(more.topicTitle) : '',
+    history_json: more.historyJson ? String(more.historyJson) : '[]'
   }
   return invokeSyncFlow(args, token).then((output) => extractReply(output))
 }
 
-function chatWithCoze(message, userId, conversationId, token, onTick) {
+function chatWithCoze(message, userId, conversationId, token, onTick, extra) {
   if (!config.cozeBotId) {
     return Promise.reject(new Error('尚未配置 Coze Bot ID。请打开 miniprogram/config.js，把 cozeBotId 换成控制台里的 Bot ID。'))
   }
@@ -241,7 +246,7 @@ function chatWithCoze(message, userId, conversationId, token, onTick) {
     return extracted
   }
   function once(text, conv, attempt, previous) {
-    return runCoze(text, userId, conv, token).then((extracted) => {
+    return runCoze(text, userId, conv, token, extra).then((extracted) => {
       if (!extracted.conversationId && previous && previous.conversationId) {
         extracted.conversationId = previous.conversationId
       }
@@ -268,6 +273,10 @@ function chatWithCoze(message, userId, conversationId, token, onTick) {
         setTimeout(() => resolve(once(pollMsg, extracted.conversationId, attempt + 1, extracted)), 800)
       })
     })
+  }
+  const firstExtra = extra || {}
+  if (conversationId) {
+    firstExtra.historyJson = '[]'
   }
   return once(message, conversationId || '', 0, null)
 }

@@ -2,12 +2,15 @@ const { chatWithCoze } = require('./agent.js')
 const {
   readSession,
   writeSession,
-  hasAssistant
+  hasAssistant,
+  hydrateSession,
+  storedLessonCode
 } = require('./session.js')
 const {
   startPrompt,
   OPEN_GUIDE_PROMPT
 } = require('./flow.js')
+const history = require('./learn-history.js')
 const voice = require('./voice.js')
 const typewriter = require('./typewriter.js')
 
@@ -34,8 +37,71 @@ function paint(page, session) {
 
 function persist(page, patch, options) {
   const session = writeSession(page.sessionKey(), patch)
+  history.rememberScope({
+    lessonCode: storedLessonCode(page),
+    topicTitle: session.topicTitle || (page.data && page.data.displayTitle) || '',
+    conversationId: session.conversationId || ''
+  })
   if (!(options && options.skipPaint)) paint(page, session)
   return session
+}
+
+function restoreRemote(page, topicTitle) {
+  const token = getApp().getToken()
+  const lessonCode = storedLessonCode(page)
+  if (!token) {
+    return Promise.resolve(hydrateSession(page.sessionKey(), null, topicTitle))
+  }
+  page.setData({ planning: true, hint: '正在恢复上次学习记录…' })
+  return history.listMessages(lessonCode, topicTitle, token).then((rows) => {
+    const remote = history.rowsToSession(rows, topicTitle)
+    const session = hydrateSession(page.sessionKey(), remote, topicTitle)
+    history.rememberScope({
+      lessonCode: lessonCode,
+      topicTitle: session.topicTitle,
+      conversationId: session.conversationId
+    })
+    return session
+  }).catch(() => hydrateSession(page.sessionKey(), null, topicTitle))
+}
+
+function backupTurn(page, userText, result) {
+  const account = getApp().globalData.account || {}
+  const token = getApp().getToken()
+  if (!account.id || !token || !result) return Promise.resolve()
+  const cid = result.conversationId || ''
+  const hid = result.chatId || ''
+  const lessonCode = storedLessonCode(page)
+  const topic = (page.data && (page.data.displayTitle || (page.data.course && page.data.course.title))) || ''
+  const rows = []
+  if (userText && String(userText).indexOf('__POLL_CHAT__|') !== 0) {
+    rows.push({
+      lesson_code: lessonCode,
+      topic_title: topic,
+      role: 'user',
+      content: userText,
+      conversation_id: cid,
+      chat_id: hid,
+      key: [cid, hid, 'user', 'prompt'].join('|'),
+      account_id: account.id
+    })
+  }
+  ;((result.items) || []).forEach((item, index) => {
+    if (!item || item.role !== 'assistant') return
+    const content = String(item.content || '').trim()
+    if (!content) return
+    rows.push({
+      lesson_code: lessonCode,
+      topic_title: topic,
+      role: 'assistant',
+      content: content,
+      conversation_id: cid,
+      chat_id: hid,
+      key: [cid, hid, 'assistant', item.id || index].join('|'),
+      account_id: account.id
+    })
+  })
+  return history.saveRows(rows, token)
 }
 
 function scrollBottom(page) {
@@ -105,6 +171,12 @@ function askZhixue(page, text) {
   startWaitClock(page)
   const account = getApp().globalData.account || {}
   const userId = page.cozeUserId(account)
+  const extra = {
+    accountId: account.id || '',
+    lessonCode: storedLessonCode(page),
+    topicTitle: (page.data && page.data.displayTitle) || preview.topicTitle || '',
+    historyJson: preview.conversationId ? '[]' : JSON.stringify(history.packAdditional(base))
+  }
   let typed = ''
   return chatWithCoze(prompt, userId, preview.conversationId || '', getApp().getToken(), function onTick(result) {
     persist(page, {
@@ -121,7 +193,7 @@ function askZhixue(page, text) {
       id: 'coze-live-' + (result.chatId || 'turn'),
       followUps: []
     })
-  }).then((result) => {
+  }, extra).then((result) => {
     persist(page, {
       messages: mergeLiveThread(pending, result),
       followUps: result.followUps || [],
@@ -139,6 +211,7 @@ function askZhixue(page, text) {
       if (typeof page.saveProgress === 'function') {
         page.saveProgress(1, 1)
       }
+      return backupTurn(page, prompt, result)
     })
   }).catch((err) => {
     stopLive(page)
@@ -159,24 +232,24 @@ function askZhixue(page, text) {
 
 function startCourseFlow(page, course) {
   const title = startPrompt(course)
-  const existing = readSession(page.sessionKey())
-  if (existing && (existing.messages || []).length && hasAssistant(existing.messages) && (!title || existing.topicTitle === title)) {
-    paint(page, existing)
-    return Promise.resolve(existing)
-  }
-  persist(page, {
-    messages: [],
-    followUps: [],
-    conversationId: '',
-    chatId: '',
-    topicTitle: title
+  return restoreRemote(page, title).then((existing) => {
+    if (existing && (existing.messages || []).length && hasAssistant(existing.messages)) {
+      paint(page, existing)
+      page.setData({ planning: false, hint: title ? ('课题：' + title) : '已恢复上次学习记录' })
+      return existing
+    }
+    if (!title) {
+      page.setData({ planning: false })
+      return existing
+    }
+    persist(page, {
+      topicTitle: title,
+      conversationId: existing.conversationId || '',
+      chatId: existing.chatId || ''
+    }, { skipPaint: true })
+    page.setData({ planning: true })
+    return askZhixue(page, title)
   })
-  if (!title) {
-    page.setData({ planning: false })
-    return Promise.resolve(readSession(page.sessionKey()))
-  }
-  page.setData({ planning: true })
-  return askZhixue(page, title)
 }
 
 function startOpenFlow(page, topicTitle) {
@@ -188,15 +261,35 @@ function startOpenFlow(page, topicTitle) {
     paint(page, existing)
     return Promise.resolve(existing)
   }
-  persist(page, {
-    messages: [],
-    followUps: [],
-    conversationId: '',
-    chatId: '',
-    topicTitle: ''
+  const token = getApp().getToken()
+  const last = history.readLastScope()
+  const loadLast = token ? history.lastRow(token).catch(() => null) : Promise.resolve(null)
+  return loadLast.then((row) => {
+    const lessonCode = (row && (row.lesson_code || row.课号)) || (last && last.lessonCode) || ''
+    const title = (row && (row.topic || row.topic_title || row.课题)) || (last && last.topicTitle) || ''
+    if (lessonCode && lessonCode !== 'open') {
+      if (typeof page.setData === 'function') {
+        page.setData({
+          lessonCode: lessonCode,
+          displayTitle: title || lessonCode,
+          course: { title: title || lessonCode, displayTitle: title || lessonCode, lessonCode: lessonCode }
+        })
+      }
+      return startCourseFlow(page, page.data.course)
+    }
+    if (title) {
+      return startCourseFlow(page, { title: title, displayTitle: title })
+    }
+    page.setData({ planning: true, hint: '正在向智学取引导语…' })
+    return askZhixue(page, OPEN_GUIDE_PROMPT)
   })
-  page.setData({ planning: true, hint: '正在向智学取引导语…' })
-  return askZhixue(page, OPEN_GUIDE_PROMPT)
+}
+
+function clearHistory(page) {
+  const token = getApp().getToken()
+  const lessonCode = storedLessonCode(page)
+  const title = (page.data && page.data.displayTitle) || ''
+  return history.clearLesson(lessonCode, title, token).catch(() => 0)
 }
 
 function onSend(page) {
@@ -263,6 +356,7 @@ module.exports = {
   askZhixue: askZhixue,
   startCourseFlow: startCourseFlow,
   startOpenFlow: startOpenFlow,
+  clearHistory: clearHistory,
   onSend: onSend,
   onFollow: onFollow,
   onRetry: onRetry,

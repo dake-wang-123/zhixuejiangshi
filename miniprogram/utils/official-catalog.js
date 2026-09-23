@@ -74,9 +74,17 @@ function buildOfficialCatalog(rows, activeCategory) {
   }
 }
 
+function findLessonCode(title) {
+  const want = String(title || '').trim()
+  if (!want) return ''
+  const hit = listOfficialRows().find((item) => item.title === want)
+  return hit ? hit.lesson_code : ''
+}
+
 module.exports = {
   FALLBACK: FALLBACK,
   listOfficialRows: listOfficialRows,
   listOfficialCategories: listOfficialCategories,
-  buildOfficialCatalog: buildOfficialCatalog
+  buildOfficialCatalog: buildOfficialCatalog,
+  findLessonCode: findLessonCode
 }

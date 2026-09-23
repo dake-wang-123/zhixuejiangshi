@@ -195,6 +195,33 @@ assert.strictEqual(voice.appendDraft('你好', '你好啊'), '你好啊')
 assert.ok(voice.friendlyVoiceError(new Error('authorize:fail auth deny')).indexOf('麦克风') >= 0)
 assert.ok(voice.friendlyVoiceError(new Error('WechatSI plugin missing')).indexOf('同声传译') >= 0)
 
+const history = require('../miniprogram/utils/learn-history.js')
+assert.strictEqual(history.lessonCodeOf('A01'), 'A01')
+assert.strictEqual(history.lessonCodeOf('lesson:A01'), 'A01')
+assert.strictEqual(history.lessonCodeOf('open'), 'open')
+assert.strictEqual(history.lessonCodeOf(''), 'open')
+assert.ok(history.lessonCodeOf('topic:听懂婴语').indexOf('T:') === 0)
+const packedHistory = history.packAdditional([
+  { role: 'user', hidden: true, content: '隐藏' },
+  { role: 'user', content: '第一问' },
+  { role: 'assistant', failed: true, content: '失败' },
+  { role: 'assistant', content: '第一答' }
+])
+assert.deepStrictEqual(packedHistory, [
+  { role: 'user', content: '第一问' },
+  { role: 'assistant', content: '第一答' }
+])
+const restored = history.rowsToSession([
+  { id: 1, role: 'user', content: '听懂婴语', conversation_id: '7371', chat_id: '1', topic: '听懂婴语' },
+  { id: 2, role: 'assistant', content: '第一步自我介绍', conversation_id: '7371', chat_id: '1', topic: '听懂婴语' }
+], '')
+assert.strictEqual(restored.messages.length, 2)
+assert.strictEqual(restored.conversationId, '7371')
+assert.strictEqual(restored.topicTitle, '听懂婴语')
+
+const { findLessonCode } = require('../miniprogram/utils/official-catalog.js')
+assert.strictEqual(findLessonCode(sixty[0].title), 'A01')
+
 const typewriter = require('../miniprogram/utils/typewriter.js')
 assert.strictEqual(typewriter.stepSize(20), 2)
 assert.ok(typewriter.stepSize(400) >= 6)

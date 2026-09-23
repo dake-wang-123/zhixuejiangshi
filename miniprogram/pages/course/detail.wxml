@@ -17,8 +17,8 @@
     </view>
 
     <scroll-view scroll-y class="thread" scroll-into-view="{{scrollInto}}" scroll-with-animation>
-      <view class="empty cat-table-empty" wx:if="{{planning && !thread.length}}">正在把课题原题发给智学…</view>
-      <view class="empty cat-table-empty" wx:elif="{{!thread.length && !sending}}">请直接回答智学的问题。</view>
+      <view class="empty cat-table-empty" wx:if="{{planning && !thread.length}}">{{hint || '正在恢复上次学习记录…'}}</view>
+      <view class="empty cat-table-empty" wx:elif="{{!thread.length && !sending}}">还没有本课记录。发送后会按智学原文继续，下次进来还能接着学。</view>
       <view
         id="m-{{item.id}}"
         class="bubble {{item.role === 'user' ? 'me' : (item.role === 'system' ? 'sys' : 'bot')}}"

@@ -4,6 +4,7 @@ const classroom = require('../../utils/classroom.js')
 const { ensureFlowSession, stableUserId } = require('../../utils/session.js')
 const { startPrompt, PENDING_TOPIC_KEY } = require('../../utils/flow.js')
 const { matchCanonical, loadCachedCatalog } = require('../../utils/coze-catalog.js')
+const { findLessonCode } = require('../../utils/official-catalog.js')
 const voice = require('../../utils/voice.js')
 
 Page({
@@ -32,6 +33,7 @@ Page({
     draft: '',
     scrollInto: '',
     conversationId: '',
+    lessonCode: '',
     thinking: false,
     thinkHint: '',
     waitSec: 0
@@ -77,11 +79,13 @@ Page({
         const study = (data.study_record || [])[0]
         const canonical = matchCanonical(course.title)
         const displayTitle = canonical ? canonical.title : course.title
-        this.data.course = Object.assign({}, course, { displayTitle: displayTitle })
+        const lessonCode = findLessonCode(displayTitle)
+        this.data.course = Object.assign({}, course, { displayTitle: displayTitle, lessonCode: lessonCode })
         ensureFlowSession(id, displayTitle)
         this.setData({
           course: this.data.course,
           displayTitle: displayTitle,
+          lessonCode: lessonCode,
           matched: !!canonical,
           enrolled: !!study,
           studyId: study ? study.id : '',

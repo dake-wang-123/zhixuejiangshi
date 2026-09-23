@@ -1,0 +1,71 @@
+<view class="page">
+  <view class="hero">
+    <view class="hero-row">
+      <view class="hero-mark">
+        <ui-icon name="folder" size="40" color="#5C7A5A"></ui-icon>
+      </view>
+      <view class="grow">
+        <text class="eyebrow">ADMIN</text>
+        <text class="hero-title">课程归档上传</text>
+      </view>
+    </view>
+    <text class="hero-sub">智学知识库当前列不出 60 课目录。管理员在此上传分类文件或课题原件，系统只整理文件里的标题和分类，不改写题目。归档后学员点课即进入智学问答。</text>
+  </view>
+
+  <view class="error" wx:if="{{error}}">{{error}}</view>
+
+  <view class="card">
+    <view class="title">1. 上传课题文件</view>
+    <view class="muted">可多选。文件名如「0-3岁课程-听懂婴语.docx」会拆出分类和标题；TXT / MD 会读正文标题。</view>
+    <button class="btn btn-ghost" bindtap="onChoose" disabled="{{submitting}}">选择文件（可多选）</button>
+    <view class="muted" wx:if="{{files.length}}">已选 {{files.length}} 个</view>
+    <view class="file-row" wx:for="{{files}}" wx:key="name">
+      <text class="desc">{{item.name}}</text>
+    </view>
+  </view>
+
+  <view class="card">
+    <view class="title">2. 或粘贴分类目录 / 全文</view>
+    <view class="muted">按分类列出课题原题（Markdown 也可），会一次归档多门课。若只贴一篇教案全文，则作为一门课解析标题。</view>
+    <textarea
+      class="area"
+      placeholder="## 0-3岁课程&#10;1. 课题原题一&#10;2. 课题原题二"
+      value="{{text}}"
+      bindinput="onText"
+      maxlength="20000"
+      auto-height
+    ></textarea>
+  </view>
+
+  <view class="card">
+    <view class="label">本批默认分类（文件名里已有分类时以文件名为准）</view>
+    <input class="field" placeholder="例如：0-3岁课程" value="{{category}}" bindinput="onCategory" />
+    <scroll-view scroll-x class="cats" wx:if="{{categories.length}}">
+      <view
+        class="cat {{category === item ? 'on' : ''}}"
+        wx:for="{{categories}}"
+        wx:key="*this"
+        data-name="{{item}}"
+        bindtap="onPickCategory"
+      >{{item}}</view>
+    </scroll-view>
+    <view class="muted" wx:if="{{progress}}">{{progress}}</view>
+    <button class="btn" bindtap="onSubmit" disabled="{{submitting}}">{{submitting ? '归档中…' : '分析并归档到目录'}}</button>
+  </view>
+
+  <view class="card" wx:if="{{preview.length}}">
+    <view class="title">本次将归档 {{preview.length}} 门</view>
+    <view class="file-row" wx:for="{{preview}}" wx:key="title">
+      <view class="grow">
+        <view class="desc">{{item.title}}</view>
+        <view class="muted">{{item.category || '未标注分类'}}</view>
+      </view>
+    </view>
+  </view>
+
+  <view class="card" wx:if="{{lastResult}}">
+    <view class="title">上次归档</view>
+    <view class="desc">新增 {{lastResult.inserted}} 门，目录现有 {{lastResult.catalogCount}} 门 / {{lastResult.categoryCount}} 类。</view>
+    <button class="btn" bindtap="onGoCatalog">去课程目录点课学习</button>
+  </view>
+</view>

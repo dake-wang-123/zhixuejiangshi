@@ -32,7 +32,7 @@
     <view class="empty-icon">
       <ui-icon name="empty" size="48" color="#8A8175"></ui-icon>
     </view>
-    还没有归档的课程分类。请下拉刷新向智学重新调取。
+    智学知识库还没有列出课程。管理员可在「我的 → 课程归档上传」上传分类文件，学员点课即进入智学。
   </view>
   <view class="cat-table" wx:for="{{sections}}" wx:key="id" wx:for-item="section">
     <view class="cat-table-head">

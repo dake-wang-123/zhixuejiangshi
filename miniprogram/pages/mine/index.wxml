@@ -53,6 +53,23 @@
     </view>
     <button class="btn btn-ghost" bindtap="onAllPpts">生成 / 查看全部课件</button>
   </view>
+  <view class="card" wx:if="{{isAdmin}}">
+    <view class="section-head" style="margin-top: 0;">
+      <ui-icon name="folder" size="32" color="#5C7A5A"></ui-icon>
+      <text class="name">管理员</text>
+    </view>
+    <view class="muted">智学知识库列不出 60 课时，在此上传分类文件或课题原件，标题归档到课程目录后供点课学习。</view>
+    <button class="btn" bindtap="onAdminUpload">课程归档上传</button>
+  </view>
+  <view class="card" wx:else>
+    <view class="section-head" style="margin-top: 0;">
+      <ui-icon name="folder" size="32" color="#5C7A5A"></ui-icon>
+      <text class="name">管理员入口</text>
+    </view>
+    <view class="muted">只有管理员能上传 60 课原件并归档目录。请输入已登记的管理员手机号开通。</view>
+    <input class="field" type="number" placeholder="管理员手机号" value="{{adminCode}}" bindinput="onAdminCode" />
+    <button class="btn btn-ghost" bindtap="onUnlockAdmin">开通管理员上传</button>
+  </view>
   <view class="card">
     <view class="section-head" style="margin-top: 0;">
       <ui-icon name="chat" size="32" color="#5C7A5A"></ui-icon>

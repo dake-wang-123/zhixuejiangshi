@@ -1,6 +1,7 @@
 const app = getApp()
 const { graphqlRequest, eqBigint } = require('../../utils/graphql.js')
 const { openPptUrl } = require('../../utils/agent.js')
+const { isAdmin, unlockAdmin } = require('../../utils/admin.js')
 
 Page({
   data: {
@@ -11,7 +12,9 @@ Page({
     ppts: [],
     feedback: '',
     saving: false,
-    sending: false
+    sending: false,
+    isAdmin: false,
+    adminCode: ''
   },
   onShow() {
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
@@ -23,7 +26,8 @@ Page({
     app.ensureLogin().then(() => {
       this.setData({
         account: app.globalData.account,
-        loginError: ''
+        loginError: '',
+        isAdmin: isAdmin(app.globalData.account)
       })
       return this.loadExtras()
     }).catch((err) => {
@@ -147,5 +151,23 @@ Page({
   },
   onRelogin() {
     app.relLogin().then(() => this.refresh()).catch(() => this.refresh())
+  },
+  onAdminCode(e) {
+    this.setData({ adminCode: e.detail.value })
+  },
+  onUnlockAdmin() {
+    if (!unlockAdmin(this.data.adminCode)) {
+      wx.showToast({ title: '手机号未登记为管理员', icon: 'none' })
+      return
+    }
+    this.setData({ isAdmin: true, adminCode: '' })
+    wx.showToast({ title: '已开通管理员上传' })
+  },
+  onAdminUpload() {
+    if (!isAdmin(this.data.account || app.globalData.account)) {
+      wx.showToast({ title: '请先开通管理员', icon: 'none' })
+      return
+    }
+    wx.navigateTo({ url: '/pages/admin/upload' })
   }
 })

@@ -6,7 +6,8 @@
     "pages/plan/index",
     "pages/ppt/index",
     "pages/agent/index",
-    "pages/mine/index"
+    "pages/mine/index",
+    "pages/admin/upload"
   ],
   "window": {
     "navigationBarTitleText": "家庭教育讲师自学",

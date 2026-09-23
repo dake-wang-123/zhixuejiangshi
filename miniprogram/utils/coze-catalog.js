@@ -104,6 +104,36 @@ function saveCatalog(data) {
   return next
 }
 
+function mergeCatalog(extra) {
+  const current = loadCachedCatalog()
+  const categories = (current.categories || []).slice()
+  const courses = (current.courses || []).slice()
+  ;(extra && extra.categories || []).forEach((name) => {
+    if (name && categories.indexOf(name) < 0) categories.push(name)
+  })
+  ;(extra && extra.courses || []).forEach((item) => {
+    if (!item || !item.title) return
+    const exists = courses.some((row) => {
+      return normalizeTitle(row.title) === normalizeTitle(item.title)
+        && normalizeTitle(row.category) === normalizeTitle(item.category)
+    })
+    if (exists) return
+    courses.push({
+      title: item.title,
+      category: item.category || '',
+      description: item.description || ''
+    })
+    if (item.category && categories.indexOf(item.category) < 0) categories.push(item.category)
+  })
+  return saveCatalog({
+    categories: categories,
+    courses: courses,
+    fetchedAt: Date.now(),
+    conversationId: current.conversationId || '',
+    raw: current.raw || ''
+  })
+}
+
 function pushCourse(courses, categories, title, category, description) {
   const topic = cleanTitle(title)
   const cat = cleanTitle(category)
@@ -272,12 +302,15 @@ module.exports = {
   CACHE_KEY: CACHE_KEY,
   CATALOG_QUERY: CATALOG_QUERY,
   normalizeTitle: normalizeTitle,
+  cleanTitle: cleanTitle,
+  cleanCategory: cleanCategory,
   parseCozeCatalog: parseCozeCatalog,
   archiveCatalog: archiveCatalog,
   setCatalog: setCatalog,
   getCatalog: getCatalog,
   loadCachedCatalog: loadCachedCatalog,
   saveCatalog: saveCatalog,
+  mergeCatalog: mergeCatalog,
   listCanonical: listCanonical,
   listCategories: listCategories,
   matchCanonical: matchCanonical,

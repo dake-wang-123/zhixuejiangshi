@@ -5,7 +5,8 @@ const {
   hasAssistant
 } = require('./session.js')
 const {
-  listFlowSteps,
+  parseListedSteps,
+  mergeSteps,
   startPrompt,
   firstLiveIndex,
   detectAdvance
@@ -13,7 +14,7 @@ const {
 const voice = require('./voice.js')
 
 function liveIndexOf(session) {
-  const steps = (session && session.steps) || listFlowSteps()
+  const steps = (session && session.steps) || []
   const completed = Number((session && session.completedCount) || 0)
   if (!steps.length) return 0
   if (completed >= steps.length) return steps.length - 1
@@ -21,13 +22,13 @@ function liveIndexOf(session) {
 }
 
 function paint(page, session, viewIndex) {
-  const steps = (session && session.steps && session.steps.length) ? session.steps : listFlowSteps()
+  const steps = (session && session.steps) || []
   const completedCount = Number((session && session.completedCount) || 0)
   const finished = steps.length > 0 && completedCount >= steps.length
-  const liveIndex = liveIndexOf(Object.assign({}, session, { steps: steps, completedCount: completedCount }))
+  const liveIndex = liveIndexOf(session)
   const idx = viewIndex == null ? (page.data.reviewing ? page.data.currentIndex : liveIndex) : viewIndex
-  const safeIndex = Math.max(0, Math.min(idx, steps.length - 1))
-  const reviewing = !finished && safeIndex !== liveIndex
+  const safeIndex = steps.length ? Math.max(0, Math.min(idx, steps.length - 1)) : 0
+  const reviewing = !!(steps.length && !finished && safeIndex !== liveIndex)
   const currentStep = steps[safeIndex] || null
   const thread = ((session && session.messages) || []).filter((item) => {
     if (item.hidden) return false
@@ -48,7 +49,7 @@ function paint(page, session, viewIndex) {
     followUps: followUps,
     hint: currentStep
       ? ((currentStep.group ? currentStep.group + ' · ' : '') + currentStep.title)
-      : '请按智学内定问答逐项作答'
+      : '请按智学的问答作答，不改写问题'
   })
   scrollBottom(page)
   return session
@@ -106,7 +107,7 @@ function askZhixue(page, text, options) {
         content: result.reply
       }
     ])
-    const steps = (latest.steps && latest.steps.length) ? latest.steps : listFlowSteps()
+    const steps = mergeSteps(latest.steps, parseListedSteps(result.reply))
     const completedCount = detectAdvance(result.reply, steps, latest.completedCount)
     persist(page, {
       messages: messages,
@@ -145,9 +146,9 @@ function startCourseFlow(page, course) {
     paint(page, existing)
     return Promise.resolve(existing)
   }
-  const live = firstLiveIndex(true)
+  const live = firstLiveIndex()
   persist(page, {
-    steps: listFlowSteps(),
+    steps: [],
     completedCount: live,
     currentIndex: live,
     messages: [],
@@ -173,9 +174,9 @@ function startOpenFlow(page, topicTitle) {
     paint(page, existing)
     return Promise.resolve(existing)
   }
-  const live = firstLiveIndex(false)
+  const live = firstLiveIndex()
   persist(page, {
-    steps: listFlowSteps(),
+    steps: [],
     completedCount: live,
     currentIndex: live,
     messages: (existing && existing.messages) || [],
@@ -205,7 +206,11 @@ function onComplete(page) {
     return
   }
   const session = readSession(page.sessionKey()) || {}
-  const steps = (session.steps && session.steps.length) ? session.steps : listFlowSteps()
+  const steps = session.steps || []
+  if (!steps.length) {
+    wx.showToast({ title: '请继续回答智学的问题', icon: 'none' })
+    return
+  }
   const liveIndex = liveIndexOf(session)
   if (!hasAssistant(session.messages, liveIndex)) {
     wx.showToast({ title: '请先回答智学的问题', icon: 'none' })
@@ -217,7 +222,7 @@ function onComplete(page) {
     page.saveProgress(completedCount, steps.length)
   }
   if (completedCount >= steps.length) {
-    wx.showToast({ title: '内定环节已走完', icon: 'none' })
+    wx.showToast({ title: '智学列出的环节已走完', icon: 'none' })
     return
   }
   const next = steps[completedCount]

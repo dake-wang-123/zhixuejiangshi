@@ -3,7 +3,7 @@ const { graphqlRequest, eqBigint, andWhere } = require('../../utils/graphql.js')
 const classroom = require('../../utils/classroom.js')
 const { ensureFlowSession } = require('../../utils/session.js')
 const { startPrompt, TOPIC_DRAFT_KEY } = require('../../utils/flow.js')
-const { matchCanonical } = require('../../utils/coze-catalog.js')
+const { matchCanonical, loadCachedCatalog } = require('../../utils/coze-catalog.js')
 const voice = require('../../utils/voice.js')
 
 Page({
@@ -51,6 +51,7 @@ Page({
   boot() {
     const id = this.data.id
     this.setData({ loading: true, error: '', hint: '正在打开智学伴练…' })
+    loadCachedCatalog()
     return app.ensureLogin().then(() => {
       const token = app.getToken()
       const account = app.globalData.account || {}
@@ -74,7 +75,7 @@ Page({
         const canonical = matchCanonical(course.title)
         const displayTitle = canonical ? canonical.title : course.title
         this.data.course = Object.assign({}, course, { displayTitle: displayTitle })
-        ensureFlowSession(id, displayTitle, true)
+        ensureFlowSession(id, displayTitle)
         this.setData({
           course: this.data.course,
           displayTitle: displayTitle,

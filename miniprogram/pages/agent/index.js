@@ -42,7 +42,7 @@ Page({
       pending = wx.getStorageSync(PENDING_TOPIC_KEY) || ''
       if (pending) wx.removeStorageSync(PENDING_TOPIC_KEY)
     } catch (e) {}
-    ensureFlowSession(OPEN_SESSION_ID, pending, !!pending)
+    ensureFlowSession(OPEN_SESSION_ID, pending)
     app.ensureLogin().then(() => {
       if (pending) {
         this.setData({
@@ -90,7 +90,7 @@ Page({
     classroom.paint(this, session || {}, classroom.liveIndexOf(session || {}))
   },
   onClear() {
-    writeSession(OPEN_SESSION_ID, blankSession('', false))
+    writeSession(OPEN_SESSION_ID, blankSession(''))
     this.setData({
       error: '',
       followUps: [],

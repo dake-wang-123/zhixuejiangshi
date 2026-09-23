@@ -2,6 +2,7 @@ const app = getApp()
 const { graphqlRequest, eqBigint } = require('../../utils/graphql.js')
 const { getImageUrl } = require('../../utils/upload.js')
 const { decorateStudyRow, groupByCategory } = require('../../utils/catalog.js')
+const { loadCachedCatalog } = require('../../utils/coze-catalog.js')
 const { PENDING_TOPIC_KEY, TOPIC_DRAFT_KEY } = require('../../utils/flow.js')
 
 Page({
@@ -24,6 +25,7 @@ Page({
       }
     } catch (e) {}
     if (draft !== this.data.topicDraft) this.setData({ topicDraft: draft })
+    loadCachedCatalog()
     this.load()
   },
   load() {

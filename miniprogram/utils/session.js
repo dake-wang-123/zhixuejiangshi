@@ -1,11 +1,10 @@
 const {
   FLOW_VERSION,
   OPEN_SESSION_ID,
-  listFlowSteps,
   firstLiveIndex
 } = require('./flow.js')
 
-const SESSION_KEY = 'zhixue_sessions_v5'
+const SESSION_KEY = 'zhixue_sessions_v6'
 const FOLLOW_MARK = '__FOLLOW_UPS__'
 
 function loadAll() {
@@ -34,32 +33,29 @@ function writeSession(courseId, patch) {
   return next
 }
 
-function blankSession(topicTitle, hasCourse) {
-  const steps = listFlowSteps()
-  const liveIndex = firstLiveIndex(!!hasCourse)
+function blankSession(topicTitle) {
   return {
     flowVersion: FLOW_VERSION,
-    steps: steps,
+    steps: [],
     messages: [],
     followUps: [],
-    completedCount: liveIndex,
-    currentIndex: liveIndex,
+    completedCount: firstLiveIndex(),
+    currentIndex: firstLiveIndex(),
     conversationId: '',
     chatId: '',
     topicTitle: topicTitle || ''
   }
 }
 
-function ensureFlowSession(courseId, topicTitle, hasCourse) {
+function ensureFlowSession(courseId, topicTitle) {
   const existing = readSession(courseId)
-  const steps = listFlowSteps()
-  if (existing && existing.flowVersion === FLOW_VERSION && (existing.steps || []).length === steps.length) {
+  if (existing && existing.flowVersion === FLOW_VERSION) {
     if (topicTitle && existing.topicTitle && existing.topicTitle !== topicTitle) {
-      return writeSession(courseId, blankSession(topicTitle, hasCourse))
+      return writeSession(courseId, blankSession(topicTitle))
     }
     return existing
   }
-  return writeSession(courseId, blankSession(topicTitle, hasCourse))
+  return writeSession(courseId, blankSession(topicTitle))
 }
 
 function visibleMessages(messages) {

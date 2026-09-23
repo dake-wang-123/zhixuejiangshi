@@ -2,8 +2,12 @@ const app = getApp()
 const config = require('../../config.js')
 const { graphqlRequest, eqText } = require('../../utils/graphql.js')
 const { getImageUrl } = require('../../utils/upload.js')
-const { buildCanonicalCatalog } = require('../../utils/catalog.js')
-const { listCategories } = require('../../utils/coze-catalog.js')
+const { buildCozeCatalog } = require('../../utils/catalog.js')
+const {
+  listCategories,
+  loadCachedCatalog,
+  fetchCozeCatalog
+} = require('../../utils/coze-catalog.js')
 const { TOPIC_DRAFT_KEY } = require('../../utils/flow.js')
 
 const COURSE_LIST = `
@@ -22,17 +26,13 @@ const COURSE_LIST = `
       topic { id name }
       category_id { id name }
     }
-    course_category(order_by: { sort_order: asc }) {
-      id
-      name
-      sort_order
-    }
   }
 `
 
 Page({
   data: {
     loading: true,
+    refreshing: false,
     error: '',
     courses: [],
     sections: [],
@@ -40,54 +40,67 @@ Page({
     activeCategory: '',
     totalCount: 0,
     matchedCount: 0,
-    catalogCount: 60,
-    categoryCount: 6
+    catalogCount: 0,
+    categoryCount: 0
   },
   onShow() {
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
       this.getTabBar().setData({ selected: 0 })
     }
-    this.load()
+    this.load(false)
   },
   onPullDownRefresh() {
-    this.load().then(() => wx.stopPullDownRefresh())
+    this.load(true).then(() => wx.stopPullDownRefresh())
   },
-  applyFilter(courses, activeCategory) {
-    return buildCanonicalCatalog(courses, activeCategory)
+  paintCatalog(courses, activeCategory) {
+    const packed = buildCozeCatalog(courses, activeCategory)
+    const cats = [{ id: '', name: '全部' }].concat(listCategories().map((name) => ({ id: name, name: name })))
+    this.setData({
+      courses: courses,
+      totalCount: packed.catalogCount,
+      matchedCount: packed.matchedCount,
+      catalogCount: packed.catalogCount,
+      categoryCount: packed.categoryCount,
+      categories: cats,
+      sections: packed.sections
+    })
+    return packed
   },
-  load() {
-    this.setData({ loading: true, error: '' })
+  load(forceRefresh) {
+    const cached = loadCachedCatalog()
+    const hasCache = cached.categories.length || cached.courses.length
+    this.setData({
+      loading: !hasCache,
+      refreshing: !!hasCache,
+      error: ''
+    })
+    if (hasCache) this.paintCatalog(this.data.courses, this.data.activeCategory)
     return app.ensureLogin().then(() => {
       const token = app.getToken()
+      const account = app.globalData.account || {}
       const where = eqText('status', config.statusOnShelf)
-      return graphqlRequest(COURSE_LIST, { where: where, limit: 200 }, token)
-    }).then((data) => {
-      const courses = data.course || []
-      const token = app.getToken()
-      const tasks = courses.map((item) => {
-        return getImageUrl(item.cover_id, token).then((url) => {
-          item.coverUrl = url
-          return item
-        }).catch(() => item)
-      })
-      return Promise.all(tasks).then(() => {
-        const packed = this.applyFilter(courses, this.data.activeCategory)
-        const cats = [{ id: '', name: '全部' }].concat(listCategories().map((name) => ({ id: name, name: name })))
-        this.setData({
-          loading: false,
-          courses: courses,
-          totalCount: packed.catalogCount,
-          matchedCount: packed.matchedCount,
-          catalogCount: packed.catalogCount,
-          categoryCount: listCategories().length,
-          categories: cats,
-          sections: packed.sections
+      return graphqlRequest(COURSE_LIST, { where: where, limit: 200 }, token).then((data) => {
+        const courses = data.course || []
+        const tasks = courses.map((item) => {
+          return getImageUrl(item.cover_id, token).then((url) => {
+            item.coverUrl = url
+            return item
+          }).catch(() => item)
+        })
+        return Promise.all(tasks).then(() => {
+          this.paintCatalog(courses, this.data.activeCategory)
+          return fetchCozeCatalog(token, 'catalog-' + (account.id || 'guest'), { fresh: !!forceRefresh })
+        }).then(() => {
+          this.paintCatalog(this.data.courses, this.data.activeCategory)
+          this.setData({ loading: false, refreshing: false, error: '' })
         })
       })
     }).catch((err) => {
+      const packed = this.paintCatalog(this.data.courses, this.data.activeCategory)
       this.setData({
         loading: false,
-        error: this.friendlyError(err)
+        refreshing: false,
+        error: packed.categoryCount || packed.catalogCount ? '' : this.friendlyError(err)
       })
     })
   },
@@ -106,11 +119,8 @@ Page({
   },
   onCategory(e) {
     const id = e.currentTarget.dataset.id || ''
-    const packed = this.applyFilter(this.data.courses, id)
-    this.setData({
-      activeCategory: id,
-      sections: packed.sections
-    })
+    this.setData({ activeCategory: id })
+    this.paintCatalog(this.data.courses, id)
   },
   onOpen(e) {
     const dbId = e.currentTarget.dataset.id

@@ -1,7 +1,7 @@
 const { formatAnalysis, matchCategory } = require('./analysis.js')
 const { buildStudySteps, progressToRatio } = require('./study.js')
 const { readSession } = require('./session.js')
-const { firstLiveIndex, listFlowSteps } = require('./flow.js')
+const { firstLiveIndex } = require('./flow.js')
 const { matchCanonical, listCanonical, listCategories } = require('./coze-catalog.js')
 
 function resolveCategory(course, view, categories) {
@@ -25,9 +25,9 @@ function decorateCourse(course, categories) {
   const canonical = matchCanonical(item.title, view && view.courseName)
   const displayTitle = canonical ? canonical.title : (item.title || '未命名课程')
   const session = readSession(item.id)
-  const sessionSteps = (session && session.steps && session.steps.length) ? session.steps : listFlowSteps()
+  const sessionSteps = (session && session.steps) || []
   const stepCount = sessionSteps.length
-  const completedCount = session ? Number(session.completedCount || 0) : firstLiveIndex(true)
+  const completedCount = session ? Number(session.completedCount || 0) : firstLiveIndex()
   const cursorStep = stepCount ? Math.min(completedCount, Math.max(0, stepCount - 1)) : 0
   return Object.assign({}, item, {
     view: view || { summaryText: '', chapters: [], tags: [], topics: [], direction: '', courseName: '' },
@@ -53,7 +53,7 @@ function decorateStudyRow(row, categories) {
   const percent = total ? Math.round((completedCount / total) * 100) : Math.round(progressToRatio(row.progress) * 100)
   const currentIndex = total ? Math.min(completedCount, Math.max(0, total - 1)) : 0
   const session = readSession(course.id)
-  const steps = (session && session.steps && session.steps.length) ? session.steps : listFlowSteps()
+  const steps = (session && session.steps) || []
   const current = steps[currentIndex]
   const stepTitle = current
     ? current.title
@@ -105,7 +105,7 @@ function groupByCategory(items, categories, activeCategory, keepEmpty) {
   return sections
 }
 
-function buildCanonicalCatalog(dbCourses, activeCategory) {
+function buildCozeCatalog(dbCourses, activeCategory) {
   const decorated = (dbCourses || []).map((item) => decorateCourse(item, []))
   const byTitle = {}
   decorated.forEach((item) => {
@@ -125,7 +125,7 @@ function buildCanonicalCatalog(dbCourses, activeCategory) {
         canonical: canon,
         matched: !!db,
         displayTitle: canon.title,
-        description: canon.description,
+        description: canon.description || '',
         categoryName: name,
         is_recommended: db ? db.is_recommended : false,
         coverUrl: db ? db.coverUrl : '',
@@ -134,11 +134,31 @@ function buildCanonicalCatalog(dbCourses, activeCategory) {
     })
     sections.push({ id: name, name: name, courses: courses })
   })
-  const matchedCount = decorated.filter((item) => item.matched).length
+  const loose = listCanonical().filter((item) => !item.category)
+  if (loose.length && !filter) {
+    const courses = loose.map((canon) => {
+      const db = byTitle[canon.title]
+      return {
+        id: db ? db.id : '',
+        dbId: db ? db.id : '',
+        inLibrary: !!db,
+        canonical: canon,
+        matched: !!db,
+        displayTitle: canon.title,
+        description: canon.description || '',
+        categoryName: '',
+        is_recommended: db ? db.is_recommended : false,
+        coverUrl: db ? db.coverUrl : '',
+        stepCount: db ? db.stepCount : 0
+      }
+    })
+    sections.push({ id: 'uncat', name: '未标注分类', courses: courses })
+  }
   return {
     sections: sections,
-    matchedCount: matchedCount,
-    catalogCount: listCanonical().length
+    matchedCount: decorated.filter((item) => item.matched).length,
+    catalogCount: listCanonical().length,
+    categoryCount: listCategories().length
   }
 }
 
@@ -147,5 +167,6 @@ module.exports = {
   decorateStudyRow: decorateStudyRow,
   groupByCategory: groupByCategory,
   resolveCategory: resolveCategory,
-  buildCanonicalCatalog: buildCanonicalCatalog
+  buildCanonicalCatalog: buildCozeCatalog,
+  buildCozeCatalog: buildCozeCatalog
 }

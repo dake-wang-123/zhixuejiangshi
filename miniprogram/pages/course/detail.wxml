@@ -21,7 +21,7 @@
       <view class="muted" wx:if="{{course.category_id}}">{{course.category_id.name}} · 智学伴练</view>
       <view class="muted" wx:else>智学伴练</view>
       <view class="title">{{displayTitle}}</view>
-      <view class="muted">问答由智学原样给出，按内定环节逐项作答。小程序不改写问题、不跳问。</view>
+      <view class="muted">问答由智学原样给出，按它自己的程序推进。小程序不改写问题、不另编环节。</view>
       <step-bar
         wx:if="{{steps.length}}"
         steps="{{steps}}"

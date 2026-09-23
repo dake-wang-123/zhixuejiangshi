@@ -9,8 +9,8 @@
         <text class="hero-title">家庭教育讲师自学</text>
       </view>
     </view>
-    <text class="hero-sub">分类和课题从智学 Coze 知识库现场调取，标题不改写。点已入库的课即把原题发给智学，按它自己的问答上课；对不上的课题到学习页自行输入。</text>
-    <text class="hero-meta" wx:if="{{!loading}}">智学分类 {{categoryCount}} 个 · 课题 {{catalogCount}} 门 · 已入库 {{matchedCount}} 门{{refreshing ? ' · 正在向智学核对' : ''}}</text>
+    <text class="hero-sub">目录按智学知识库最新调取归档，标题不改写。点一门课即把原题发给智学，按它自己的问答上课。</text>
+    <text class="hero-meta" wx:if="{{!loading}}">智学分类 {{categoryCount}} 个 · 课题 {{catalogCount}} 门{{refreshing ? ' · 正在向智学核对' : ''}}</text>
   </view>
   <view class="error" wx:if="{{error}}">{{error}}</view>
   <view class="empty" wx:if="{{loading}}">
@@ -32,7 +32,7 @@
     <view class="empty-icon">
       <ui-icon name="empty" size="48" color="#8A8175"></ui-icon>
     </view>
-    智学还没有返回课程分类。请确认知识库已上传分类，然后下拉刷新。对不上的课题可到学习页自行输入。
+    还没有归档的课程分类。请下拉刷新向智学重新调取。
   </view>
   <view class="cat-table" wx:for="{{sections}}" wx:key="id" wx:for-item="section">
     <view class="cat-table-head">
@@ -55,8 +55,7 @@
         <view class="title">{{item.displayTitle}}</view>
         <view class="desc">{{item.description}}</view>
         <view class="row chips">
-          <text class="chip" wx:if="{{item.inLibrary}}">已入库</text>
-          <text class="chip chip-warn" wx:else>未入库，点后自行输入</text>
+          <text class="chip">点此智学</text>
           <text class="chip" wx:if="{{item.is_recommended}}">推荐</text>
         </view>
       </view>

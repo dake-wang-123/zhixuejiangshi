@@ -5,7 +5,7 @@ const {
   matchCanonical,
   listCategories
 } = require('../miniprogram/utils/coze-catalog.js')
-const { startPrompt, listFlowSteps, firstLiveIndex, parseListedSteps, detectAdvance } = require('../miniprogram/utils/flow.js')
+const { startPrompt, listFlowSteps, firstLiveIndex, parseListedSteps, detectAdvance, OPEN_GUIDE_PROMPT } = require('../miniprogram/utils/flow.js')
 const { buildCozeCatalog } = require('../miniprogram/utils/catalog.js')
 
 assert.strictEqual(listFlowSteps().length, 0)
@@ -32,6 +32,20 @@ assert.strictEqual(jsoned.categories[0], '3-6岁课程')
 assert.strictEqual(jsoned.courses[0].title, '幼儿园适应全攻略：不哭不闹爱上上学')
 
 assert.deepStrictEqual(parseCozeCatalog('你好呀，我们开始上课吧'), { categories: [], courses: [] })
+
+const live = parseCozeCatalog([
+  '### 一、AI工具家庭教育应用类',
+  '1. 孩子AI学习辅助方法指导',
+  '2. AI辅助高考志愿填报操作指南',
+  '### 分类文件夹1：幼小衔接指导类',
+  '- 课题原标题：《幼小衔接六大核心维度实操指南》'
+].join('\n'))
+assert.ok(live.categories.indexOf('AI工具家庭教育应用类') >= 0)
+assert.ok(live.categories.indexOf('幼小衔接指导类') >= 0)
+assert.strictEqual(live.courses[0].title, '孩子AI学习辅助方法指导')
+assert.strictEqual(live.courses[2].title, '幼小衔接六大核心维度实操指南')
+assert.strictEqual(OPEN_GUIDE_PROMPT, '你好')
+assert.ok(startPrompt({ title: '孩子AI学习辅助方法指导' }).indexOf('你好') < 0)
 
 setCatalog({
   categories: listed.categories,

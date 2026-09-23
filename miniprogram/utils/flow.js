@@ -1,10 +1,11 @@
 const { shortTitle } = require('./study.js')
 const { matchCanonical } = require('./coze-catalog.js')
 
-const FLOW_VERSION = 6
+const FLOW_VERSION = 7
 const OPEN_SESSION_ID = 'open'
 const PENDING_TOPIC_KEY = 'zhixue_pending_topic'
 const TOPIC_DRAFT_KEY = 'zhixue_topic_draft'
+const OPEN_GUIDE_PROMPT = '你好'
 
 function normalizeStep(item, index) {
   const title = String((item && (item.title || item.name || item.环节 || item.标题)) || '').trim()
@@ -121,6 +122,7 @@ module.exports = {
   OPEN_SESSION_ID: OPEN_SESSION_ID,
   PENDING_TOPIC_KEY: PENDING_TOPIC_KEY,
   TOPIC_DRAFT_KEY: TOPIC_DRAFT_KEY,
+  OPEN_GUIDE_PROMPT: OPEN_GUIDE_PROMPT,
   parseListedSteps: parseListedSteps,
   mergeSteps: mergeSteps,
   listFlowSteps: listFlowSteps,

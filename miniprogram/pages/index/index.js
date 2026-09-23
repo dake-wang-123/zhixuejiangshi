@@ -8,7 +8,7 @@ const {
   loadCachedCatalog,
   fetchCozeCatalog
 } = require('../../utils/coze-catalog.js')
-const { TOPIC_DRAFT_KEY } = require('../../utils/flow.js')
+const { PENDING_TOPIC_KEY } = require('../../utils/flow.js')
 
 const COURSE_LIST = `
   query CourseList($where: course_bool_exp, $limit: Int) {
@@ -130,8 +130,8 @@ Page({
       return
     }
     if (typeof wx.setStorageSync === 'function') {
-      wx.setStorageSync(TOPIC_DRAFT_KEY, title || '')
+      wx.setStorageSync(PENDING_TOPIC_KEY, title || '')
     }
-    wx.switchTab({ url: '/pages/learn/index' })
+    wx.switchTab({ url: '/pages/agent/index' })
   }
 })

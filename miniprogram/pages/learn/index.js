@@ -95,12 +95,14 @@ Page({
     const id = e.currentTarget.dataset.id
     const matched = e.currentTarget.dataset.matched
     const title = e.currentTarget.dataset.title
-    if (String(matched) === '1') {
+    if (id) {
       wx.navigateTo({ url: '/pages/course/detail?id=' + id })
       return
     }
-    this.setData({ topicDraft: title || this.data.topicDraft })
-    wx.showToast({ title: '该课未匹配智学目录，请确认课题后开始', icon: 'none' })
+    if (title) {
+      try { wx.setStorageSync(PENDING_TOPIC_KEY, title) } catch (e) {}
+      wx.switchTab({ url: '/pages/agent/index' })
+    }
   },
   onBrowse() {
     wx.switchTab({ url: '/pages/index/index' })

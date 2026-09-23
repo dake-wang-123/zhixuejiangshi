@@ -13,7 +13,7 @@ test -f "$SRC/pages/index/index.wxml"
 
 mkdir -p "$OUT_DIR" "$STAGE"
 cp -a "$SRC"/. "$STAGE"/
-rm -rf "$STAGE/data" "$STAGE/.zion-mcp"
+rm -rf "$STAGE/.zion-mcp"
 find "$STAGE" -name '.DS_Store' -delete
 
 cat > "$STAGE/导入说明.txt" <<'EOF'

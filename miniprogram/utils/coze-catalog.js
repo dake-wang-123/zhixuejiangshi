@@ -1,4 +1,5 @@
-const CACHE_KEY = 'zhixue_coze_catalog_v1'
+const CACHE_KEY = 'zhixue_coze_catalog_v2'
+const ARCHIVE = require('../data/zhixue-catalog.json')
 const CATALOG_QUERY = [
   '请只列出你知识库里已经上传的课程分类，以及每个分类下的课题原题。',
   '分类名和课题名必须与知识库一致，不要改写，不要开始上课，不要自我介绍。'
@@ -29,7 +30,17 @@ function cleanTitle(text) {
     .replace(/^[\s·•\-\*、]+/, '')
     .replace(/^\d{1,2}[\.、．\)]\s*/, '')
     .replace(/^（\d{1,2}）\s*/, '')
+    .replace(/^课题原标题[:：]\s*/, '')
+    .replace(/^课题[:：]\s*/, '')
     .replace(/^[“”"《》]+|[“”"《》]+$/g, '')
+    .trim()
+}
+
+function cleanCategory(text) {
+  return cleanTitle(text)
+    .replace(/^分类文件夹\s*\d+[:：]\s*/, '')
+    .replace(/^[一二三四五六七八九十]+、\s*/, '')
+    .replace(/^第\s*\d+\s*类[:：]?\s*/, '')
     .trim()
 }
 
@@ -59,15 +70,28 @@ function getCatalog() {
   return CATALOG
 }
 
+function archiveCatalog() {
+  const packed = ARCHIVE && typeof ARCHIVE === 'object' ? ARCHIVE : {}
+  return {
+    categories: packed.categories || [],
+    courses: packed.courses || [],
+    fetchedAt: packed.fetchedAt || 0,
+    conversationId: '',
+    raw: packed.source || 'archive'
+  }
+}
+
 function loadCachedCatalog() {
   try {
-    if (typeof wx === 'undefined' || !wx.getStorageSync) return getCatalog()
-    const cached = wx.getStorageSync(CACHE_KEY)
-    if (cached && (cached.categories || cached.courses)) {
-      return setCatalog(cached)
+    if (typeof wx !== 'undefined' && wx.getStorageSync) {
+      const cached = wx.getStorageSync(CACHE_KEY)
+      if (cached && ((cached.courses && cached.courses.length) || (cached.categories && cached.categories.length))) {
+        return setCatalog(cached)
+      }
     }
   } catch (e) {}
-  return getCatalog()
+  if (CATALOG.courses.length || CATALOG.categories.length) return getCatalog()
+  return setCatalog(archiveCatalog())
 }
 
 function saveCatalog(data) {
@@ -170,10 +194,10 @@ function parseListedCatalog(text) {
     const raw = String(line || '').trim()
     if (!raw) return
     const heading = raw.match(/^(?:#{1,3}\s+|【|分类[:：]\s*)(.+?)(?:】)?$/)
-    const labeled = raw.match(/^(?:课程分类|分类名称|所属分类)[:：]\s*(.+)$/)
-    if ((heading || labeled) && raw.length <= 40) {
-      const name = cleanTitle((heading && heading[1]) || (labeled && labeled[1]))
-      if (name && name.indexOf('课题') < 0 && name.indexOf('目录') < 0) {
+    const labeled = raw.match(/^(?:课程分类|分类名称|所属分类|分类文件夹\s*\d+)[:：]\s*(.+)$/)
+    if ((heading || labeled) && raw.length <= 60) {
+      const name = cleanCategory((heading && heading[1]) || (labeled && labeled[1]))
+      if (name && name.indexOf('课题') < 0 && name.indexOf('目录') < 0 && name.indexOf('知识库') < 0) {
         current = name
         if (categories.indexOf(name) < 0) categories.push(name)
         return
@@ -230,6 +254,8 @@ function fetchCozeCatalog(token, userId, options) {
   return chatWithCoze(CATALOG_QUERY, userId || 'catalog', conversationId, token).then((result) => {
     const parsed = parseCozeCatalog(result.reply)
     if (!parsed.categories.length && !parsed.courses.length) {
+      const fallback = loadCachedCatalog()
+      if (fallback.courses.length || fallback.categories.length) return fallback
       throw new Error('智学没有返回课程分类。请确认 Coze 知识库已上传分类后下拉刷新。')
     }
     return saveCatalog({
@@ -247,6 +273,7 @@ module.exports = {
   CATALOG_QUERY: CATALOG_QUERY,
   normalizeTitle: normalizeTitle,
   parseCozeCatalog: parseCozeCatalog,
+  archiveCatalog: archiveCatalog,
   setCatalog: setCatalog,
   getCatalog: getCatalog,
   loadCachedCatalog: loadCachedCatalog,

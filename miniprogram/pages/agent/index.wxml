@@ -2,8 +2,8 @@
   <view class="study-head">
     <view class="muted">智学伴练</view>
     <view class="title">{{displayTitle}}</view>
-    <view class="muted" wx:if="{{course}}">课题原题已发给智学。请按它的问答作答，不要改写问题或跳过它的程序。</view>
-    <view class="muted" wx:else>还没选定课题。输入智学知识库中的课题原题后发送。目录对不上的课题也可从学习页输入后跳到这里。</view>
+    <view class="muted" wx:if="{{course}}">已选定课题，原题已发给智学。请按它的问答作答，不要改写问题或跳过它的程序。</view>
+    <view class="muted" wx:else>还没选定课题。智学会先给出引导语；你也可以从课程目录点课，或在此回复课题原题。</view>
     <step-bar
       wx:if="{{steps.length}}"
       steps="{{steps}}"
@@ -23,8 +23,8 @@
   </view>
   <view class="error" wx:if="{{error}}">{{error}}</view>
   <scroll-view scroll-y class="thread" scroll-into-view="{{scrollInto}}" scroll-with-animation>
-    <view class="empty cat-table-empty" wx:if="{{planning && !thread.length}}">正在把课题发给智学…</view>
-    <view class="empty cat-table-empty" wx:elif="{{!thread.length && !sending}}">输入课题名称并发送，智学才会开始。不要改写题目。</view>
+    <view class="empty cat-table-empty" wx:if="{{planning && !thread.length}}">正在向智学取引导…</view>
+    <view class="empty cat-table-empty" wx:elif="{{!thread.length && !sending}}">智学引导语马上出现。未选课时按它的问题作答，选了课会直接进入该课题流程。</view>
     <view
       id="m-{{item.id}}"
       class="bubble {{item.role === 'user' ? 'me' : 'bot'}}"
@@ -50,7 +50,7 @@
     <view class="draft-row">
       <textarea
         class="draft"
-        placeholder="{{recording ? '正在听，松手后转成文字' : '输入课题原题，或按住麦克风说话'}}"
+        placeholder="{{recording ? '正在听，松手后转成文字' : (course ? '回答智学的问题，或按住麦克风说话' : '回复智学引导，或输入课题原题')}}"
         value="{{draft}}"
         bindinput="onDraft"
         auto-height

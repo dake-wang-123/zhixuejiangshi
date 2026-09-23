@@ -9,12 +9,12 @@
         <text class="hero-title">学习进度</text>
       </view>
     </view>
-    <text class="hero-sub">已入库的课继续按智学问答推进。目录对不上的课题在下方输入原题，智学仍按它自己的程序上课。</text>
+    <text class="hero-sub">在课程目录点课即进入智学。未选课时智学先给引导语；已选课则按智能体内置问答推进，不另编环节。</text>
   </view>
 
   <view class="card topic-box">
-    <view class="title">自行输入课题</view>
-    <view class="muted">智学知识库对不上、或目录显示未入库时，把课题原题贴在这里。</view>
+    <view class="title">按引导输入课题</view>
+    <view class="muted">智学引导语问课题名称时，把知识库中的原题贴在这里开始。</view>
     <input
       class="field"
       placeholder="输入智学知识库中的课题名称"
@@ -37,7 +37,7 @@
     <view class="empty-icon">
       <ui-icon name="book-open" size="48" color="#8A8175"></ui-icon>
     </view>
-    还没有选课。可去课程页挑一门已入库的课，或在上方自行输入课题。
+    还没有学习记录。去课程目录点一门课，或按智学引导输入课题原题。
     <button class="btn" bindtap="onBrowse">去选课</button>
   </view>
   <block wx:for="{{sections}}" wx:key="id" wx:for-item="section">
@@ -53,13 +53,12 @@
       </view>
       <view class="grow">
         <view class="title">{{item.displayTitle}}</view>
-        <view class="muted" wx:if="{{item.matched && item.stepCount}}">第 {{item.currentIndex + 1}} / {{item.stepCount}} 环节 · {{item.stepTitle}}</view>
-        <view class="muted" wx:elif="{{item.matched}}">{{item.stepTitle}}</view>
-        <view class="muted" wx:else>未匹配智学 60 课目录，请在上方输入原题</view>
-        <view class="progress-line" wx:if="{{item.matched}}">
+        <view class="muted" wx:if="{{item.stepCount}}">第 {{item.currentIndex + 1}} / {{item.stepCount}} 环节 · {{item.stepTitle}}</view>
+        <view class="muted" wx:else>{{item.stepTitle || '按智学问答继续'}}</view>
+        <view class="progress-line">
           <view class="fill" style="width: {{item.percent}}%;"></view>
         </view>
-        <view class="muted" style="margin-top: 8rpx;" wx:if="{{item.matched}}">已完成 {{item.completedCount || 0}} 环节</view>
+        <view class="muted" style="margin-top: 8rpx;">已完成 {{item.completedCount || 0}} 环节</view>
         <view class="row">
           <button
             class="btn mini"
@@ -68,7 +67,7 @@
             data-matched="{{item.matchedFlag}}"
             data-title="{{item.displayTitle}}"
             bindtap="onOpen"
-          >{{item.matched ? '继续智学' : '去输入课题'}}</button>
+          >继续智学</button>
         </view>
       </view>
     </view>

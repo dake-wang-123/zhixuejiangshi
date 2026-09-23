@@ -85,14 +85,11 @@ Page({
           loading: false
         })
         wx.setNavigationBarTitle({ title: '智学 · ' + String(displayTitle || '课程').slice(0, 10) })
-        if (!canonical) {
-          this.setData({
-            planning: false,
-            hint: '该标题不在智学 60 课目录中'
-          })
-          return null
-        }
-        this.setData({ planning: true, hint: '正在把课题发给智学…' })
+        this.setData({
+          matched: true,
+          planning: true,
+          hint: '正在把课题发给智学…'
+        })
         return this.ensureEnrolled().then(() => classroom.startCourseFlow(this, this.data.course))
       })
     }).then(() => {

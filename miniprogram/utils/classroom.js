@@ -9,7 +9,8 @@ const {
   mergeSteps,
   startPrompt,
   firstLiveIndex,
-  detectAdvance
+  detectAdvance,
+  OPEN_GUIDE_PROMPT
 } = require('./flow.js')
 const voice = require('./voice.js')
 
@@ -179,12 +180,14 @@ function startOpenFlow(page, topicTitle) {
     steps: [],
     completedCount: live,
     currentIndex: live,
-    messages: (existing && existing.messages) || [],
+    messages: [],
     followUps: [],
+    conversationId: '',
+    chatId: '',
     topicTitle: ''
   }, live)
-  page.setData({ planning: false })
-  return Promise.resolve(readSession(page.sessionKey()))
+  page.setData({ planning: true, hint: '正在向智学取引导语…' })
+  return askZhixue(page, OPEN_GUIDE_PROMPT, { stageIndex: live })
 }
 
 function onStepBar(page, index) {

@@ -8,15 +8,7 @@
     {{hint || '正在进入智学伴练…'}}
   </view>
 
-  <block wx:if="{{!loading && course && !matched}}">
-    <view class="study-head">
-      <view class="title">{{displayTitle}}</view>
-      <view class="muted">这个标题对不上智学刚调取的课程目录，不能改写后开课。请到学习页自行输入课题原题。</view>
-      <button class="btn" bindtap="onGoInput">去学习页输入课题</button>
-    </view>
-  </block>
-
-  <block wx:if="{{!loading && course && matched}}">
+  <block wx:if="{{!loading && course}}">
     <view class="study-head">
       <view class="muted" wx:if="{{course.category_id}}">{{course.category_id.name}} · 智学伴练</view>
       <view class="muted" wx:else>智学伴练</view>

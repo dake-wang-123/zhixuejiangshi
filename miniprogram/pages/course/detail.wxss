@@ -1,1 +1,3 @@
-@import "../../styles/study.wxss";
+.study-page.plain {
+  padding-bottom: 280rpx;
+}

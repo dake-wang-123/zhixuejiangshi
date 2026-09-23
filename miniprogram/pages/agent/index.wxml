@@ -38,8 +38,8 @@
     <view class="thinking-row" wx:if="{{thinking}}">
       <view class="dots">
         <view class="dot"></view>
-        <view class="dot"></view>
-        <view class="dot"></view>
+        <view class="dot dot-delay-2"></view>
+        <view class="dot dot-delay-3"></view>
       </view>
       <view class="think-copy">
         <text>{{thinkHint || '智学正在想这一步…'}}</text>
@@ -50,6 +50,7 @@
       <view class="muted">智学建议</view>
       <view
         class="follow"
+        hover-class="follow-on"
         wx:for="{{followUps}}"
         wx:key="*this"
         data-text="{{item}}"
@@ -77,7 +78,7 @@
         confirm-type="send"
         bindconfirm="onSend"
       ></textarea>
-      <button class="send" hover-class="none" bindtap="onSend" disabled="{{sending}}">
+      <button class="send {{sending ? 'off' : ''}}" hover-class="none" bindtap="onSend" disabled="{{sending}}">
         <ui-icon name="send" size="32" color="#FFFFFF"></ui-icon>
       </button>
     </view>

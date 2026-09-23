@@ -8,7 +8,7 @@
 
 ### 1. 全局 Token（页面 / 主题）
 
-Zion：应用设置 → 主题 / 全局样式。小程序：`app.json` `window` + `app.wxss`。
+Zion：应用设置 → 主题 / 全局样式。小程序：`app.json` `window` + `app.wxss`（智学样式也写在 `app.wxss`，不要用页面 `@import`，开发者工具会报编译 .wxss 错误）。
 
 | 属性 | 值 | 说明 |
 | --- | --- | --- |

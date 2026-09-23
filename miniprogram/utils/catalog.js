@@ -2,6 +2,7 @@ const { formatAnalysis, matchCategory } = require('./analysis.js')
 const { buildStudySteps, progressToRatio } = require('./study.js')
 const { readSession } = require('./session.js')
 const { matchCanonical, listCanonical, listCategories } = require('./coze-catalog.js')
+const { buildOfficialCatalog } = require('./official-catalog.js')
 
 function resolveCategory(course, view, categories) {
   if (course && course.category_id && course.category_id.id) {
@@ -160,5 +161,6 @@ module.exports = {
   groupByCategory: groupByCategory,
   resolveCategory: resolveCategory,
   buildCanonicalCatalog: buildCozeCatalog,
-  buildCozeCatalog: buildCozeCatalog
+  buildCozeCatalog: buildCozeCatalog,
+  buildOfficialCatalog: buildOfficialCatalog
 }

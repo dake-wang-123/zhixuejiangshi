@@ -1,30 +1,17 @@
 const app = getApp()
-const config = require('../../config.js')
-const { graphqlRequest, eqText } = require('../../utils/graphql.js')
-const { getImageUrl } = require('../../utils/upload.js')
-const { buildCozeCatalog } = require('../../utils/catalog.js')
-const {
-  listCategories,
-  loadCachedCatalog,
-  fetchCozeCatalog
-} = require('../../utils/coze-catalog.js')
-const { PENDING_TOPIC_KEY } = require('../../utils/flow.js')
+const { graphqlRequest } = require('../../utils/graphql.js')
+const { buildOfficialCatalog, listOfficialCategories } = require('../../utils/official-catalog.js')
+const { PENDING_TOPIC_KEY, PENDING_LESSON_KEY } = require('../../utils/flow.js')
 
-const COURSE_LIST = `
-  query CourseList($where: course_bool_exp, $limit: Int) {
-    course(where: $where, limit: $limit, order_by: { is_recommended: desc, created_at: desc }) {
+const CATALOG_LIST = `
+  query CourseCatalog($limit: Int) {
+    course_catalog(limit: $limit, order_by: { category_sort: asc, seq: asc }) {
       id
+      category
+      category_sort
+      lesson_code
+      seq
       title
-      description
-      price
-      member_free
-      source_type
-      status
-      is_recommended
-      cover_id
-      ai_analysis
-      topic { id name }
-      category_id { id name }
     }
   }
 `
@@ -34,12 +21,10 @@ Page({
     loading: true,
     refreshing: false,
     error: '',
-    courses: [],
+    rows: [],
     sections: [],
     categories: [],
     activeCategory: '',
-    totalCount: 0,
-    matchedCount: 0,
     catalogCount: 0,
     categoryCount: 0
   },
@@ -52,13 +37,11 @@ Page({
   onPullDownRefresh() {
     this.load(true).then(() => wx.stopPullDownRefresh())
   },
-  paintCatalog(courses, activeCategory) {
-    const packed = buildCozeCatalog(courses, activeCategory)
-    const cats = [{ id: '', name: '全部' }].concat(listCategories().map((name) => ({ id: name, name: name })))
+  paintCatalog(rows, activeCategory) {
+    const packed = buildOfficialCatalog(rows, activeCategory)
+    const cats = [{ id: '', name: '全部' }].concat(listOfficialCategories(rows))
     this.setData({
-      courses: courses,
-      totalCount: packed.catalogCount,
-      matchedCount: packed.matchedCount,
+      rows: packed.rows,
       catalogCount: packed.catalogCount,
       categoryCount: packed.categoryCount,
       categories: cats,
@@ -67,40 +50,29 @@ Page({
     return packed
   },
   load(forceRefresh) {
-    const cached = loadCachedCatalog()
-    const hasCache = cached.categories.length || cached.courses.length
+    const hasRows = !!(this.data.rows && this.data.rows.length)
+    const preview = this.paintCatalog(this.data.rows, this.data.activeCategory)
     this.setData({
-      loading: !hasCache,
-      refreshing: !!hasCache,
+      loading: !preview.catalogCount,
+      refreshing: !!hasRows || !!forceRefresh,
       error: ''
     })
-    if (hasCache) this.paintCatalog(this.data.courses, this.data.activeCategory)
     return app.ensureLogin().then(() => {
-      const token = app.getToken()
-      const account = app.globalData.account || {}
-      const where = eqText('status', config.statusOnShelf)
-      return graphqlRequest(COURSE_LIST, { where: where, limit: 200 }, token).then((data) => {
-        const courses = data.course || []
-        const tasks = courses.map((item) => {
-          return getImageUrl(item.cover_id, token).then((url) => {
-            item.coverUrl = url
-            return item
-          }).catch(() => item)
-        })
-        return Promise.all(tasks).then(() => {
-          this.paintCatalog(courses, this.data.activeCategory)
-          return fetchCozeCatalog(token, 'catalog-' + (account.id || 'guest'), { fresh: !!forceRefresh })
-        }).then(() => {
-          this.paintCatalog(this.data.courses, this.data.activeCategory)
-          this.setData({ loading: false, refreshing: false, error: '' })
-        })
-      })
-    }).catch((err) => {
-      const packed = this.paintCatalog(this.data.courses, this.data.activeCategory)
+      return graphqlRequest(CATALOG_LIST, { limit: 100 }, app.getToken())
+    }).then((data) => {
+      const rows = data.course_catalog || []
+      const packed = this.paintCatalog(rows, this.data.activeCategory)
       this.setData({
         loading: false,
         refreshing: false,
-        error: packed.categoryCount || packed.catalogCount ? '' : this.friendlyError(err)
+        error: packed.catalogCount ? '' : '课程目录还是空的，请下拉刷新。'
+      })
+    }).catch((err) => {
+      const packed = this.paintCatalog(this.data.rows, this.data.activeCategory)
+      this.setData({
+        loading: false,
+        refreshing: false,
+        error: packed.catalogCount ? '' : this.friendlyError(err)
       })
     })
   },
@@ -113,25 +85,26 @@ Page({
       return '微信登录 code 无效，请用微信开发者工具打开本小程序后再下拉刷新。'
     }
     if (msg.indexOf('未登录') >= 0 || msg.indexOf('无访问权限') >= 0) {
-      return '当前身份无法读取课程，请完成微信静默登录后再下拉刷新。'
+      return '当前身份无法读取课程目录，请完成登录后再下拉刷新。'
     }
     return msg
   },
   onCategory(e) {
     const id = e.currentTarget.dataset.id || ''
     this.setData({ activeCategory: id })
-    this.paintCatalog(this.data.courses, id)
+    this.paintCatalog(this.data.rows, id)
   },
   onOpen(e) {
-    const dbId = e.currentTarget.dataset.id
-    const title = e.currentTarget.dataset.title
-    if (dbId) {
-      wx.navigateTo({ url: '/pages/course/detail?id=' + dbId })
+    const title = e.currentTarget.dataset.title || ''
+    const code = e.currentTarget.dataset.code || ''
+    if (!title) {
+      wx.showToast({ title: '缺少课程标题', icon: 'none' })
       return
     }
-    if (typeof wx.setStorageSync === 'function') {
-      wx.setStorageSync(PENDING_TOPIC_KEY, title || '')
-    }
+    try {
+      wx.setStorageSync(PENDING_TOPIC_KEY, title)
+      wx.setStorageSync(PENDING_LESSON_KEY, { lessonCode: code, title: title })
+    } catch (err) {}
     wx.switchTab({ url: '/pages/agent/index' })
   }
 })

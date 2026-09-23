@@ -4,6 +4,7 @@ const { matchCanonical } = require('./coze-catalog.js')
 const FLOW_VERSION = 9
 const OPEN_SESSION_ID = 'open'
 const PENDING_TOPIC_KEY = 'zhixue_pending_topic'
+const PENDING_LESSON_KEY = 'zhixue_pending_lesson'
 const TOPIC_DRAFT_KEY = 'zhixue_topic_draft'
 const OPEN_GUIDE_PROMPT = '你好'
 
@@ -121,6 +122,7 @@ module.exports = {
   FLOW_VERSION: FLOW_VERSION,
   OPEN_SESSION_ID: OPEN_SESSION_ID,
   PENDING_TOPIC_KEY: PENDING_TOPIC_KEY,
+  PENDING_LESSON_KEY: PENDING_LESSON_KEY,
   TOPIC_DRAFT_KEY: TOPIC_DRAFT_KEY,
   OPEN_GUIDE_PROMPT: OPEN_GUIDE_PROMPT,
   parseListedSteps: parseListedSteps,

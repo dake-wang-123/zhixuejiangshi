@@ -2,7 +2,8 @@
   <view class="study-head">
     <view class="muted">智学伴练</view>
     <view class="title">{{displayTitle}}</view>
-    <view class="muted" wx:if="{{course}}">已把课题原题发给智学。下面是智能体自己的问答，小程序原样呈现。</view>
+    <view class="muted" wx:if="{{lessonCode}}">课号 {{lessonCode}}</view>
+    <view class="muted" wx:if="{{course}}">已把课程标题发给智学。下面是智能体自己的问答，小程序原样呈现。</view>
     <view class="muted" wx:else>未选课时智学先给引导语。可从课程目录点课，或在下方输入课题原题。</view>
     <view class="topic-box" wx:if="{{!course}}">
       <input

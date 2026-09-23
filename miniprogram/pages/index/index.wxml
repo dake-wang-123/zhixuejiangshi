@@ -9,17 +9,17 @@
         <text class="hero-title">家庭教育讲师自学</text>
       </view>
     </view>
-    <text class="hero-sub">目录按智学知识库最新调取归档，标题不改写。点一门课即把原题发给智学，按它自己的问答上课。</text>
-    <text class="hero-meta" wx:if="{{!loading}}">智学分类 {{categoryCount}} 个 · 课题 {{catalogCount}} 门{{refreshing ? ' · 正在向智学核对' : ''}}</text>
+    <text class="hero-sub">目录来自 Zion「课程目录」60 课。点一门课，把课号和课程标题带进智学，按智能体自己的问答上课。</text>
+    <text class="hero-meta" wx:if="{{!loading}}">{{categoryCount}} 个类别 · {{catalogCount}} 门课{{refreshing ? ' · 正在同步目录' : ''}}</text>
   </view>
   <view class="error" wx:if="{{error}}">{{error}}</view>
   <view class="empty" wx:if="{{loading}}">
     <view class="empty-icon">
       <ui-icon name="book-open" size="48" color="#8A8175"></ui-icon>
     </view>
-    正在向智学调取课程分类…
+    正在读取课程目录…
   </view>
-  <scroll-view scroll-x class="cats" wx:if="{{categories.length}}">
+  <scroll-view scroll-x class="cats" wx:if="{{categories.length > 1}}">
     <view
       class="cat {{activeCategory === item.id ? 'on' : ''}}"
       wx:for="{{categories}}"
@@ -28,11 +28,11 @@
       bindtap="onCategory"
     >{{item.name}}</view>
   </scroll-view>
-  <view class="empty" wx:if="{{!loading && !categories.length}}">
+  <view class="empty" wx:if="{{!loading && !sections.length}}">
     <view class="empty-icon">
       <ui-icon name="empty" size="48" color="#8A8175"></ui-icon>
     </view>
-    智学知识库还没有列出课程。管理员可在「我的 → 课程归档上传」上传分类文件，学员点课即进入智学。
+    课程目录暂时没有数据。请下拉刷新，或确认已登录。
   </view>
   <view class="cat-table" wx:for="{{sections}}" wx:key="id" wx:for-item="section">
     <view class="cat-table-head">
@@ -45,19 +45,15 @@
       class="cat-row"
       wx:for="{{section.courses}}"
       wx:for-item="item"
-      wx:key="displayTitle"
-      data-id="{{item.dbId}}"
-      data-title="{{item.displayTitle}}"
+      wx:key="lesson_code"
+      data-code="{{item.lesson_code}}"
+      data-title="{{item.title}}"
       bindtap="onOpen"
     >
-      <text class="cat-idx">{{index + 1}}</text>
+      <text class="cat-idx">{{item.seq}}</text>
       <view class="grow">
-        <view class="title">{{item.displayTitle}}</view>
-        <view class="desc">{{item.description}}</view>
-        <view class="row chips">
-          <text class="chip">点此智学</text>
-          <text class="chip" wx:if="{{item.is_recommended}}">推荐</text>
-        </view>
+        <view class="title">{{item.title}}</view>
+        <view class="muted">{{item.lesson_code}}</view>
       </view>
     </view>
   </view>

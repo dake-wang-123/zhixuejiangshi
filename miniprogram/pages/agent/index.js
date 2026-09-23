@@ -1,13 +1,14 @@
 const app = getApp()
 const classroom = require('../../utils/classroom.js')
 const { ensureFlowSession, OPEN_SESSION_ID, blankSession, writeSession } = require('../../utils/session.js')
-const { startPrompt, PENDING_TOPIC_KEY } = require('../../utils/flow.js')
+const { startPrompt, PENDING_TOPIC_KEY, PENDING_LESSON_KEY } = require('../../utils/flow.js')
 const voice = require('../../utils/voice.js')
 
 Page({
   data: {
     course: null,
     displayTitle: '智学伴练',
+    lessonCode: '',
     loading: false,
     planning: false,
     sending: false,
@@ -39,8 +40,15 @@ Page({
       this.getTabBar().setData({ selected: 2 })
     }
     let pending = ''
+    let lessonCode = ''
     try {
-      pending = wx.getStorageSync(PENDING_TOPIC_KEY) || ''
+      const packed = wx.getStorageSync(PENDING_LESSON_KEY) || null
+      if (packed) {
+        pending = packed.title || packed.lessonTitle || ''
+        lessonCode = packed.lessonCode || packed.code || ''
+        wx.removeStorageSync(PENDING_LESSON_KEY)
+      }
+      if (!pending) pending = wx.getStorageSync(PENDING_TOPIC_KEY) || ''
       if (pending) wx.removeStorageSync(PENDING_TOPIC_KEY)
     } catch (e) {}
     ensureFlowSession(OPEN_SESSION_ID, pending)
@@ -48,14 +56,16 @@ Page({
       if (pending) {
         this.setData({
           displayTitle: pending,
-          course: { title: pending, displayTitle: pending },
+          lessonCode: lessonCode,
+          course: { title: pending, displayTitle: pending, lessonCode: lessonCode },
           planning: true,
-          hint: '正在把课题发给智学…'
+          hint: lessonCode ? ('正在把 ' + lessonCode + ' 课题发给智学…') : '正在把课题发给智学…'
         })
         return classroom.startOpenFlow(this, pending)
       }
       this.setData({
         displayTitle: '智学伴练',
+        lessonCode: '',
         course: null
       })
       return classroom.startOpenFlow(this)
@@ -82,6 +92,7 @@ Page({
     }
     this.setData({
       displayTitle: title,
+      lessonCode: '',
       course: { title: title, displayTitle: title },
       planning: true,
       topicDraft: ''
@@ -106,6 +117,7 @@ Page({
       steps: [],
       planning: false,
       displayTitle: '智学伴练',
+      lessonCode: '',
       course: null,
       hint: ''
     })

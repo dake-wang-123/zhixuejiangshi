@@ -135,4 +135,29 @@ assert.ok(isAdmin({ phoneNumber: '17742415497' }))
 assert.ok(isAdmin({ id: '1000000000000006' }))
 assert.ok(!unlockAdmin('13800000000'))
 
+const { buildOfficialCatalog, listOfficialCategories } = require('../miniprogram/utils/official-catalog.js')
+const sixty = require('../miniprogram/data/course-catalog-60.js')
+assert.strictEqual(sixty.length, 60)
+assert.strictEqual(new Set(sixty.map((item) => item.lesson_code)).size, 60)
+const official = buildOfficialCatalog(sixty, '')
+assert.strictEqual(official.catalogCount, 60)
+assert.strictEqual(official.categoryCount, 7)
+assert.deepStrictEqual(official.sections.map((item) => item.name), [
+  '0-3岁（6课）',
+  '3-6岁（12课）',
+  '6-9岁（12课）',
+  '9-12岁（6课）',
+  '12-15岁（6课）',
+  '15-18岁（6课）',
+  '国学父母修养课（12课）'
+])
+assert.deepStrictEqual(official.sections.map((item) => item.courses.length), [6, 12, 12, 6, 6, 6, 12])
+assert.strictEqual(official.sections[0].courses[0].lesson_code, 'A01')
+assert.strictEqual(official.sections[6].courses[11].lesson_code, 'G12')
+assert.strictEqual(listOfficialCategories(sixty).length, 7)
+const filtered = buildOfficialCatalog(sixty, '9-12岁（6课）')
+assert.strictEqual(filtered.sections.length, 1)
+assert.strictEqual(filtered.sections[0].courses.length, 6)
+assert.strictEqual(filtered.sections[0].courses[1].lesson_code, 'D02')
+
 console.log('coze catalog and flow tests passed')

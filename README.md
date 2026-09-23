@@ -1,6 +1,6 @@
 # 家庭教育讲师自学小程序
 
-原生微信小程序，对接 Zion 项目 `PO76RBe9KX0`（家庭教育讲师智学伴练）的 GraphQL BaaS：选课学习、上传教案、三个解析智能体、Coze「智学」对话、课件 PPT 生成。
+原生微信小程序，对接 Zion 项目 `PO76RBe9KX0`（家庭教育讲师智学伴练）的 GraphQL BaaS：选课学习、上传教案、三个解析智能体、Coze「智学」对话、课件 PPT 生成。界面按 DeepSeek / ChatGPT 的克制规范排：灰白底、分组目录、宽屏 AI 文本、底部大输入框。色值与画布步骤见 `docs/zion-ui-rebuild.md`。
 
 这不是 Web 应用，不能用 Vercel 发布。用微信开发者工具导入 `miniprogram/`。体验版上传需要 Zion 已授权微信第三方平台。
 

@@ -222,6 +222,18 @@ assert.strictEqual(restored.topicTitle, '听懂婴语')
 const { findLessonCode } = require('../miniprogram/utils/official-catalog.js')
 assert.strictEqual(findLessonCode(sixty[0].title), 'A01')
 
+const markdown = require('../miniprogram/utils/markdown.js')
+const md = markdown.toNodes('## 第一步\n请先自我介绍。\n\n- 姓名\n- 教龄\n\n**注意**这句')
+assert.ok(md.length >= 3)
+assert.strictEqual(md[0].attrs.style.indexOf('18px') >= 0, true)
+const decorated = markdown.decorateThread([
+  { id: 1, role: 'user', content: '你好' },
+  { id: 2, role: 'assistant', content: '## 引导\n请回答。' },
+  { id: 3, role: 'assistant', hidden: true, content: '隐藏' }
+])
+assert.strictEqual(decorated.length, 2)
+assert.ok(decorated[1].nodes && decorated[1].nodes.length)
+
 const typewriter = require('../miniprogram/utils/typewriter.js')
 assert.strictEqual(typewriter.stepSize(20), 2)
 assert.ok(typewriter.stepSize(400) >= 6)

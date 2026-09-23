@@ -1,3 +1,5 @@
+const { decorateThread } = require('./markdown.js')
+
 function stepSize(len) {
   const n = Number(len) || 0
   if (n <= 0) return 1
@@ -58,7 +60,7 @@ function play(page, pending, fullText, options) {
         content: text.slice(0, shown)
       }])
       page.setData({
-        thread: live,
+        thread: decorateThread(live),
         thinking: false,
         followUps: done ? (opts.followUps || []) : [],
         scrollInto: 'm-' + id

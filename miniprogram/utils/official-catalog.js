@@ -47,6 +47,8 @@ function listOfficialCategories(rows) {
   return cats
 }
 
+const ACCENTS = ['#4B6EF5', '#3D8B7A', '#8B6BC7', '#C27A4A', '#4A9B6E', '#5B8DEF', '#B4536A']
+
 function buildOfficialCatalog(rows, activeCategory) {
   const list = listOfficialRows(rows)
   const filter = activeCategory || ''
@@ -60,6 +62,7 @@ function buildOfficialCatalog(rows, activeCategory) {
         id: key,
         name: key,
         sort: item.category_sort,
+        accent: ACCENTS[sections.length % ACCENTS.length],
         courses: []
       }
       sections.push(map[key])

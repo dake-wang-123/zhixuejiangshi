@@ -113,6 +113,9 @@ Page({
   onSend() {
     classroom.onSend(this)
   },
+  onPlus() {
+    classroom.onPlus(this)
+  },
   onFollow(e) {
     classroom.onFollow(this, e.currentTarget.dataset.text)
   },

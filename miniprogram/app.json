@@ -10,16 +10,16 @@
   ],
   "window": {
     "navigationBarTitleText": "家庭教育讲师自学",
-    "navigationBarBackgroundColor": "#5C7A5A",
-    "navigationBarTextStyle": "white",
-    "backgroundColor": "#F6F1E8",
+    "navigationBarBackgroundColor": "#FFFFFF",
+    "navigationBarTextStyle": "black",
+    "backgroundColor": "#F9F9F9",
     "backgroundTextStyle": "dark"
   },
   "tabBar": {
     "custom": true,
-    "color": "#8A8175",
-    "selectedColor": "#5C7A5A",
-    "backgroundColor": "#FFFBF5",
+    "color": "#999999",
+    "selectedColor": "#4B6EF5",
+    "backgroundColor": "#FFFFFF",
     "list": [
       {
         "pagePath": "pages/index/index",

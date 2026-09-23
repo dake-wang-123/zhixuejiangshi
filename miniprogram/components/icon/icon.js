@@ -19,12 +19,13 @@ const ICONS = {
   refresh: 'M21 4v6h-6M3 20v-6h6M18.4 8.4A8 8 0 0 0 6.2 7.1L3 10M21 14l-3.2 2.9A8 8 0 0 1 5.6 15.6',
   alert: 'M10.3 4.1 2.1 18.2A1.8 1.8 0 0 0 3.7 21h16.6a1.8 1.8 0 0 0 1.6-2.8L13.7 4.1a1.8 1.8 0 0 0-3.4 0zM12 9v4M12 17h.01',
   search: 'M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16zM21 21l-4.3-4.3',
-  chevron: 'M9 6l6 6-6 6'
+  chevron: 'M9 6l6 6-6 6',
+  plus: 'M12 5v14M5 12h14'
 }
 
 function toSrc(name, color) {
   const d = ICONS[name] || ICONS.leaf
-  const stroke = color || '#5C7A5A'
+  const stroke = color || '#4B6EF5'
   const svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="' +
     stroke + '" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="' + d + '"/></svg>'
   return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg)
@@ -34,7 +35,7 @@ Component({
   properties: {
     name: { type: String, value: 'leaf' },
     size: { type: Number, value: 40 },
-    color: { type: String, value: '#5C7A5A' }
+    color: { type: String, value: '#4B6EF5' }
   },
   data: {
     src: ''

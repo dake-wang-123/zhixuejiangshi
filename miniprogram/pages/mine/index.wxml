@@ -2,7 +2,7 @@
   <view class="hero">
     <view class="hero-row">
       <view class="hero-mark">
-        <ui-icon name="user" size="40" color="#5C7A5A"></ui-icon>
+        <ui-icon name="user" size="40" color="#4B6EF5"></ui-icon>
       </view>
       <view class="grow">
         <text class="eyebrow">LECTURER</text>
@@ -24,7 +24,7 @@
   </view>
   <view class="card">
     <view class="section-head" style="margin-top: 0;">
-      <ui-icon name="file" size="32" color="#5C7A5A"></ui-icon>
+      <ui-icon name="file" size="32" color="#4B6EF5"></ui-icon>
       <text class="name">讲师资料</text>
     </view>
     <view class="label">从业年限</view>
@@ -33,7 +33,7 @@
   </view>
   <view class="card">
     <view class="section-head" style="margin-top: 0;">
-      <ui-icon name="tag" size="32" color="#5C7A5A"></ui-icon>
+      <ui-icon name="tag" size="32" color="#4B6EF5"></ui-icon>
       <text class="name">会员</text>
     </view>
     <view class="desc" wx:if="{{membership}}">
@@ -43,7 +43,7 @@
   </view>
   <view class="card">
     <view class="section-head" style="margin-top: 0;">
-      <ui-icon name="slides" size="32" color="#5C7A5A"></ui-icon>
+      <ui-icon name="slides" size="32" color="#4B6EF5"></ui-icon>
       <text class="name">我的课件</text>
     </view>
     <view class="muted" wx:if="{{!ppts.length}}">还没有生成过 PPT。可从教案或课程详情进入。</view>
@@ -55,7 +55,7 @@
   </view>
   <view class="card" wx:if="{{isAdmin}}">
     <view class="section-head" style="margin-top: 0;">
-      <ui-icon name="folder" size="32" color="#5C7A5A"></ui-icon>
+      <ui-icon name="folder" size="32" color="#4B6EF5"></ui-icon>
       <text class="name">管理员</text>
     </view>
     <view class="muted">上传分类目录或课题文件后，标题会先抽出再和智学内置课题对齐，对上的按原题进目录。</view>
@@ -63,7 +63,7 @@
   </view>
   <view class="card" wx:else>
     <view class="section-head" style="margin-top: 0;">
-      <ui-icon name="folder" size="32" color="#5C7A5A"></ui-icon>
+      <ui-icon name="folder" size="32" color="#4B6EF5"></ui-icon>
       <text class="name">管理员入口</text>
     </view>
     <view class="muted">只有管理员能上传 60 课原件并归档目录。请输入已登记的管理员手机号开通。</view>
@@ -72,7 +72,7 @@
   </view>
   <view class="card">
     <view class="section-head" style="margin-top: 0;">
-      <ui-icon name="chat" size="32" color="#5C7A5A"></ui-icon>
+      <ui-icon name="chat" size="32" color="#4B6EF5"></ui-icon>
       <text class="name">意见反馈</text>
     </view>
     <textarea class="area" placeholder="功能问题、课题建议、解析不准，都可以写在这里。" value="{{feedback}}" bindinput="onFeedback" maxlength="1000" auto-height></textarea>

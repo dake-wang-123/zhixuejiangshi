@@ -1,0 +1,277 @@
+.study-page {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  padding: 0;
+  background: #F9F9F9;
+  box-sizing: border-box;
+}
+
+.study-page.tabbed {
+  padding-bottom: calc(228rpx + 98rpx + env(safe-area-inset-bottom));
+}
+
+.study-page.plain {
+  padding-bottom: calc(228rpx + env(safe-area-inset-bottom));
+}
+
+.study-top {
+  padding: 20rpx 40rpx 16rpx;
+  background: #FFFFFF;
+  border-bottom: 1rpx solid #EEEEEE;
+}
+
+.study-top .kicker {
+  font-size: 24rpx;
+  color: #999999;
+  line-height: 1.6;
+}
+
+.study-top .title {
+  margin-top: 4rpx;
+  font-size: 40rpx;
+  font-weight: 700;
+  color: #333333;
+  line-height: 1.6;
+}
+
+.study-top .sub {
+  display: block;
+  margin-top: 8rpx;
+  font-size: 24rpx;
+  color: #999999;
+  line-height: 1.7;
+}
+
+.study-top .actions {
+  margin-top: 12rpx;
+  display: flex;
+  align-items: center;
+}
+
+.study-top .text-btn {
+  margin: 0 24rpx 0 0;
+  padding: 0;
+  background: transparent;
+  color: #4B6EF5;
+  font-size: 24rpx;
+  line-height: 1.6;
+}
+
+.study-top .text-btn::after {
+  border: none;
+}
+
+.topic-box {
+  margin-top: 16rpx;
+}
+
+.topic-box .field {
+  margin-bottom: 12rpx;
+}
+
+.thread {
+  flex: 1;
+  height: 1px;
+  padding: 24rpx 40rpx 8rpx;
+  box-sizing: border-box;
+}
+
+.thread-empty {
+  padding: 80rpx 12rpx;
+  text-align: center;
+  color: #999999;
+  font-size: 24rpx;
+  line-height: 1.7;
+}
+
+.msg {
+  margin-bottom: 32rpx;
+}
+
+.msg-ai {
+  width: 100%;
+}
+
+.msg-ai-meta {
+  font-size: 24rpx;
+  color: #999999;
+  margin-bottom: 10rpx;
+  line-height: 1.6;
+}
+
+.msg-ai-body {
+  font-size: 32rpx;
+  line-height: 1.7;
+  color: #333333;
+}
+
+.msg-user {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.msg-user-bubble {
+  max-width: 78%;
+  padding: 16rpx 24rpx;
+  border-radius: 20rpx 20rpx 6rpx 20rpx;
+  background: #4B6EF5;
+  color: #FFFFFF;
+  font-size: 32rpx;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.thinking-row {
+  display: flex;
+  align-items: flex-start;
+  padding: 8rpx 0 24rpx;
+}
+
+.think-copy {
+  display: flex;
+  flex-direction: column;
+  margin-left: 12rpx;
+}
+
+.think-copy .muted {
+  margin-top: 6rpx;
+}
+
+.dots {
+  display: flex;
+  align-items: center;
+  height: 40rpx;
+  padding-top: 6rpx;
+}
+
+.dot {
+  width: 10rpx;
+  height: 10rpx;
+  margin-right: 8rpx;
+  border-radius: 50%;
+  background: #4B6EF5;
+  animation: bounce 1s infinite ease-in-out;
+}
+
+.dot:nth-child(2) { animation-delay: 0.15s; }
+.dot:nth-child(3) { animation-delay: 0.3s; }
+
+.cursor {
+  color: #4B6EF5;
+  font-weight: 700;
+  animation: blink 0.9s step-end infinite;
+}
+
+@keyframes bounce {
+  0%, 80%, 100% { opacity: 0.25; transform: translateY(0); }
+  40% { opacity: 1; transform: translateY(-6rpx); }
+}
+
+@keyframes blink {
+  50% { opacity: 0; }
+}
+
+.follow-wrap {
+  margin: 0 0 24rpx;
+}
+
+.follow-wrap .muted {
+  margin-bottom: 8rpx;
+}
+
+.follow {
+  display: inline-block;
+  margin: 8rpx 12rpx 0 0;
+  padding: 12rpx 20rpx;
+  border-radius: 999rpx;
+  background: #FFFFFF;
+  color: #333333;
+  font-size: 24rpx;
+  line-height: 1.6;
+  border: 1rpx solid #E5E5E5;
+}
+
+.follow:active {
+  background: #F3F5FF;
+  border-color: #4B6EF5;
+  color: #4B6EF5;
+}
+
+.composer {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 80;
+  padding: 16rpx 40rpx calc(16rpx + env(safe-area-inset-bottom));
+  background: #FFFFFF;
+  border-top: 1rpx solid #E5E5E5;
+}
+
+.study-page.tabbed .composer {
+  bottom: calc(98rpx + env(safe-area-inset-bottom));
+  padding-bottom: 16rpx;
+}
+
+.composer-bar {
+  display: flex;
+  align-items: flex-end;
+}
+
+.plus,
+.send {
+  width: 72rpx;
+  height: 72rpx;
+  padding: 0;
+  margin: 0;
+  border-radius: 20rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  line-height: 72rpx;
+}
+
+.plus,
+.send {
+  background: #F3F4F6;
+}
+
+.plus::after,
+.send::after {
+  border: none;
+}
+
+.plus:active,
+.send:active {
+  opacity: 0.82;
+}
+
+.plus.on {
+  background: #D64545;
+}
+
+.send {
+  background: #4B6EF5;
+}
+
+.send[disabled] {
+  background: #C5CDE8;
+}
+
+.draft {
+  flex: 1;
+  min-height: 96rpx;
+  max-height: 240rpx;
+  margin: 0 12rpx;
+  padding: 24rpx 24rpx;
+  box-sizing: border-box;
+  background: #FFFFFF;
+  border: 1rpx solid #E5E5E5;
+  border-radius: 24rpx;
+  font-size: 32rpx;
+  line-height: 1.6;
+  color: #333333;
+}

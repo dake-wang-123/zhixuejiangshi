@@ -2,7 +2,7 @@
   <view class="hero">
     <view class="hero-row">
       <view class="hero-mark">
-        <ui-icon name="folder" size="40" color="#5C7A5A"></ui-icon>
+        <ui-icon name="folder" size="40" color="#4B6EF5"></ui-icon>
       </view>
       <view class="grow">
         <text class="eyebrow">ADMIN</text>

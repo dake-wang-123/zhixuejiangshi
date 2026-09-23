@@ -10,11 +10,11 @@
 .meta-strong {
   font-size: 26rpx;
   font-weight: 650;
-  color: #3F5A3E;
+  color: #333333;
 }
 .meta-muted {
   font-size: 22rpx;
-  color: #8A8175;
+  color: #999999;
 }
 .segments {
   display: flex;
@@ -48,7 +48,7 @@
   align-items: center;
   width: 88rpx;
   margin-right: 8rpx;
-  color: #8A8175;
+  color: #999999;
 }
 .dot {
   width: 44rpx;
@@ -74,7 +74,7 @@
   box-shadow: 0 6rpx 16rpx rgba(63, 143, 90, 0.28);
 }
 .node.is-current {
-  color: #2C2A26;
+  color: #333333;
 }
 .label {
   margin-top: 8rpx;
@@ -87,7 +87,7 @@
   display: flex;
   margin-top: 12rpx;
   font-size: 20rpx;
-  color: #8A8175;
+  color: #999999;
 }
 .lg {
   display: flex;

@@ -1,10 +1,13 @@
-<view class="page study-page">
-  <view class="study-head">
-    <view class="muted">智学伴练</view>
+<view class="page study-page tabbed">
+  <view class="study-top">
+    <view class="kicker">{{lessonCode ? ('课号 ' + lessonCode) : '智学伴练'}}</view>
     <view class="title">{{displayTitle}}</view>
-    <view class="muted" wx:if="{{lessonCode}}">课号 {{lessonCode}}</view>
-    <view class="muted" wx:if="{{course}}">已把课程标题发给智学。下面是智能体自己的问答，小程序原样呈现。</view>
-    <view class="muted" wx:else>未选课时智学先给引导语。可从课程目录点课，或在下方输入课题原题。</view>
+    <text class="sub" wx:if="{{course}}">已把课程标题发给智学。下面是智能体自己的问答。</text>
+    <text class="sub" wx:else>未选课时先给引导语。也可从课程目录点课，或输入课题原题。</text>
+    <view class="actions">
+      <button class="text-btn" bindtap="onClear">重新开始</button>
+      <button class="text-btn" bindtap="onRetry" wx:if="{{error}}">再问一次</button>
+    </view>
     <view class="topic-box" wx:if="{{!course}}">
       <input
         class="field"
@@ -17,17 +20,22 @@
       <button class="btn mini" size="mini" bindtap="onStartTopic">用这题开始</button>
     </view>
   </view>
-  <view class="error" wx:if="{{error}}">{{error}}</view>
+  <view class="error" wx:if="{{error}}" style="padding: 12rpx 40rpx 0;">{{error}}</view>
   <scroll-view scroll-y class="thread" scroll-into-view="{{scrollInto}}" scroll-with-animation>
-    <view class="empty cat-table-empty" wx:if="{{planning && !thread.length}}">{{hint || '正在恢复上次学习记录…'}}</view>
-    <view class="empty cat-table-empty" wx:elif="{{!thread.length && !sending}}">还没有本课的学习记录。未选课时智学会先给引导语；选了课会按该课题继续。</view>
-    <view
-      id="m-{{item.id}}"
-      class="bubble {{item.role === 'user' ? 'me' : 'bot'}}"
-      wx:for="{{thread}}"
-      wx:key="id"
-      >{{item.content}}<text class="cursor" wx:if="{{item.streaming}}">▍</text></view>
-    <view class="bubble bot thinking-bubble" wx:if="{{thinking}}">
+    <view class="thread-empty" wx:if="{{planning && !thread.length}}">{{hint || '正在恢复上次学习记录…'}}</view>
+    <view class="thread-empty" wx:elif="{{!thread.length && !sending}}">还没有本课的学习记录。未选课时智学会先给引导语；选了课会按该课题继续。</view>
+    <block wx:for="{{thread}}" wx:key="id">
+      <view id="m-{{item.id}}" class="msg msg-user" wx:if="{{item.role === 'user'}}">
+        <view class="msg-user-bubble">{{item.content}}</view>
+      </view>
+      <view id="m-{{item.id}}" class="msg msg-ai" wx:else>
+        <view class="msg-ai-meta">智学</view>
+        <rich-text class="msg-ai-body" nodes="{{item.nodes}}" wx:if="{{item.nodes.length}}"></rich-text>
+        <view class="msg-ai-body" wx:else>{{item.content}}</view>
+        <text class="cursor" wx:if="{{item.streaming}}">▍</text>
+      </view>
+    </block>
+    <view class="thinking-row" wx:if="{{thinking}}">
       <view class="dots">
         <view class="dot"></view>
         <view class="dot"></view>
@@ -48,12 +56,20 @@
         bindtap="onFollow"
       >{{item}}</view>
     </view>
+    <view id="thread-end"></view>
   </scroll-view>
   <view class="composer">
-    <view class="draft-row">
+    <view class="composer-bar">
+      <button
+        class="plus {{recording ? 'on' : ''}}"
+        hover-class="none"
+        catchtap="onPlus"
+      >
+        <ui-icon name="{{recording ? 'mic' : 'plus'}}" size="34" color="{{recording ? '#FFFFFF' : '#333333'}}"></ui-icon>
+      </button>
       <textarea
         class="draft"
-        placeholder="{{recording ? '正在听，再点麦克风结束并转成文字' : (course ? '回答智学的问题，或点右侧麦克风说话' : '回复智学引导，或输入课题原题')}}"
+        placeholder="{{recording ? '正在听，再点左侧结束并转成文字' : (course ? '回答智学的问题' : '回复智学，或输入课题原题')}}"
         value="{{draft}}"
         bindinput="onDraft"
         auto-height
@@ -61,18 +77,9 @@
         confirm-type="send"
         bindconfirm="onSend"
       ></textarea>
-      <button
-        class="mic {{recording ? 'on' : ''}}"
-        hover-class="mic-hover"
-        catchtap="onMicTap"
-      >
-        <ui-icon name="mic" size="36" color="{{recording ? '#FFFFFF' : '#5C7A5A'}}"></ui-icon>
+      <button class="send" hover-class="none" bindtap="onSend" disabled="{{sending}}">
+        <ui-icon name="send" size="32" color="#FFFFFF"></ui-icon>
       </button>
-    </view>
-    <view class="row composer-actions">
-      <button class="btn btn-ghost mini" size="mini" bindtap="onClear">重新开始</button>
-      <button class="btn btn-ghost mini" size="mini" bindtap="onRetry" wx:if="{{error}}" disabled="{{sending}}">再问一次</button>
-      <button class="btn mini" size="mini" bindtap="onSend" disabled="{{sending}}">发送</button>
     </view>
   </view>
 </view>

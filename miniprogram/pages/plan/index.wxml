@@ -2,7 +2,7 @@
   <view class="hero">
     <view class="hero-row">
       <view class="hero-mark">
-        <ui-icon name="file" size="40" color="#5C7A5A"></ui-icon>
+        <ui-icon name="file" size="40" color="#4B6EF5"></ui-icon>
       </view>
       <view class="grow">
         <text class="eyebrow">LESSON PLAN</text>
@@ -25,13 +25,13 @@
     <button class="btn btn-ghost" bindtap="onMakePpt" disabled="{{submitting}}">用当前全文生成课件</button>
   </view>
   <view class="section-head">
-    <ui-icon name="folder" size="32" color="#5C7A5A"></ui-icon>
+    <ui-icon name="folder" size="32" color="#4B6EF5"></ui-icon>
     <text class="name">我上传的教案</text>
   </view>
   <view class="empty" wx:if="{{loading}}">正在读取教案…</view>
   <view class="empty" wx:if="{{!loading && !plans.length}}">
     <view class="empty-icon">
-      <ui-icon name="file" size="48" color="#8A8175"></ui-icon>
+      <ui-icon name="file" size="48" color="#999999"></ui-icon>
     </view>
     还没有讲师教案
   </view>

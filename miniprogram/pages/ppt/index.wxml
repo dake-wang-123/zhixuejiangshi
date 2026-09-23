@@ -2,7 +2,7 @@
   <view class="hero">
     <view class="hero-row">
       <view class="hero-mark">
-        <ui-icon name="slides" size="40" color="#5C7A5A"></ui-icon>
+        <ui-icon name="slides" size="40" color="#4B6EF5"></ui-icon>
       </view>
       <view class="grow">
         <text class="eyebrow">SLIDES</text>
@@ -21,13 +21,13 @@
     <button class="btn" bindtap="onSubmit" disabled="{{submitting}}">{{submitting ? '生成中…' : '生成课件'}}</button>
   </view>
   <view class="section-head">
-    <ui-icon name="folder" size="32" color="#5C7A5A"></ui-icon>
+    <ui-icon name="folder" size="32" color="#4B6EF5"></ui-icon>
     <text class="name">我的课件</text>
   </view>
   <view class="empty" wx:if="{{loading}}">正在读取 PPT 记录…</view>
   <view class="empty" wx:if="{{!loading && !records.length}}">
     <view class="empty-icon">
-      <ui-icon name="slides" size="48" color="#8A8175"></ui-icon>
+      <ui-icon name="slides" size="48" color="#999999"></ui-icon>
     </view>
     还没有生成过课件
   </view>

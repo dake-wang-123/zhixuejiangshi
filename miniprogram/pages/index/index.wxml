@@ -1,21 +1,14 @@
 <view class="page">
   <view class="hero">
-    <view class="hero-row">
-      <view class="hero-mark">
-        <ui-icon name="leaf" size="40" color="#5C7A5A"></ui-icon>
-      </view>
-      <view class="grow">
-        <text class="eyebrow">FAMILY EDUCATION</text>
-        <text class="hero-title">家庭教育讲师自学</text>
-      </view>
-    </view>
-    <text class="hero-sub">目录来自 Zion「课程目录」60 课。点一门课，把课号和课程标题带进智学，按智能体自己的问答上课。</text>
-    <text class="hero-meta" wx:if="{{!loading}}">{{categoryCount}} 个类别 · {{catalogCount}} 门课{{refreshing ? ' · 正在同步目录' : ''}}</text>
+    <text class="eyebrow">课程目录</text>
+    <text class="hero-title">选一门课开始学</text>
+    <text class="hero-sub">60 门课按年龄段分组。点标题进入智学，按智能体自己的问答上课。</text>
+    <text class="hero-meta" wx:if="{{!loading}}">{{categoryCount}} 个类别 · {{catalogCount}} 门课{{refreshing ? ' · 正在同步' : ''}}</text>
   </view>
   <view class="error" wx:if="{{error}}">{{error}}</view>
   <view class="empty" wx:if="{{loading}}">
     <view class="empty-icon">
-      <ui-icon name="book-open" size="48" color="#8A8175"></ui-icon>
+      <ui-icon name="book-open" size="48" color="#999999"></ui-icon>
     </view>
     正在读取课程目录…
   </view>
@@ -30,19 +23,22 @@
   </scroll-view>
   <view class="empty" wx:if="{{!loading && !sections.length}}">
     <view class="empty-icon">
-      <ui-icon name="empty" size="48" color="#8A8175"></ui-icon>
+      <ui-icon name="empty" size="48" color="#999999"></ui-icon>
     </view>
     课程目录暂时没有数据。请下拉刷新，或确认已登录。
   </view>
-  <view class="cat-table" wx:for="{{sections}}" wx:key="id" wx:for-item="section">
-    <view class="cat-table-head">
-      <ui-icon name="folder" size="32" color="#5C7A5A"></ui-icon>
-      <text class="name">{{section.name}}</text>
+  <view class="group" wx:for="{{sections}}" wx:key="id" wx:for-item="section">
+    <view class="group-head" style="border-left-color: {{section.accent}};">
+      <view class="grow">
+        <text class="name">{{section.name}}</text>
+      </view>
       <text class="count">{{section.courses.length}} 门</text>
     </view>
-    <view class="cat-table-empty" wx:if="{{!section.courses.length}}">该分类暂无课程</view>
+    <view class="group-empty" wx:if="{{!section.courses.length}}">该分类暂无课程</view>
     <view
-      class="cat-row"
+      class="lesson"
+      hover-class="lesson-hover"
+      hover-stay-time="80"
       wx:for="{{section.courses}}"
       wx:for-item="item"
       wx:key="lesson_code"
@@ -50,11 +46,8 @@
       data-title="{{item.title}}"
       bindtap="onOpen"
     >
-      <text class="cat-idx">{{item.seq}}</text>
-      <view class="grow">
-        <view class="title">{{item.title}}</view>
-        <view class="muted">{{item.lesson_code}}</view>
-      </view>
+      <text class="lesson-code">{{item.lesson_code}}</text>
+      <view class="lesson-title">{{item.title}}</view>
     </view>
   </view>
 </view>

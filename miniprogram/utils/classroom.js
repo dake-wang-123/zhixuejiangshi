@@ -13,6 +13,7 @@ const {
 const history = require('./learn-history.js')
 const voice = require('./voice.js')
 const typewriter = require('./typewriter.js')
+const { decorateThread } = require('./markdown.js')
 
 const THINK_HINTS = [
   '智学正在翻这一课的教案…',
@@ -22,7 +23,7 @@ const THINK_HINTS = [
 
 function paint(page, session) {
   typewriter.stop(page)
-  const thread = ((session && session.messages) || []).filter((item) => !item.hidden)
+  const thread = decorateThread(((session && session.messages) || []).filter((item) => !item.hidden))
   const topic = (session && session.topicTitle) || ''
   page.setData({
     conversationId: (session && session.conversationId) || '',
@@ -107,7 +108,7 @@ function backupTurn(page, userText, result) {
 function scrollBottom(page) {
   const thread = page.data.thread || []
   const last = thread[thread.length - 1]
-  page.setData({ scrollInto: last ? 'm-' + last.id : '' })
+  page.setData({ scrollInto: last ? 'm-' + last.id : 'thread-end' })
 }
 
 function mergeLiveThread(base, result) {
@@ -292,6 +293,25 @@ function clearHistory(page) {
   return history.clearLesson(lessonCode, title, token).catch(() => 0)
 }
 
+function onPlus(page) {
+  const recording = !!(page.data && page.data.recording)
+  const items = recording ? ['结束并转成文字'] : ['语音输入']
+  if (typeof page.onClear === 'function') items.push('重新开始')
+  if (page.data && page.data.error) items.push('再问一次')
+  wx.showActionSheet({
+    itemList: items,
+    success: (res) => {
+      const name = items[res.tapIndex]
+      if (name.indexOf('语音') >= 0 || name.indexOf('结束') >= 0) {
+        if (typeof page.onMicTap === 'function') page.onMicTap()
+        return
+      }
+      if (name === '重新开始' && typeof page.onClear === 'function') page.onClear()
+      if (name === '再问一次' && typeof page.onRetry === 'function') page.onRetry()
+    }
+  })
+}
+
 function onSend(page) {
   const text = (page.data.draft || '').trim()
   if (!text || page.data.sending) return
@@ -358,6 +378,7 @@ module.exports = {
   startOpenFlow: startOpenFlow,
   clearHistory: clearHistory,
   onSend: onSend,
+  onPlus: onPlus,
   onFollow: onFollow,
   onRetry: onRetry,
   bindMic: bindMic,

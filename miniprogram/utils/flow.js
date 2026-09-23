@@ -1,7 +1,7 @@
 const { shortTitle } = require('./study.js')
 const { matchCanonical } = require('./coze-catalog.js')
 
-const FLOW_VERSION = 8
+const FLOW_VERSION = 9
 const OPEN_SESSION_ID = 'open'
 const PENDING_TOPIC_KEY = 'zhixue_pending_topic'
 const TOPIC_DRAFT_KEY = 'zhixue_topic_draft'

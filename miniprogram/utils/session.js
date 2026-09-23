@@ -4,7 +4,7 @@ const {
   firstLiveIndex
 } = require('./flow.js')
 
-const SESSION_KEY = 'zhixue_sessions_v8'
+const SESSION_KEY = 'zhixue_sessions_v9'
 const FOLLOW_MARK = '__FOLLOW_UPS__'
 
 function loadAll() {

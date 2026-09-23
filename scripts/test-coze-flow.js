@@ -6,7 +6,7 @@ const {
   listCategories
 } = require('../miniprogram/utils/coze-catalog.js')
 const { startPrompt, listFlowSteps, firstLiveIndex, OPEN_GUIDE_PROMPT } = require('../miniprogram/utils/flow.js')
-const { extractReply, needsPoll } = require('../miniprogram/utils/agent.js')
+const { extractReply, chatSettled } = require('../miniprogram/utils/agent.js')
 const { buildCozeCatalog } = require('../miniprogram/utils/catalog.js')
 
 assert.strictEqual(listFlowSteps().length, 0)
@@ -73,9 +73,24 @@ const extracted = extractReply({
 })
 assert.strictEqual(extracted.reply, '请先告诉我课题原题。')
 assert.deepStrictEqual(extracted.followUps, ['幼小衔接六大核心维度实操指南'])
-assert.ok(needsPoll(''))
-assert.ok(needsPoll('智学仍在生成中，请稍后再发「继续」。'))
-assert.ok(!needsPoll(extracted.reply))
+
+const streamed = extractReply({
+  reply_content: JSON.stringify({
+    status: 'in_progress',
+    items: [
+      { role: 'assistant', type: 'answer', content: '先做自我介绍。' },
+      { role: 'assistant', type: 'follow_up', content: '幼小衔接六大核心维度实操指南' },
+      { role: 'assistant', type: 'verbose', content: '{"msg_type":"debug"}' }
+    ]
+  }),
+  conversation_id: 'cid-2',
+  raw: 'chat-2'
+})
+assert.strictEqual(streamed.reply, '先做自我介绍。')
+assert.deepStrictEqual(streamed.followUps, ['幼小衔接六大核心维度实操指南'])
+assert.strictEqual(streamed.items.length, 1)
+assert.ok(!chatSettled({ reply: '', items: [] }, null))
+assert.ok(chatSettled({ reply: '先做自我介绍。', items: streamed.items, followUps: streamed.followUps }, streamed))
 
 const { titleFromSource, categoryFromSource, looksLikeCatalog } = require('../miniprogram/utils/archive-upload.js')
 const { isAdmin, unlockAdmin } = require('../miniprogram/utils/admin.js')

@@ -6,7 +6,6 @@ const {
 } = require('./session.js')
 const {
   startPrompt,
-  firstLiveIndex,
   OPEN_GUIDE_PROMPT
 } = require('./flow.js')
 const voice = require('./voice.js')
@@ -15,17 +14,10 @@ function paint(page, session) {
   const thread = ((session && session.messages) || []).filter((item) => !item.hidden)
   const topic = (session && session.topicTitle) || ''
   page.setData({
-    steps: [],
-    completedCount: 0,
-    finished: false,
-    liveIndex: 0,
-    currentIndex: 0,
-    reviewing: false,
-    currentStep: null,
     conversationId: (session && session.conversationId) || '',
     thread: thread,
     followUps: (session && session.followUps) || [],
-    hint: topic ? ('课题：' + topic) : '问答由智学原样给出，小程序不改写'
+    hint: topic ? ('课题：' + topic) : '问答由智学原文给出'
   })
   scrollBottom(page)
   return session
@@ -43,48 +35,47 @@ function scrollBottom(page) {
   page.setData({ scrollInto: last ? 'm-' + last.id : '' })
 }
 
+function mergeLiveThread(base, result) {
+  const items = (result && result.items) || []
+  const bubbles = items.map((item, index) => ({
+    id: 'coze-' + index + '-' + (item.type || 'answer'),
+    role: 'assistant',
+    hidden: false,
+    content: item.content
+  }))
+  return base.concat(bubbles)
+}
+
 function askZhixue(page, text) {
   const prompt = String(text || '').trim()
   if (!prompt || page.data.sending || page._busy) return Promise.resolve()
   page._busy = true
   const preview = readSession(page.sessionKey()) || {}
-  const pending = (preview.messages || []).concat([{
+  const userMsg = {
     id: Date.now(),
     role: 'user',
     hidden: false,
     content: prompt
-  }])
+  }
+  const base = (preview.messages || []).filter((item) => item.role === 'user' || item.role === 'assistant')
+  const pending = base.concat([userMsg])
   persist(page, { messages: pending, followUps: [] })
-  page.setData({ sending: true, error: '', draft: '', planning: false, reviewing: false })
+  page.setData({ sending: true, error: '', draft: '', planning: false })
   const account = getApp().globalData.account || {}
   const userId = page.cozeUserId(account)
-  return chatWithCoze(prompt, userId, preview.conversationId || '', getApp().getToken()).then((result) => {
-    const latest = readSession(page.sessionKey()) || {}
-    const withoutDup = (latest.messages || pending).slice()
-    if (withoutDup.length && withoutDup[withoutDup.length - 1].role === 'user') {
-      withoutDup.pop()
-    }
-    const messages = withoutDup.concat([
-      {
-        id: Date.now(),
-        role: 'user',
-        hidden: false,
-        content: prompt
-      },
-      {
-        id: Date.now() + 1,
-        role: 'assistant',
-        hidden: false,
-        content: result.reply
-      }
-    ])
+  return chatWithCoze(prompt, userId, preview.conversationId || '', getApp().getToken(), function onTick(result) {
     persist(page, {
-      messages: messages,
-      steps: [],
-      completedCount: 0,
+      messages: mergeLiveThread(pending, result),
       followUps: result.followUps || [],
-      conversationId: result.conversationId || latest.conversationId || '',
-      chatId: result.chatId || latest.chatId || ''
+      conversationId: result.conversationId || preview.conversationId || '',
+      chatId: result.chatId || preview.chatId || ''
+    })
+  }).then((result) => {
+    persist(page, {
+      messages: mergeLiveThread(pending, result),
+      followUps: result.followUps || [],
+      conversationId: result.conversationId || preview.conversationId || '',
+      chatId: result.chatId || preview.chatId || ''
     })
     page.setData({ sending: false })
     page._busy = false
@@ -115,9 +106,6 @@ function startCourseFlow(page, course) {
     return Promise.resolve(existing)
   }
   persist(page, {
-    steps: [],
-    completedCount: firstLiveIndex(),
-    currentIndex: firstLiveIndex(),
     messages: [],
     followUps: [],
     conversationId: '',
@@ -142,9 +130,6 @@ function startOpenFlow(page, topicTitle) {
     return Promise.resolve(existing)
   }
   persist(page, {
-    steps: [],
-    completedCount: firstLiveIndex(),
-    currentIndex: firstLiveIndex(),
     messages: [],
     followUps: [],
     conversationId: '',

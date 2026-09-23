@@ -131,67 +131,98 @@ function pollFlowTask(taskId, token, options) {
   return once()
 }
 
+function isDebugJson(text) {
+  const raw = String(text || '').trim()
+  return raw.charAt(0) === '{' && raw.indexOf('msg_type') >= 0
+}
+
+function isHiddenType(typ) {
+  return typ === 'verbose' || typ === 'function_call' || typ === 'tool_response' || typ === 'tool_output'
+}
+
+function parseBundle(text) {
+  const raw = String(text || '').trim()
+  if (!raw || raw.charAt(0) !== '{') return null
+  try {
+    const obj = JSON.parse(raw)
+    if (obj && Array.isArray(obj.items)) return obj
+  } catch (e) {}
+  return null
+}
+
+function visibleItems(items) {
+  const list = []
+  ;(items || []).forEach((item) => {
+    if (!item) return
+    const typ = item.type || 'answer'
+    const content = String(item.content || '').trim()
+    if (!content || isDebugJson(content) || isHiddenType(typ)) return
+    if (typ === 'follow_up') return
+    if (item.role && item.role !== 'assistant') return
+    list.push({
+      role: 'assistant',
+      type: typ,
+      content: content
+    })
+  })
+  return list
+}
+
 function extractReply(row) {
   let output = row && row.output !== undefined ? row.output : row
-  if (output == null) return { reply: '', conversationId: '', chatId: '' }
+  if (output == null) return { reply: '', items: [], followUps: [], status: '', conversationId: '', chatId: '' }
   if (typeof output === 'string') {
     try {
       output = JSON.parse(output)
     } catch (e) {
-      return { reply: output, conversationId: '', chatId: '' }
+      return { reply: output, items: [], followUps: [], status: '', conversationId: '', chatId: '' }
     }
   }
   const data = output.data || output
-  const messages = data.messages || data.additional_messages || []
   let reply = output.reply_content || output.reply || data.content || ''
   if (reply === 'Success' || reply === 'success') reply = ''
-  if (!reply && Array.isArray(messages)) {
-    const assistant = messages.filter((item) => {
-      if (!item || item.role !== 'assistant') return false
-      const typ = item.type || 'answer'
-      return typ !== 'verbose' && typ !== 'follow_up' && typ !== 'function_call' && typ !== 'tool_response' && typ !== 'tool_output'
-    })
-    const last = assistant[assistant.length - 1] || messages[messages.length - 1]
-    if (last) reply = last.content || last.text || ''
-    if (reply && typeof reply === 'object') reply = JSON.stringify(reply)
-  }
-  if (!reply && typeof data === 'string' && data !== 'Success') reply = data
-  if (!reply && output.msg && output.code && output.code !== 0) {
-    reply = '智学错误：' + output.msg
-  }
-  if (reply && reply.indexOf('\n{"msg_type"') >= 0) {
-    reply = reply.split('\n{"msg_type"')[0]
-  }
   const conversationId = output.conversation_id || data.conversation_id || ''
   const chatId = output.raw || data.id || output.id || output.chat_id || ''
-  const split = stripFollowUps(reply || '')
-  let followUps = split.followUps || []
-  if (Array.isArray(messages)) {
-    messages.forEach((item) => {
-      if (item && item.type === 'follow_up' && typeof item.content === 'string' && item.content.trim()) {
-        followUps.push(item.content.trim())
+  const bundle = parseBundle(reply)
+  if (bundle) {
+    const items = bundle.items || []
+    const shown = visibleItems(items)
+    const followUps = []
+    items.forEach((item) => {
+      if (item && item.type === 'follow_up' && String(item.content || '').trim()) {
+        followUps.push(String(item.content).trim())
       }
     })
+    return {
+      reply: shown.map((item) => item.content).join('\n\n'),
+      items: shown,
+      followUps: followUps,
+      status: bundle.status || '',
+      conversationId: conversationId,
+      chatId: chatId,
+      pending: true
+    }
   }
-  const unique = []
-  followUps.forEach((item) => {
-    if (unique.indexOf(item) < 0) unique.push(item)
-  })
+  const split = stripFollowUps(reply || '')
   return {
     reply: split.reply || '',
-    followUps: unique,
+    items: split.reply ? [{ role: 'assistant', type: 'answer', content: split.reply }] : [],
+    followUps: split.followUps || [],
+    status: '',
     conversationId: conversationId,
-    chatId: chatId
+    chatId: chatId,
+    pending: false
   }
 }
 
-function needsPoll(reply) {
-  const text = String(reply || '').replace(/__FOLLOW_UPS__[\s\S]*$/, '').trim()
-  return !text || text.indexOf('仍在生成中') >= 0 || text.indexOf('请稍后再发') >= 0
-}
-
-function wait(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms))
+function chatSettled(current, previous) {
+  const status = String((current && current.status) || '')
+  if (status === 'completed' || status === 'failed' || status === 'canceled') return true
+  if (current && current.followUps && current.followUps.length && current.reply) return true
+  if (current && current.reply && previous && previous.reply === current.reply) {
+    return (previous.items || []).length === (current.items || []).length
+  }
+  return false
 }
 
 function runCoze(message, userId, conversationId, token) {
@@ -204,28 +235,37 @@ function runCoze(message, userId, conversationId, token) {
   return invokeSyncFlow(args, token).then((output) => extractReply(output))
 }
 
-function chatWithCoze(message, userId, conversationId, token) {
+function chatWithCoze(message, userId, conversationId, token, onTick) {
   if (!config.cozeBotId) {
     return Promise.reject(new Error('尚未配置 Coze Bot ID。请打开 miniprogram/config.js，把 cozeBotId 换成控制台里的 Bot ID。'))
   }
-  function once(text, conv, attempt) {
+  function emit(extracted) {
+    if (typeof onTick === 'function') onTick(extracted)
+    return extracted
+  }
+  function once(text, conv, attempt, previous) {
     return runCoze(text, userId, conv, token).then((extracted) => {
-      if (!needsPoll(extracted.reply)) return extracted
+      if (!extracted.conversationId && previous && previous.conversationId) {
+        extracted.conversationId = previous.conversationId
+      }
+      if (!extracted.chatId && previous && previous.chatId) {
+        extracted.chatId = previous.chatId
+      }
+      emit(extracted)
+      if (!extracted.pending && extracted.reply) return extracted
       if (!extracted.conversationId || !extracted.chatId) {
         throw new Error(extracted.reply || '智学未返回会话，请稍后重试。')
       }
+      if (chatSettled(extracted, previous)) return extracted
       if (attempt >= 80) {
+        if (extracted.reply) return extracted
         throw new Error('智学还在生成回复，请稍后再试。')
       }
       const pollMsg = '__POLL_CHAT__|' + extracted.conversationId + '|' + extracted.chatId
-      return wait(500).then(() => once(pollMsg, extracted.conversationId, attempt + 1)).then((again) => {
-        if (!again.conversationId) again.conversationId = extracted.conversationId
-        if (!again.chatId) again.chatId = extracted.chatId
-        return again
-      })
+      return once(pollMsg, extracted.conversationId, attempt + 1, extracted)
     })
   }
-  return once(message, conversationId || '', 0)
+  return once(message, conversationId || '', 0, null)
 }
 
 function parseFlowOutput(row) {
@@ -319,5 +359,6 @@ module.exports = {
   openPptUrl: openPptUrl,
   parseJson: parseJson,
   extractReply: extractReply,
-  needsPoll: needsPoll
+  visibleItems: visibleItems,
+  chatSettled: chatSettled
 }

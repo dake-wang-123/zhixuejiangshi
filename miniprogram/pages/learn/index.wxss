@@ -1,5 +1,0 @@
-.mini { margin-right: 12rpx; }
-.grow { flex: 1; min-width: 0; }
-.course-card { align-items: flex-start; }
-.topic-box .muted { margin: 8rpx 0 16rpx; line-height: 1.6; }
-.topic-box .field { margin-bottom: 8rpx; }

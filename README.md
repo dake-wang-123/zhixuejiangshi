@@ -9,9 +9,8 @@
 | Tab | 做什么 |
 | --- | --- |
 | 课程 | 打开后向智学 Coze 调取已上传分类和课题原题，解析后归档到课程目录。点课即把原题发给智学 |
-| 学习 | 已选课的智学进度。红格未完成，绿格已完成。也可按智学引导输入课题原题 |
 | 教案 | 上传文件到 `course.original_file`，粘贴全文后串联三个 ZAI，写回 `ai_analysis`；可把讲课稿生成课件 |
-| 智学 | 未选课时在此输入课题原题。只调用 Coze，问答原样收发，不改写智能体程序 |
+| 智学 | 智学原文问答。未选课先给引导语，也可在本页输入课题原题；选了课把原题发给智学。每条 Coze 消息随到随画 |
 | 课件 | 独立页 `pages/ppt/index`：智学写 PPT 大纲 → 智谱 GLM PPT Agent 出片 → 写入 `ppt_record.file_url`，页面提供打开/复制下载 |
 | 我的 | 微信静默登录、从业年限、会员、意见反馈、最近课件下载；管理员可开通课程归档上传 |
 
@@ -59,12 +58,10 @@ https://zion-app.functorz.com/zero/PO76RBe9KX0/api/graphql-v2
    - 授权工作空间必须包含当前 Bot
    - 只把令牌填进 Zion 项目密钥，不要加 `Bearer `，不要发到聊天里
    - 保存后 **同步后端**
-3. Actionflow **智学对话**（同步，超时 30 秒）只做密钥转发，不再在服务端空等、也不改写 Coze 正文。
+3. Actionflow **智学对话**（同步）只做密钥转发：先 POST 智学原文，再按需 GET 消息列表。不拼接、不等待完整答案。
    - 入参：`user_message` / `user_id` / `conversation_id` / `bot_id`
-   - 节点：组装并 POST 智学 TPA `mu6ckpzl` → 读取智学回复（TPA **智学消息** `r43leo7de` 只取一次）
-   - 输出：`reply_content`、`conversation_id`、`raw`（chat id）
-   - 小程序用 `fz_invoke_action_flow` 直调。正文未到时每 500ms 再取一次消息，不再创建 180 秒异步任务，也不再二次跑 `__POLL_CHAT__` 长循环。
-   - Coze 的 `follow_up` 原样拆成建议按钮；小程序不再解析环节、不再画进度条、不再提供「完成本环节」。
+   - 输出：`reply_content`（Coze 消息 JSON）、`conversation_id`、`raw`（chat id）
+   - 小程序发出后立刻取消息，Coze 每写出一条就上屏，包括它自己的每一步问答。没有本地环节条，也没有「学习」页。
 4. Coze `4100` 是令牌本身无效；`4101` 是令牌没有访问该 Bot / 接口的权限。Bot 未发布到 **Agent As API** 时，流程会提示去 coze.cn 发布。
 5. 最近一次运行时：任务 `1150000000000012` COMPLETED，返回亲子倾听要点正文（已过滤 verbose 调试 JSON）。
 
@@ -93,7 +90,7 @@ https://zion-app.functorz.com/zero/PO76RBe9KX0/api/graphql-v2
 - 教案不是独立表，而是课程的 `original_file` + `ai_analysis`。讲师上传 `source_type = 讲师上传`，解析中为 `解析中`，解析完为 `待审核`。
 - 上架课由管理员把 `status` 改为 `已上架`。登录用户可读「已上架 **或** 自己上传」的课程；课程 Tab 客户端再筛一层已上架。
 - 再次通跑智学：未选课发「你好」，智能体引导输入课题或上传教案，再走它自己的问答。知识库目前列不出 60 课清单。管理员在「我的 → 课程归档上传」上传分类文件/课题原件，只整理文件里的标题和分类并上架；学员点课只把原题发给智学。
-- 学习环节只呈现 Coze 智学自己的问答。用户回答原样回传，智学的问题原样展示，不做本地环节解读。输入框支持按住麦克风转文字。进度写入 `study_record.progress`。
+- 智学页只呈现 Coze 自己的问答，每条消息随到随画。用户回答原样回传。输入框支持按住麦克风转文字。已删除与智学重复的「学习」页。
 - 登录用户可插入自己的课程、学习记录、用户资料、反馈；匿名角色没有任何表权限，也不能调用 Actionflow / TPA / ZAI。
 - 课程分类字段在 GraphQL 里是关系对象 `category_id { id name }`，不是标量外键。
 - 资料 upsert 约束名：`user_profile_user_id_key`。反馈外键写入 `user_id_id`。

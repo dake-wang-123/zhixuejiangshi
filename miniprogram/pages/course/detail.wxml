@@ -25,7 +25,7 @@
         wx:for="{{thread}}"
         wx:key="id"
       >{{item.content}}</view>
-      <view class="follow-wrap" wx:if="{{followUps.length && !sending}}">
+      <view class="follow-wrap" wx:if="{{followUps.length}}">
         <view class="muted">智学建议</view>
         <view
           class="follow"

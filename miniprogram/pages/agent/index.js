@@ -25,7 +25,8 @@ Page({
     followUps: [],
     draft: '',
     scrollInto: '',
-    conversationId: ''
+    conversationId: '',
+    topicDraft: ''
   },
   sessionKey() {
     return OPEN_SESSION_ID
@@ -35,7 +36,7 @@ Page({
   },
   onShow() {
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
-      this.getTabBar().setData({ selected: 3 })
+      this.getTabBar().setData({ selected: 2 })
     }
     let pending = ''
     try {
@@ -69,6 +70,23 @@ Page({
   },
   onDraft(e) {
     this.setData({ draft: e.detail.value })
+  },
+  onTopicDraft(e) {
+    this.setData({ topicDraft: e.detail.value })
+  },
+  onStartTopic() {
+    const title = String(this.data.topicDraft || '').trim()
+    if (!title) {
+      wx.showToast({ title: '请先输入课题原题', icon: 'none' })
+      return
+    }
+    this.setData({
+      displayTitle: title,
+      course: { title: title, displayTitle: title },
+      planning: true,
+      topicDraft: ''
+    })
+    classroom.startOpenFlow(this, title)
   },
   onSend() {
     classroom.onSend(this)

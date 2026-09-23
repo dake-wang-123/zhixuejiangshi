@@ -2,7 +2,6 @@
   "pages": [
     "pages/index/index",
     "pages/course/detail",
-    "pages/learn/index",
     "pages/plan/index",
     "pages/ppt/index",
     "pages/agent/index",
@@ -25,10 +24,6 @@
       {
         "pagePath": "pages/index/index",
         "text": "课程"
-      },
-      {
-        "pagePath": "pages/learn/index",
-        "text": "学习"
       },
       {
         "pagePath": "pages/plan/index",

@@ -2,7 +2,7 @@ const app = getApp()
 const { graphqlRequest, eqBigint, andWhere } = require('../../utils/graphql.js')
 const classroom = require('../../utils/classroom.js')
 const { ensureFlowSession } = require('../../utils/session.js')
-const { startPrompt, TOPIC_DRAFT_KEY } = require('../../utils/flow.js')
+const { startPrompt, PENDING_TOPIC_KEY } = require('../../utils/flow.js')
 const { matchCanonical, loadCachedCatalog } = require('../../utils/coze-catalog.js')
 const voice = require('../../utils/voice.js')
 
@@ -134,9 +134,9 @@ Page({
   },
   onGoInput() {
     try {
-      wx.setStorageSync(TOPIC_DRAFT_KEY, this.data.displayTitle || '')
+      wx.setStorageSync(PENDING_TOPIC_KEY, this.data.displayTitle || '')
     } catch (e) {}
-    wx.switchTab({ url: '/pages/learn/index' })
+    wx.switchTab({ url: '/pages/agent/index' })
   },
   onDraft(e) {
     this.setData({ draft: e.detail.value })

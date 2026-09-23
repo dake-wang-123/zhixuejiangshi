@@ -31,7 +31,10 @@ Page({
     followUps: [],
     draft: '',
     scrollInto: '',
-    conversationId: ''
+    conversationId: '',
+    thinking: false,
+    thinkHint: '',
+    waitSec: 0
   },
   sessionKey() {
     return this.data.id
@@ -45,6 +48,7 @@ Page({
     this.boot()
   },
   onUnload() {
+    classroom.stopLive(this)
     voice.cancel()
   },
   boot() {

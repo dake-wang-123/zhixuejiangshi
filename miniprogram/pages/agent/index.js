@@ -33,7 +33,10 @@ Page({
     draft: '',
     scrollInto: '',
     conversationId: '',
-    topicDraft: ''
+    topicDraft: '',
+    thinking: false,
+    thinkHint: '',
+    waitSec: 0
   },
   sessionKey() {
     return conversationScope({
@@ -83,6 +86,7 @@ Page({
     })
   },
   onUnload() {
+    classroom.stopLive(this)
     voice.cancel()
   },
   onDraft(e) {
@@ -116,6 +120,7 @@ Page({
     classroom.onRetry(this, startPrompt(this.data.course, this.data.displayTitle))
   },
   onClear() {
+    classroom.stopLive(this)
     voice.cancel()
     writeSession(this.sessionKey(), blankSession(''))
     this.setData({
@@ -127,7 +132,10 @@ Page({
       displayTitle: '智学伴练',
       lessonCode: '',
       course: null,
-      hint: ''
+      hint: '',
+      thinking: false,
+      thinkHint: '',
+      waitSec: 0
     })
     classroom.startOpenFlow(this)
   },

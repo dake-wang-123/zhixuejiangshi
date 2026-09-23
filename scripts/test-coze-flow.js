@@ -194,6 +194,20 @@ assert.strictEqual(voice.appendDraft('你', '好'), '你好')
 assert.strictEqual(voice.appendDraft('你好', '你好啊'), '你好啊')
 assert.ok(voice.friendlyVoiceError(new Error('authorize:fail auth deny')).indexOf('麦克风') >= 0)
 assert.ok(voice.friendlyVoiceError(new Error('WechatSI plugin missing')).indexOf('同声传译') >= 0)
+
+const typewriter = require('../miniprogram/utils/typewriter.js')
+assert.strictEqual(typewriter.stepSize(20), 2)
+assert.ok(typewriter.stepSize(400) >= 6)
+assert.strictEqual(typewriter.nextShown('你好世界', 0) > 0, true)
+assert.strictEqual(typewriter.nextShown('你好世界', 4), 4)
+const fakePage = {
+  data: { thread: [], followUps: [] },
+  setData: function (patch) { Object.assign(this.data, patch) }
+}
+typewriter.play(fakePage, [{ id: 1, role: 'user', content: 'hi' }], 'ABCD')
+assert.ok(fakePage.data.thread[1].content.length >= 1)
+typewriter.stop(fakePage)
+
 voice.begin().then(() => {
   throw new Error('voice.begin should reject without wx')
 }, (err) => {

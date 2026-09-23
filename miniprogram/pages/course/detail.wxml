@@ -24,7 +24,18 @@
         class="bubble {{item.role === 'user' ? 'me' : (item.role === 'system' ? 'sys' : 'bot')}}"
         wx:for="{{thread}}"
         wx:key="id"
-      >{{item.content}}</view>
+      >{{item.content}}<text class="cursor" wx:if="{{item.streaming}}">▍</text></view>
+      <view class="bubble bot thinking-bubble" wx:if="{{thinking}}">
+        <view class="dots">
+          <view class="dot"></view>
+          <view class="dot"></view>
+          <view class="dot"></view>
+        </view>
+        <view class="think-copy">
+          <text>{{thinkHint || '智学正在想这一步…'}}</text>
+          <text class="muted" wx:if="{{waitSec >= 3}}">已等待 {{waitSec}} 秒，教案长时会分段讲</text>
+        </view>
+      </view>
       <view class="follow-wrap" wx:if="{{followUps.length}}">
         <view class="muted">智学建议</view>
         <view
@@ -34,10 +45,6 @@
           data-text="{{item}}"
           bindtap="onFollow"
         >{{item}}</view>
-      </view>
-      <view class="muted thinking" wx:if="{{sending}}">
-        <ui-icon name="spark" size="28" color="#8A8175"></ui-icon>
-        <text>智学回复中…</text>
       </view>
     </scroll-view>
 

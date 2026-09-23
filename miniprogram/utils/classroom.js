@@ -9,23 +9,32 @@ const {
   OPEN_GUIDE_PROMPT
 } = require('./flow.js')
 const voice = require('./voice.js')
+const typewriter = require('./typewriter.js')
+
+const THINK_HINTS = [
+  '智学正在翻这一课的教案…',
+  '正在组织这一步的讲解…',
+  '马上把引导问题发给你…'
+]
 
 function paint(page, session) {
+  typewriter.stop(page)
   const thread = ((session && session.messages) || []).filter((item) => !item.hidden)
   const topic = (session && session.topicTitle) || ''
   page.setData({
     conversationId: (session && session.conversationId) || '',
     thread: thread,
     followUps: (session && session.followUps) || [],
+    thinking: false,
     hint: topic ? ('课题：' + topic) : '问答由智学原文给出'
   })
   scrollBottom(page)
   return session
 }
 
-function persist(page, patch) {
+function persist(page, patch, options) {
   const session = writeSession(page.sessionKey(), patch)
-  paint(page, session)
+  if (!(options && options.skipPaint)) paint(page, session)
   return session
 }
 
@@ -47,10 +56,41 @@ function mergeLiveThread(base, result) {
   return base.concat(bubbles)
 }
 
+function stopWaitClock(page) {
+  if (page._waitTimer) {
+    clearInterval(page._waitTimer)
+    page._waitTimer = null
+  }
+}
+
+function startWaitClock(page) {
+  stopWaitClock(page)
+  page._waitStarted = Date.now()
+  page.setData({
+    thinking: true,
+    waitSec: 0,
+    thinkHint: THINK_HINTS[0]
+  })
+  page._waitTimer = setInterval(() => {
+    const sec = Math.floor((Date.now() - page._waitStarted) / 1000)
+    page.setData({
+      waitSec: sec,
+      thinkHint: THINK_HINTS[Math.floor(sec / 3) % THINK_HINTS.length]
+    })
+  }, 1000)
+}
+
+function stopLive(page) {
+  typewriter.stop(page)
+  stopWaitClock(page)
+  page.setData({ thinking: false })
+}
+
 function askZhixue(page, text) {
   const prompt = String(text || '').trim()
   if (!prompt || page.data.sending || page._busy) return Promise.resolve()
   page._busy = true
+  stopLive(page)
   const preview = readSession(page.sessionKey()) || {}
   const userMsg = {
     id: Date.now(),
@@ -61,15 +101,25 @@ function askZhixue(page, text) {
   const base = (preview.messages || []).filter((item) => item.role === 'user' || item.role === 'assistant')
   const pending = base.concat([userMsg])
   persist(page, { messages: pending, followUps: [] })
-  page.setData({ sending: true, error: '', draft: '', planning: false })
+  page.setData({ sending: true, error: '', draft: '', planning: false, followUps: [] })
+  startWaitClock(page)
   const account = getApp().globalData.account || {}
   const userId = page.cozeUserId(account)
+  let typed = ''
   return chatWithCoze(prompt, userId, preview.conversationId || '', getApp().getToken(), function onTick(result) {
     persist(page, {
       messages: mergeLiveThread(pending, result),
       followUps: result.followUps || [],
       conversationId: result.conversationId || preview.conversationId || '',
       chatId: result.chatId || preview.chatId || ''
+    }, { skipPaint: true })
+    const next = String((result && result.reply) || '')
+    if (!next || next === typed) return
+    typed = next
+    stopWaitClock(page)
+    typewriter.play(page, pending, next, {
+      id: 'coze-live-' + (result.chatId || 'turn'),
+      followUps: []
     })
   }).then((result) => {
     persist(page, {
@@ -77,13 +127,21 @@ function askZhixue(page, text) {
       followUps: result.followUps || [],
       conversationId: result.conversationId || preview.conversationId || '',
       chatId: result.chatId || preview.chatId || ''
+    }, { skipPaint: true })
+    const finalText = String((result && result.reply) || typed)
+    stopWaitClock(page)
+    return typewriter.play(page, pending, finalText, {
+      id: 'coze-live-' + ((result && result.chatId) || 'turn'),
+      followUps: (result && result.followUps) || []
+    }).then(() => {
+      page.setData({ sending: false, thinking: false })
+      page._busy = false
+      if (typeof page.saveProgress === 'function') {
+        page.saveProgress(1, 1)
+      }
     })
-    page.setData({ sending: false })
-    page._busy = false
-    if (typeof page.saveProgress === 'function') {
-      page.saveProgress(1, 1)
-    }
   }).catch((err) => {
+    stopLive(page)
     const latest = readSession(page.sessionKey()) || {}
     persist(page, {
       messages: (latest.messages || pending).concat([{
@@ -208,5 +266,6 @@ module.exports = {
   onSend: onSend,
   onFollow: onFollow,
   onRetry: onRetry,
-  bindMic: bindMic
+  bindMic: bindMic,
+  stopLive: stopLive
 }

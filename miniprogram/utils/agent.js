@@ -265,7 +265,7 @@ function chatWithCoze(message, userId, conversationId, token, onTick) {
       }
       const pollMsg = '__POLL_CHAT__|' + extracted.conversationId + '|' + extracted.chatId
       return new Promise((resolve) => {
-        setTimeout(() => resolve(once(pollMsg, extracted.conversationId, attempt + 1, extracted)), 1200)
+        setTimeout(() => resolve(once(pollMsg, extracted.conversationId, attempt + 1, extracted)), 800)
       })
     })
   }

@@ -65,7 +65,8 @@ https://zion-app.functorz.com/zero/PO76RBe9KX0/api/graphql-v2
    - Body：`stream: false`，`auto_save_history: true`，`additional_messages: [{role,content,content_type}]`
    - 轮询 GET `/v3/chat/retrieve`（`y88cn638j`）等到 `completed`，再 GET `/v3/chat/message/list`，**按 chat_id 过滤**，只展示本轮 `type=answer`
    - 小程序按「用户 + 课号」把 Coze 返回的 `conversation_id` 存进 `zhixue_sessions_v10`。不要把 `用户ID+课程ID` 直接当 conversation_id 发给 Coze
-   - 配置清单与绑定路径见 `docs/zion-coze-v3.md`
+   - 前端每 0.8 秒轮询 retrieve；正文到了用打字机逐段上屏，发送中显示思考气泡
+   - Zion 的 TPA **不能**把 `stream` 设为 true（SSE）。缩短等待必须靠扣子端分段输出，提示词见 `docs/zion-coze-stream.md`
 4. Coze `4100` 是令牌本身无效；`4101` 是令牌没有访问该 Bot / 接口的权限。Bot 未发布到 **Agent As API** 时，流程会提示去 coze.cn 发布。
 
 ## 课件 PPT

@@ -41,44 +41,85 @@ cp -a "$SRC"/. "$STAGE/family-edu-miniprogram/"
 rm -rf "$STAGE/family-edu-miniprogram/.zion-mcp"
 find "$STAGE" -name '.DS_Store' -delete
 
-cat > "$STAGE/导入说明.txt" <<'EOF'
-家庭教育讲师自学 · 微信小程序
+cat > "$STAGE/README.txt" <<'EOF'
+Family education lecturer miniprogram
 
-请导入解压后的英文文件夹 family-edu-miniprogram。
-这一层必须同时有 app.json 和 pages。
+Import the extracted folder family-edu-miniprogram.
+That folder must contain app.json and pages/.
 
-Windows：
-1. 下载 zhixue-wechat.zip（不要下载后直接当项目打开）。
-2. 右键 → 全部提取。
-3. 打开解压目录，再进入 family-edu-miniprogram。
-4. 确认能看到 app.json，再在微信开发者工具里「导入项目」选中这一层。
-5. AppID：wx0277d4abe92dd8a3
-6. 不要把 zip 当项目打开。选中能看到 app.json 的 family-edu-miniprogram 这一层。
-7. 当前包未声明第三方插件，避免模拟器因「插件未授权」启动失败。
+Windows:
+1. Download the zip. Do not open the zip as a WeChat project.
+2. Right-click -> Extract All.
+3. Open the extracted folder, then enter family-edu-miniprogram.
+4. Confirm you can see app.json, then import that folder in WeChat DevTools.
+5. AppID: wx0277d4abe92dd8a3
+6. This package does not declare third-party plugins.
 EOF
 
 ZIP_PATH="$OUT_DIR/zhixue-wechat.zip"
 rm -f "$ZIP_PATH" "$OUT_DIR/family-edu-miniprogram.zip"
-(
-  cd "$STAGE"
-  zip -r -q "$ZIP_PATH" family-edu-miniprogram 导入说明.txt
-)
-cp -f "$ZIP_PATH" "$OUT_DIR/family-edu-miniprogram.zip"
 
-python3 - <<PY
-import zipfile, sys
-z = zipfile.ZipFile("$ZIP_PATH")
+python3 - "$STAGE" "$ZIP_PATH" <<'PY'
+import os, sys, time, zipfile
+
+root, dest = sys.argv[1], sys.argv[2]
+now = time.localtime()[:6]
+
+def add_file(zf, disk, arcname):
+    info = zipfile.ZipInfo(arcname.replace('\\', '/'), now)
+    info.create_system = 0
+    info.create_version = 20
+    info.extract_version = 20
+    info.flag_bits = 0x800
+    info.external_attr = 0o644 << 16
+    info.compress_type = zipfile.ZIP_DEFLATED
+    with open(disk, 'rb') as fh:
+        zf.writestr(info, fh.read())
+
+def add_dir(zf, arcname):
+    name = arcname.replace('\\', '/').rstrip('/') + '/'
+    info = zipfile.ZipInfo(name, now)
+    info.create_system = 0
+    info.create_version = 20
+    info.extract_version = 20
+    info.flag_bits = 0x800
+    info.external_attr = 0o755 << 16
+    info.compress_type = zipfile.ZIP_STORED
+    zf.writestr(info, b'')
+
+with zipfile.ZipFile(dest, 'w', compression=zipfile.ZIP_DEFLATED, allowZip64=False) as zf:
+    for dirpath, dirnames, filenames in os.walk(root):
+        dirnames.sort()
+        filenames.sort()
+        rel = os.path.relpath(dirpath, root)
+        if rel != '.':
+            add_dir(zf, rel)
+        for name in filenames:
+            disk = os.path.join(dirpath, name)
+            if os.path.islink(disk) or not os.path.isfile(disk):
+                continue
+            arc = name if rel == '.' else os.path.join(rel, name)
+            add_file(zf, disk, arc)
+
+z = zipfile.ZipFile(dest)
+bad = z.testzip()
+if bad:
+    sys.exit('corrupt member: ' + bad)
 names = z.namelist()
+if any(ord(ch) > 127 for n in names for ch in n):
+    sys.exit('zip must use ASCII names only for Windows Explorer')
 need = (
-    "family-edu-miniprogram/app.json",
-    "family-edu-miniprogram/project.config.json",
-    "family-edu-miniprogram/pages/index/index.wxml",
-    "family-edu-miniprogram/sitemap.json",
+    'family-edu-miniprogram/app.json',
+    'family-edu-miniprogram/project.config.json',
+    'family-edu-miniprogram/pages/index/index.wxml',
+    'family-edu-miniprogram/sitemap.json',
+    'README.txt',
 )
 missing = [n for n in need if n not in names]
 if missing:
-    sys.exit("zip missing: " + ", ".join(missing))
-if "app.json" in names:
-    sys.exit("app.json must not sit at zip root; DevTools import needs the inner folder")
-print("ok", len(names), "entries")
+    sys.exit('zip missing: ' + ', '.join(missing))
+if 'app.json' in names:
+    sys.exit('app.json must not sit at zip root')
+print('ok', len(names), 'entries')
 PY
+cp -f "$ZIP_PATH" "$OUT_DIR/family-edu-miniprogram.zip"

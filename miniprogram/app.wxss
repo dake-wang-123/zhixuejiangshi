@@ -51,10 +51,16 @@ page {
 
 .hero-sub {
   display: block;
+  width: 100%;
   margin-top: 16rpx;
+  padding-right: 8rpx;
+  box-sizing: border-box;
   font-size: 28rpx;
   color: #4B6EF5;
   line-height: 1.6;
+  white-space: normal;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 .card {
@@ -281,10 +287,16 @@ page {
 
 .study-top .guide {
   display: block;
+  width: 100%;
   margin: 16rpx 0 8rpx;
+  padding-right: 8rpx;
+  box-sizing: border-box;
   font-size: 28rpx;
   color: #4B6EF5;
   line-height: 1.6;
+  white-space: normal;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 .study-top .guide-block {
@@ -293,9 +305,13 @@ page {
 
 .study-top .guide-line {
   display: block;
+  width: 100%;
   font-size: 28rpx;
   color: #4B6EF5;
   line-height: 1.6;
+  white-space: normal;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 .study-top .guide-line + .guide-line {

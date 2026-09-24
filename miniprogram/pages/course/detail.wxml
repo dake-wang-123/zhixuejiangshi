@@ -10,10 +10,7 @@
     <view class="study-top">
       <view class="kicker">{{lessonCode ? ('课号 ' + lessonCode) : (course.category_id.name || '智学伴练')}}</view>
       <view class="title">{{displayTitle}}</view>
-      <view class="guide-block">
-        <text class="guide-line">十步交付法带你吃透课程</text>
-        <text class="guide-line">一路通关：模拟讲课 · 诊断评价 · 说课训练，产出全套逐字稿及PPT框架</text>
-      </view>
+      <text class="guide">十步交付法带你吃透课程，一路通关至模拟讲课、诊断评价、说课训练，最终产出全套逐字稿及PPT框架</text>
       <view class="actions">
         <button class="text-btn" bindtap="onRetry" wx:if="{{error}}">再问一次</button>
       </view>

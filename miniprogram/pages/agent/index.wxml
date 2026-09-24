@@ -1,9 +1,9 @@
 <view class="page study-page tabbed">
   <view class="study-top {{course ? '' : 'compact'}}">
     <view class="kicker">{{lessonCode ? ('课号 ' + lessonCode) : '智学伴练'}}</view>
-    <view class="title">{{course ? displayTitle : '选择你要学习的课题'}}</view>
+    <view class="title">{{course ? displayTitle : '智学伴练'}}</view>
     <text class="guide" wx:if="{{course}}">十步交付法带你吃透课程，一路通关至模拟讲课、诊断评价、说课训练，最终产出全套逐字稿及PPT框架</text>
-    <text class="guide" wx:else>从课程目录里选择学习，或者上传你自己的教案，按十步交付法带你吃透课程</text>
+    <text class="guide" wx:else>你可以在课程目录选择一门课，或者上传个人教案，开始你的十步交付法学习旅程。</text>
     <view class="actions" wx:if="{{error}}">
       <button class="text-btn" bindtap="onRetry">再问一次</button>
     </view>

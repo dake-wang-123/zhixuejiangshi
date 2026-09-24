@@ -5,7 +5,7 @@
 }
 
 .hero.tight {
-  padding: 4rpx 0 16rpx;
+  padding: 8rpx 0 12rpx;
 }
 
 .hero.tight .hero-sub {

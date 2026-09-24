@@ -1,9 +1,8 @@
 <view class="page catalog-page">
   <view class="hero tight">
-    <text class="eyebrow">60 堂系统课</text>
     <text class="hero-title">选择你要学习的课题</text>
     <text class="hero-sub">从课程目录里选择学习，或者上传你自己的教案，按十步交付法带你吃透课程</text>
-    <text class="hero-meta" wx:if="{{!loading}}">{{categoryCount}} 个类别 · {{catalogCount}} 门课{{refreshing ? ' · 正在同步' : ''}}</text>
+    <text class="hero-meta" wx:if="{{!loading}}">{{categoryCount}} 个类别 · {{catalogCount}} 门系统课{{refreshing ? ' · 正在同步' : ''}}</text>
   </view>
   <view class="error" wx:if="{{error}}">{{error}}</view>
   <view class="empty" wx:if="{{loading}}">

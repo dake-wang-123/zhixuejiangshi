@@ -1,5 +1,7 @@
 const app = getApp()
-const results = require('../../utils/learn-results.js')
+const records = require('../../utils/learn-records.js')
+const favorites = require('../../utils/favorites.js')
+const { PENDING_LESSON_KEY } = require('../../utils/flow.js')
 
 Page({
   data: {
@@ -17,18 +19,20 @@ Page({
   load() {
     this.setData({ loading: true, error: '' })
     return app.ensureLogin().then(() => {
-      return results.listResults(app.getToken())
-    }).then((rows) => {
-      const groups = results.groupByLesson(rows)
+      return records.listStudyRecords(app.getToken())
+    }).then((groups) => {
+      const list = (groups || []).map((item) => Object.assign({}, item, {
+        starred: favorites.hasFavorite(item.lessonCode)
+      }))
       this.setData({
         loading: false,
-        groups: groups,
-        empty: !groups.length
+        groups: list,
+        empty: !list.length
       })
     }).catch((err) => {
       this.setData({
         loading: false,
-        error: (err && err.message) || '读取学习成果失败',
+        error: (err && err.message) || '读取学习记录失败',
         empty: false
       })
     })
@@ -39,5 +43,19 @@ Page({
     wx.navigateTo({
       url: '/pages/results/detail?lessonCode=' + encodeURIComponent(code) + '&title=' + encodeURIComponent(title)
     })
+  },
+  onStar(e) {
+    const code = e.currentTarget.dataset.code || ''
+    const title = e.currentTarget.dataset.title || ''
+    favorites.toggleFavorite({ lessonCode: code, topicTitle: title })
+    this.load()
+  },
+  onContinue(e) {
+    const code = e.currentTarget.dataset.code || ''
+    const title = e.currentTarget.dataset.title || ''
+    try {
+      wx.setStorageSync(PENDING_LESSON_KEY, { lessonCode: code, title: title })
+    } catch (err) {}
+    wx.switchTab({ url: '/pages/agent/index' })
   }
 })

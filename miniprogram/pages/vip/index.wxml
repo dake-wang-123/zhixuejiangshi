@@ -1,0 +1,18 @@
+<view class="page">
+  <view class="vip-hero">
+    <text class="vip-kicker">MEMBERSHIP</text>
+    <text class="hero-title" style="color: #F7E7C1;">{{vip.label}}</text>
+    <text class="vip-sub">{{vip.sub}}</text>
+  </view>
+  <view class="card">
+    <view class="title">会员能做什么</view>
+    <view class="desc">目录里标了会员免费的课，有效会员可以直接学，不用再付单课价。</view>
+    <view class="desc">学习记录、个人教案和检验成果对所有登录讲师开放；会员主要解决「哪些课免费」。</view>
+  </view>
+  <view class="card">
+    <view class="title">当前状态</view>
+    <view class="muted" wx:if="{{loading}}">正在读取会员表…</view>
+    <view class="desc" wx:else>{{vip.active ? '会员有效' : '尚未开通或已过期'}}</view>
+    <button class="btn" bindtap="onOpen">{{vip.active ? '续期说明' : '了解如何开通'}}</button>
+  </view>
+</view>

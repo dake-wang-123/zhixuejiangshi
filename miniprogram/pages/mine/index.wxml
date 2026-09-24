@@ -1,90 +1,86 @@
-<view class="page">
-  <view class="hero">
-    <view class="hero-row">
-      <view class="hero-mark">
-        <ui-icon name="user" size="40" color="#4B6EF5"></ui-icon>
+<view class="mine-page">
+  <view class="profile">
+    <view class="avatar-wrap">
+      <image wx:if="{{profile.avatar}}" class="avatar" src="{{profile.avatar}}" mode="aspectFill"></image>
+      <view wx:else class="avatar avatar-fallback">
+        <ui-icon name="user" size="44" color="#4B6EF5"></ui-icon>
+      </view>
+    </view>
+    <view class="grow">
+      <text class="nickname">{{profile.name}}{{isAdmin ? ' · 管理员' : ''}}</text>
+      <text class="login-tag">微信已登录</text>
+    </view>
+  </view>
+  <view class="error pad" wx:if="{{loginError}}">{{loginError}}</view>
+  <view class="pad" wx:if="{{!account}}">
+    <view class="menu">
+      <view class="muted" style="padding: 8rpx 8rpx 16rpx;">静默登录未完成。开发环境可用测试账号进入。</view>
+      <button class="btn" bindtap="onRelogin">重新登录</button>
+    </view>
+  </view>
+
+  <view class="vip {{vip.active ? 'on' : ''}}" bindtap="onVip">
+    <view class="grow">
+      <text class="vip-kicker">MEMBERSHIP</text>
+      <text class="vip-title">会员中心</text>
+      <text class="vip-sub">{{vip.label}} · {{vip.sub}}</text>
+    </view>
+    <text class="vip-go">查看权益</text>
+  </view>
+
+  <view class="menu">
+    <view class="row" bindtap="onRecords">
+      <view class="row-icon">
+        <ui-icon name="book" size="36" color="#4B6EF5"></ui-icon>
       </view>
       <view class="grow">
-        <text class="eyebrow">LECTURER</text>
-        <text class="hero-title">我的</text>
+        <text class="row-title">学习记录</text>
+        <text class="row-sub" wx:if="{{recordPreview}}">{{recordPreview}}</text>
+        <text class="row-sub" wx:else>还没有学过的课</text>
       </view>
+      <text class="row-meta" wx:if="{{recordCount}}">{{recordCount}}</text>
+      <ui-icon name="chevron" size="28" color="#C8C8C8"></ui-icon>
     </view>
-    <text class="hero-sub">当前为管理员测试登录，可直接上传课程归档、走智学问答。</text>
+    <view class="row" bindtap="onFavorites">
+      <view class="row-icon">
+        <ui-icon name="tag" size="36" color="#4B6EF5"></ui-icon>
+      </view>
+      <view class="grow">
+        <text class="row-title">我的收藏</text>
+        <text class="row-sub">标过星的课会留在这里</text>
+      </view>
+      <text class="row-meta" wx:if="{{favoriteCount}}">{{favoriteCount}}</text>
+      <ui-icon name="chevron" size="28" color="#C8C8C8"></ui-icon>
+    </view>
   </view>
-  <view class="error" wx:if="{{loginError}}">{{loginError}}</view>
-  <view class="card" wx:if="{{account}}">
-    <view class="title">{{account.username || '家庭教育讲师'}}{{isAdmin ? ' · 管理员' : ''}}</view>
-    <view class="muted">账号 {{account.id}}</view>
-    <view class="muted" wx:if="{{account.phoneNumber}}">手机 {{account.phoneNumber}}</view>
-  </view>
-  <view class="card" wx:else>
-    <view class="title">尚未登录</view>
-    <view class="desc">点下面直接进入已登记的管理员测试账号，无需微信 code。</view>
-    <button class="btn" bindtap="onRelogin">管理员登录</button>
-  </view>
-  <view class="card">
-    <view class="section-head" style="margin-top: 0;">
-      <ui-icon name="file" size="32" color="#4B6EF5"></ui-icon>
-      <text class="name">讲师资料</text>
+
+  <view class="menu">
+    <view class="row" bindtap="onHelp">
+      <view class="row-icon">
+        <ui-icon name="chat" size="36" color="#4B6EF5"></ui-icon>
+      </view>
+      <view class="grow">
+        <text class="row-title">帮助中心</text>
+      </view>
+      <ui-icon name="chevron" size="28" color="#C8C8C8"></ui-icon>
     </view>
-    <view class="label">从业年限</view>
-    <input class="field" type="number" placeholder="例如 8" value="{{educationYears}}" bindinput="onYears" />
-    <button class="btn" bindtap="onSaveProfile" disabled="{{saving}}">保存资料</button>
-  </view>
-  <view class="card">
-    <view class="section-head" style="margin-top: 0;">
-      <ui-icon name="tag" size="32" color="#4B6EF5"></ui-icon>
-      <text class="name">会员</text>
+    <view class="row" bindtap="onAbout">
+      <view class="row-icon">
+        <ui-icon name="spark" size="36" color="#4B6EF5"></ui-icon>
+      </view>
+      <view class="grow">
+        <text class="row-title">关于我们</text>
+      </view>
+      <ui-icon name="chevron" size="28" color="#C8C8C8"></ui-icon>
     </view>
-    <view class="desc" wx:if="{{membership}}">
-      {{membership.level || '会员'}} · {{membership.status}} · 到期 {{membership.expire_time}}
+    <view class="row" wx:if="{{isAdmin}}" bindtap="onAdminUpload">
+      <view class="row-icon">
+        <ui-icon name="folder" size="36" color="#4B6EF5"></ui-icon>
+      </view>
+      <view class="grow">
+        <text class="row-title">课程归档上传</text>
+      </view>
+      <ui-icon name="chevron" size="28" color="#C8C8C8"></ui-icon>
     </view>
-    <view class="muted" wx:else>当前没有会员记录。上架课程里标了会员免费的，需要有效会员才能按免费价学习。</view>
-  </view>
-  <view class="card" bindtap="onResults">
-    <view class="section-head" style="margin-top: 0;">
-      <ui-icon name="file" size="32" color="#4B6EF5"></ui-icon>
-      <text class="name">我的学习成果</text>
-    </view>
-    <view class="desc" wx:if="{{resultCount}}">已沉淀 {{resultCount}} 门课</view>
-    <view class="muted" wx:if="{{resultPreview}}">{{resultPreview}}</view>
-    <view class="muted" wx:else>检验 1、检验 2 生成的讲稿、诊断、说课和 PPT 大纲会按课存在这里。</view>
-    <button class="btn" catchtap="onResults">查看学习成果</button>
-  </view>
-  <view class="card" wx:if="{{ppts.length}}">
-    <view class="section-head" style="margin-top: 0;">
-      <ui-icon name="slides" size="32" color="#4B6EF5"></ui-icon>
-      <text class="name">智谱课件文件</text>
-    </view>
-    <view wx:for="{{ppts}}" wx:key="id" class="ppt-row">
-      <view class="desc">{{item.title}} · {{item.status}}</view>
-      <button class="btn mini" size="mini" wx:if="{{item.file_url}}" data-url="{{item.file_url}}" bindtap="onOpenPpt">下载</button>
-    </view>
-    <button class="btn btn-ghost" bindtap="onAllPpts">生成 / 查看全部课件</button>
-  </view>
-  <view class="card" wx:if="{{isAdmin}}">
-    <view class="section-head" style="margin-top: 0;">
-      <ui-icon name="folder" size="32" color="#4B6EF5"></ui-icon>
-      <text class="name">管理员</text>
-    </view>
-    <view class="muted">上传分类目录或课题文件后，标题会先抽出再和智学内置课题对齐，对上的按原题进目录。</view>
-    <button class="btn" bindtap="onAdminUpload">课程归档上传</button>
-  </view>
-  <view class="card" wx:else>
-    <view class="section-head" style="margin-top: 0;">
-      <ui-icon name="folder" size="32" color="#4B6EF5"></ui-icon>
-      <text class="name">管理员入口</text>
-    </view>
-    <view class="muted">只有管理员能上传 60 课原件并归档目录。请输入已登记的管理员手机号开通。</view>
-    <input class="field" type="number" placeholder="管理员手机号" value="{{adminCode}}" bindinput="onAdminCode" />
-    <button class="btn btn-ghost" bindtap="onUnlockAdmin">开通管理员上传</button>
-  </view>
-  <view class="card">
-    <view class="section-head" style="margin-top: 0;">
-      <ui-icon name="chat" size="32" color="#4B6EF5"></ui-icon>
-      <text class="name">意见反馈</text>
-    </view>
-    <textarea class="area" placeholder="功能问题、课题建议、解析不准，都可以写在这里。" value="{{feedback}}" bindinput="onFeedback" maxlength="1000" auto-height></textarea>
-    <button class="btn btn-ghost" bindtap="onSendFeedback" disabled="{{sending}}">提交反馈</button>
   </view>
 </view>

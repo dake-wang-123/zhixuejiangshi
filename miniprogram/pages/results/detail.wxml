@@ -1,8 +1,15 @@
 <view class="page result-page">
   <view class="hero">
-    <text class="eyebrow">{{lessonCode || '成果'}}</text>
-    <text class="hero-title">{{topicTitle || '成果详情'}}</text>
-    <text class="hero-sub">数据来自学习成果表。退出再进会按课号重新读取，不会丢。</text>
+    <text class="eyebrow">{{lessonCode || '记录'}}</text>
+    <text class="hero-title">{{topicTitle || '学习记录详情'}}</text>
+    <text class="hero-sub">{{progressText || '按课号从学习成果表回读，退出再进不会丢。'}}</text>
+    <view class="progress-line" wx:if="{{percent || progressText}}">
+      <view class="fill" style="width: {{percent}}%;"></view>
+    </view>
+    <view class="actions">
+      <button class="text-btn" bindtap="onContinue">继续学习</button>
+      <button class="text-btn" bindtap="onStar">{{starred ? '已收藏' : '收藏此课'}}</button>
+    </view>
   </view>
   <view class="error" wx:if="{{error}}">{{error}}</view>
   <scroll-view scroll-x class="tabs" wx:if="{{tabs.length}}">
@@ -19,7 +26,7 @@
     <view class="empty-icon">
       <ui-icon name="file" size="48" color="#999999"></ui-icon>
     </view>
-    本课还没有「{{current.label}}」。回到智学，先走完 10 步再生成。
+    本课还没有「{{current.label}}」。点「继续学习」走完 10 步后再生成。
   </view>
   <view class="article" wx:elif="{{current && current.blocks.length}}">
     <block wx:for="{{current.blocks}}" wx:for-item="block" wx:key="id">

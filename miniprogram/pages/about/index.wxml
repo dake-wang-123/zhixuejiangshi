@@ -1,0 +1,22 @@
+<view class="page">
+  <view class="hero">
+    <text class="eyebrow">ABOUT</text>
+    <text class="hero-title">家庭教育讲师自学</text>
+    <text class="hero-sub">用 10 步交付法带讲师备课。系统课走智学知识库，个人教案走你粘贴的正文。</text>
+  </view>
+  <view class="card">
+    <view class="title">这个小程序做什么</view>
+    <view class="desc">选课或上传教案，按自我介绍到收尾走完 10 步，再出讲课逐字稿、诊断报告、说课稿和 PPT 大纲。</view>
+  </view>
+  <view class="card" wx:if="{{isAdmin}}">
+    <view class="title">管理员</view>
+    <view class="muted">你已经开通归档上传。</view>
+    <button class="btn" bindtap="onUpload">课程归档上传</button>
+  </view>
+  <view class="card" wx:else>
+    <view class="title">管理员入口</view>
+    <view class="muted">只有登记过的管理员能上传 60 课原件。</view>
+    <input class="field" type="number" placeholder="管理员手机号" value="{{adminCode}}" bindinput="onAdminCode" />
+    <button class="btn btn-ghost" bindtap="onUnlock">开通管理员上传</button>
+  </view>
+</view>

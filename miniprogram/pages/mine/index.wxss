@@ -1,9 +1,149 @@
-.grow { flex: 1; min-width: 0; }
-.mini { margin-right: 12rpx; }
-.ppt-row {
+.mine-page {
+  min-height: 100vh;
+  padding: 0 0 calc(140rpx + env(safe-area-inset-bottom));
+  background: #F4F5F7;
+  box-sizing: border-box;
+}
+
+.profile {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  margin-top: 12rpx;
+  padding: 40rpx 40rpx 36rpx;
+  background: #FFFFFF;
 }
-.area { min-height: 180rpx; }
+
+.avatar-wrap {
+  margin-right: 24rpx;
+  flex-shrink: 0;
+}
+
+.avatar {
+  width: 120rpx;
+  height: 120rpx;
+  border-radius: 50%;
+  background: #EEF1FE;
+}
+
+.avatar-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.nickname {
+  display: block;
+  font-size: 40rpx;
+  font-weight: 700;
+  color: #333333;
+  line-height: 1.5;
+}
+
+.login-tag {
+  display: block;
+  margin-top: 8rpx;
+  font-size: 24rpx;
+  color: #999999;
+  line-height: 1.6;
+}
+
+.pad {
+  padding: 0 32rpx;
+}
+
+.vip {
+  margin: 24rpx 32rpx 0;
+  padding: 32rpx;
+  border-radius: 24rpx;
+  background: #3C3428;
+  display: flex;
+  align-items: center;
+}
+
+.vip.on {
+  background: #2F2A22;
+}
+
+.vip-kicker {
+  display: block;
+  font-size: 20rpx;
+  letter-spacing: 2rpx;
+  color: #C9A36A;
+  line-height: 1.6;
+}
+
+.vip-title {
+  display: block;
+  margin-top: 4rpx;
+  font-size: 36rpx;
+  font-weight: 700;
+  color: #F7E7C1;
+  line-height: 1.5;
+}
+
+.vip-sub {
+  display: block;
+  margin-top: 8rpx;
+  font-size: 24rpx;
+  color: #D8C39A;
+  line-height: 1.6;
+}
+
+.vip-go {
+  flex-shrink: 0;
+  margin-left: 16rpx;
+  font-size: 24rpx;
+  color: #C9A36A;
+}
+
+.menu {
+  margin: 24rpx 32rpx 0;
+  background: #FFFFFF;
+  border-radius: 24rpx;
+  overflow: hidden;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  padding: 32rpx;
+}
+
+.row + .row {
+  border-top: 1rpx solid #F0F0F0;
+}
+
+.row-icon {
+  width: 56rpx;
+  height: 56rpx;
+  margin-right: 20rpx;
+  border-radius: 16rpx;
+  background: #EEF1FE;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.row-title {
+  display: block;
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #333333;
+  line-height: 1.6;
+}
+
+.row-sub {
+  display: block;
+  margin-top: 4rpx;
+  font-size: 22rpx;
+  color: #999999;
+  line-height: 1.6;
+}
+
+.row-meta {
+  margin-right: 8rpx;
+  font-size: 24rpx;
+  color: #999999;
+}
+
+.grow { flex: 1; min-width: 0; }

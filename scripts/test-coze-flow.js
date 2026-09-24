@@ -330,6 +330,30 @@ assert.ok(clipped.text.indexOf('截断') >= 0)
 assert.ok(startPrompt({ title: '破解分离焦虑', source: 'personal', planText: '全文' }).indexOf('个人教案正文') >= 0)
 assert.strictEqual(startPrompt({ title: '破解分离焦虑' }), '破解分离焦虑')
 
+const accountView = require('../miniprogram/utils/account-view.js')
+assert.strictEqual(accountView.displayName({ username: '林老师' }), '林老师')
+assert.strictEqual(accountView.avatarUrl({ profileImageUrl: { url: 'https://a/b.png' } }), 'https://a/b.png')
+assert.strictEqual(accountView.membershipView(null).label, '未开通')
+assert.strictEqual(accountView.membershipView({ expire_time: '2099-12-01', level: '年度会员' }).active, true)
+
+const learnRecords = require('../miniprogram/utils/learn-records.js')
+assert.strictEqual(learnRecords.progressLabel({ completedSteps: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] }), '已完成10步')
+assert.ok(learnRecords.progressLabel({ currentStep: 3, completedSteps: [1, 2] }).indexOf('第3步') >= 0)
+const merged = learnRecords.mergeRecords([
+  { lesson_code: 'B01', topic_title: '破解分离焦虑', role: 'assistant', content: '【当前步骤：3】【步骤完成：2】', created_at: '2' }
+], [
+  { lesson_code: 'B01', topic_title: '破解分离焦虑', result_type: '讲课逐字稿', content: '稿', created_at: '3' }
+])
+assert.strictEqual(merged[0].lessonCode, 'B01')
+assert.ok(merged[0].progressText)
+assert.ok(merged[0].readyCount >= 1)
+
+const fav = require('../miniprogram/utils/favorites.js')
+fav.toggleFavorite({ lessonCode: 'A04', topicTitle: '物权意识敏感期' })
+assert.strictEqual(fav.hasFavorite('A04'), true)
+fav.toggleFavorite({ lessonCode: 'A04', topicTitle: '物权意识敏感期' })
+assert.strictEqual(fav.hasFavorite('A04'), false)
+
 const learnResults = require('../miniprogram/utils/learn-results.js')
 const exam1 = learnResults.parseExam([
   '【检验1】',

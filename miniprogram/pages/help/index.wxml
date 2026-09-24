@@ -1,0 +1,24 @@
+<view class="page">
+  <view class="hero">
+    <text class="eyebrow">HELP</text>
+    <text class="hero-title">帮助中心</text>
+    <text class="hero-sub">10 步没走完不能出讲稿。个人教案请粘贴正文，不要只传 Word。</text>
+  </view>
+  <view class="card">
+    <view class="title">怎么开始一节课？</view>
+    <view class="desc">在课程目录点课号，或在顶部粘贴自己的教案。智学会按十步交付法往下问。</view>
+  </view>
+  <view class="card">
+    <view class="title">学习记录里为什么是空的？</view>
+    <view class="desc">至少要在智学里发出过一轮对话。记录按登录用户过滤，换账号看不到上一份。</view>
+  </view>
+  <view class="card">
+    <view class="title">讲稿存在哪？</view>
+    <view class="desc">检验 1 / 检验 2 完成后写入「学习成果」表。在学习记录里点开那门课，用顶部标签切换。</view>
+  </view>
+  <view class="card">
+    <view class="title">意见反馈</view>
+    <textarea class="area" placeholder="功能问题、课题建议、解析不准，都可以写在这里。" value="{{feedback}}" bindinput="onFeedback" maxlength="1000" auto-height></textarea>
+    <button class="btn btn-ghost" bindtap="onSend" disabled="{{sending}}">提交反馈</button>
+  </view>
+</view>

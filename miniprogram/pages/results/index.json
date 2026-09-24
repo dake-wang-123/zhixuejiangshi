@@ -2,6 +2,6 @@
   "usingComponents": {
     "ui-icon": "/components/icon/icon"
   },
-  "navigationBarTitleText": "我的学习成果",
+  "navigationBarTitleText": "学习记录",
   "enablePullDownRefresh": true
 }

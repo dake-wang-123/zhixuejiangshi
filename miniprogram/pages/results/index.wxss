@@ -24,3 +24,12 @@
   background: #F3F4F6;
   color: #999999;
 }
+
+.star {
+  font-size: 22rpx;
+  color: #999999;
+}
+
+.star.on {
+  color: #C9A36A;
+}

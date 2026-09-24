@@ -103,6 +103,22 @@ function listMessages(lessonCode, topicTitle, token) {
   })
 }
 
+function listAllMessages(token) {
+  const query = `
+    query AllLearnMessages {
+      learn_message(order_by: { created_at: asc }, limit: 400) {
+        id
+        lesson_code
+        topic_title
+        role
+        content
+        created_at
+      }
+    }
+  `
+  return graphqlRequest(query, {}, token).then((data) => data.learn_message || [])
+}
+
 function lastRow(token) {
   const query = `
     query LastLearnMessage {
@@ -176,6 +192,7 @@ module.exports = {
   readLastScope: readLastScope,
   rowsToSession: rowsToSession,
   listMessages: listMessages,
+  listAllMessages: listAllMessages,
   lastRow: lastRow,
   saveRows: saveRows,
   clearLesson: clearLesson,

@@ -8,6 +8,10 @@
     "pages/mine/index",
     "pages/results/index",
     "pages/results/detail",
+    "pages/vip/index",
+    "pages/favorites/index",
+    "pages/help/index",
+    "pages/about/index",
     "pages/admin/upload"
   ],
   "window": {

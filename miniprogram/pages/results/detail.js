@@ -1,5 +1,9 @@
 const app = getApp()
 const results = require('../../utils/learn-results.js')
+const history = require('../../utils/learn-history.js')
+const { inferProgress, PENDING_LESSON_KEY } = require('../../utils/flow.js')
+const { progressLabel, progressRatio } = require('../../utils/learn-records.js')
+const favorites = require('../../utils/favorites.js')
 
 Page({
   data: {
@@ -10,12 +14,17 @@ Page({
     tabs: [],
     active: 'script',
     current: null,
-    showCopy: false
+    showCopy: false,
+    progressText: '',
+    percent: 0,
+    starred: false
   },
   onLoad(query) {
+    const lessonCode = decodeURIComponent(query.lessonCode || query.code || '')
     this.setData({
-      lessonCode: decodeURIComponent(query.lessonCode || query.code || ''),
-      topicTitle: decodeURIComponent(query.title || '')
+      lessonCode: lessonCode,
+      topicTitle: decodeURIComponent(query.title || ''),
+      starred: favorites.hasFavorite(lessonCode)
     })
   },
   onShow() {
@@ -26,24 +35,34 @@ Page({
   },
   load() {
     const code = this.data.lessonCode
+    const title = this.data.topicTitle
     this.setData({ loading: true, error: '' })
     return app.ensureLogin().then(() => {
-      return results.listLesson(code, app.getToken())
-    }).then((rows) => {
+      return Promise.all([
+        results.listLesson(code, app.getToken()),
+        history.listMessages(code, title, app.getToken()).catch(() => [])
+      ])
+    }).then((pair) => {
+      const rows = pair[0]
+      const messages = pair[1]
       const tabs = results.tabsFromRows(rows, this.data.topicTitle)
       const firstReady = tabs.filter((item) => item.ready)[0]
       const active = this.pickActive(tabs, this.data.active || (firstReady && firstReady.kind) || 'script')
       const topic = (firstReady && firstReady.topicTitle) || this.data.topicTitle || code
+      const progress = inferProgress(history.rowsToSession(messages, topic).messages)
       this.setData({
         loading: false,
         topicTitle: topic,
-        tabs: tabs
+        tabs: tabs,
+        progressText: progressLabel(progress),
+        percent: progressRatio(progress),
+        starred: favorites.hasFavorite(code)
       })
       this.applyTab(active)
     }).catch((err) => {
       this.setData({
         loading: false,
-        error: (err && err.message) || '读取成果失败'
+        error: (err && err.message) || '读取学习记录失败'
       })
     })
   },
@@ -66,6 +85,22 @@ Page({
     const kind = e.currentTarget.dataset.kind
     if (!kind) return
     this.applyTab(kind)
+  },
+  onStar() {
+    const next = favorites.toggleFavorite({
+      lessonCode: this.data.lessonCode,
+      topicTitle: this.data.topicTitle
+    })
+    this.setData({ starred: next.on })
+  },
+  onContinue() {
+    try {
+      wx.setStorageSync(PENDING_LESSON_KEY, {
+        lessonCode: this.data.lessonCode,
+        title: this.data.topicTitle
+      })
+    } catch (e) {}
+    wx.switchTab({ url: '/pages/agent/index' })
   },
   onCopyOutline() {
     const current = this.data.current || {}

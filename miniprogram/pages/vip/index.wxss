@@ -1,0 +1,21 @@
+.vip-hero {
+  margin-bottom: 24rpx;
+  padding: 36rpx 32rpx;
+  border-radius: 24rpx;
+  background: #3C3428;
+}
+
+.vip-kicker {
+  display: block;
+  font-size: 20rpx;
+  letter-spacing: 2rpx;
+  color: #C9A36A;
+}
+
+.vip-sub {
+  display: block;
+  margin-top: 10rpx;
+  font-size: 26rpx;
+  color: #D8C39A;
+  line-height: 1.7;
+}

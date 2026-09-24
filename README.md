@@ -70,6 +70,7 @@ https://zion-app.functorz.com/zero/PO76RBe9KX0/api/graphql-v2
    - Zion 的 TPA **不能**把 `stream` 设为 true（SSE）。缩短等待必须靠扣子端分段输出，提示词见 `docs/zion-coze-stream.md`
    - 表字段、行为流节点、列表绑定见 `docs/zion-learn-history.md`
    - `lesson_code` 报错与微信输入条见 `docs/zion-chat-composer.md`
+   - 教案阅读排版与扣子强制 Markdown 提示词见 `docs/zion-readable-lesson.md`
 4. Coze `4100` 是令牌本身无效；`4101` 是令牌没有访问该 Bot / 接口的权限。Bot 未发布到 **Agent As API** 时，流程会提示去 coze.cn 发布。
 
 ## 课件 PPT

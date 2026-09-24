@@ -332,14 +332,66 @@ page {
 .msg-ai-meta {
   font-size: 24rpx;
   color: #999999;
-  margin-bottom: 10rpx;
+  margin-bottom: 16rpx;
   line-height: 1.6;
 }
 
 .msg-ai-body {
   font-size: 32rpx;
-  line-height: 1.7;
+  line-height: 1.8;
   color: #333333;
+}
+
+.ai-article {
+  padding: 0;
+}
+
+.ai-block {
+  margin: 0 0 36rpx;
+  padding: 8rpx 8rpx 8rpx 20rpx;
+  border-left: 6rpx solid #E8E8E8;
+  box-sizing: border-box;
+  color: #333333;
+  font-size: 32rpx;
+  line-height: 1.8;
+}
+
+.ai-heading {
+  border-left-color: #4B6EF5;
+  margin-top: 8rpx;
+  margin-bottom: 20rpx;
+  padding-top: 4rpx;
+}
+
+.ai-para {
+  border-left-color: #E0E0E0;
+}
+
+.ai-list {
+  border-left-color: #C5CDE8;
+}
+
+.ai-quote,
+.ai-script {
+  background: #EEF1FE;
+  border-left-color: #4B6EF5;
+  border-radius: 0 12rpx 12rpx 0;
+  padding: 16rpx 20rpx 16rpx 22rpx;
+}
+
+.ai-ask {
+  background: #FFF8E7;
+  border-left-color: #F5A623;
+  border-radius: 0 12rpx 12rpx 0;
+  padding: 16rpx 20rpx 16rpx 22rpx;
+}
+
+.ai-kicker {
+  margin-bottom: 8rpx;
+  font-size: 22rpx;
+  color: #999999;
+  letter-spacing: 2rpx;
+  line-height: 1.6;
 }
 
 .msg-user {

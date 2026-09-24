@@ -226,7 +226,7 @@ assert.strictEqual(findLessonCode(sixty[0].title), 'A01')
 const markdown = require('../miniprogram/utils/markdown.js')
 const md = markdown.toNodes('## 第一步\n请先自我介绍。\n\n- 姓名\n- 教龄\n\n**注意**这句')
 assert.ok(md.length >= 3)
-assert.strictEqual(md[0].attrs.style.indexOf('18px') >= 0, true)
+assert.strictEqual(md[0].attrs.style.indexOf('17px') >= 0, true)
 const decorated = markdown.decorateThread([
   { id: 1, role: 'user', content: '你好' },
   { id: 2, role: 'assistant', content: '## 引导\n请回答。' },
@@ -234,6 +234,31 @@ const decorated = markdown.decorateThread([
 ])
 assert.strictEqual(decorated.length, 2)
 assert.ok(decorated[1].nodes && decorated[1].nodes.length)
+assert.ok(decorated[1].blocks && decorated[1].blocks.length >= 2)
+assert.strictEqual(decorated[1].blocks[0].kind, 'heading')
+
+const lessonBlocks = markdown.toBlocks([
+  '## 核心逻辑',
+  '家长先接住情绪，再谈规则。这一步只处理当下的哭闹，不讲大道理。',
+  '',
+  '## 场景话术',
+  '> 妈妈看见你很着急，我们先抱一抱，等你缓过来再一起想办法。',
+  '',
+  '## 下一步提问',
+  '刚才这句，你会改成自己的哪一版？'
+].join('\n'))
+assert.strictEqual(lessonBlocks.some((item) => item.kind === 'heading'), true)
+assert.strictEqual(lessonBlocks.some((item) => item.kind === 'script'), true)
+assert.strictEqual(lessonBlocks[lessonBlocks.length - 1].kind, 'ask')
+assert.strictEqual(lessonBlocks[lessonBlocks.length - 1].kicker, '下一步提问')
+
+const wall = markdown.toBlocks('讲师在课堂里常常一口气讲完所有理论，家长听着吃力，孩子也坐不住。先把目标收成一件事。你准备先处理哪一个现场？')
+assert.ok(wall.length >= 2)
+assert.strictEqual(wall[wall.length - 1].kind, 'ask')
+
+const listedBlocks = markdown.toBlocks('1. 先点头 2. 再复述 3. 最后给选择')
+assert.strictEqual(listedBlocks[0].kind, 'list')
+assert.ok(listedBlocks[0].nodes.length >= 3)
 
 const typewriter = require('../miniprogram/utils/typewriter.js')
 assert.strictEqual(typewriter.stepSize(20), 2)

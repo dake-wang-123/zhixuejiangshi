@@ -25,7 +25,14 @@
         </view>
         <view id="m-{{item.id}}" class="msg msg-ai" wx:else>
           <view class="msg-ai-meta">智学</view>
-          <rich-text class="msg-ai-body" nodes="{{item.nodes}}" wx:if="{{item.nodes.length}}"></rich-text>
+          <view class="ai-article" wx:if="{{item.blocks.length}}">
+            <block wx:for="{{item.blocks}}" wx:for-item="block" wx:key="id">
+              <view class="ai-block ai-{{block.kind}}">
+                <view class="ai-kicker" wx:if="{{block.kicker}}">{{block.kicker}}</view>
+                <rich-text nodes="{{block.nodes}}"></rich-text>
+              </view>
+            </block>
+          </view>
           <view class="msg-ai-body" wx:else>{{item.content}}</view>
           <text class="cursor" wx:if="{{item.streaming}}">▍</text>
         </view>

@@ -130,7 +130,7 @@ Page({
   onStartTopic() {
     const title = String(this.data.topicDraft || '').trim()
     if (!title) {
-      wx.showToast({ title: '请先输入课题原题', icon: 'none' })
+      wx.showToast({ title: '请先输入课程标题', icon: 'none' })
       return
     }
     this.setData({

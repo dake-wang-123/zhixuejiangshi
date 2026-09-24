@@ -10,7 +10,10 @@
     <view class="study-top">
       <view class="kicker">{{lessonCode ? ('课号 ' + lessonCode) : (course.category_id.name || '智学伴练')}}</view>
       <view class="title">{{displayTitle}}</view>
-      <text class="sub">按 10 步交付往下走。点已打卡的步骤可回看或重学。</text>
+      <view class="guide-block">
+        <text class="guide-line">十步交付法带你吃透课程</text>
+        <text class="guide-line">一路通关：模拟讲课 · 诊断评价 · 说课训练，产出全套逐字稿及PPT框架</text>
+      </view>
       <view class="actions">
         <button class="text-btn" bindtap="onRetry" wx:if="{{error}}">再问一次</button>
       </view>
@@ -28,7 +31,7 @@
         <text class="review-link" bindtap="onReplayStep">重新学习此步</text>
       </view>
       <view class="exam-gate" wx:if="{{finished}}">
-        <view class="exam-title">10步已完成</view>
+        <view class="exam-title">十步交付法已完成</view>
         <view class="exam-sub">先出讲课逐字稿，再做说课和课件。</view>
         <view class="exam-actions">
           <view class="exam-btn on" bindtap="onExam1">{{exam1Done ? '再出一份讲课逐字稿' : '实战演练 · 讲课逐字稿'}}</view>

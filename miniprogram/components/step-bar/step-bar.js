@@ -14,7 +14,7 @@ Component({
       const item = list[current] || {}
       this.setData({
         currentLabel: finished
-          ? '10步已完成'
+          ? '十步交付法已完成'
           : ((item.title ? ('第' + (item.n || current + 1) + '步 · ' + item.title) : ('第' + (current + 1) + '步')))
       })
     }

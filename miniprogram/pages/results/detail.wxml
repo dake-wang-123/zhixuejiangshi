@@ -26,7 +26,7 @@
     <view class="empty-icon">
       <ui-icon name="file" size="48" color="#999999"></ui-icon>
     </view>
-    本课还没有「{{current.label}}」。点「继续学习」走完 10 步后再生成。
+    本课还没有「{{current.label}}」。点「继续学习」走完十步交付法后再生成。
   </view>
   <view class="article" wx:elif="{{current && current.blocks.length}}">
     <block wx:for="{{current.blocks}}" wx:for-item="block" wx:key="id">

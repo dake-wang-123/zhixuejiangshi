@@ -17,7 +17,7 @@
     <view class="empty-icon">
       <ui-icon name="book" size="48" color="#999999"></ui-icon>
     </view>
-    还没有学习记录。去课程目录点一门课，或在顶部上传个人教案。
+    还没有学习记录。去课程目录点一门课，或点「上传个人教案」。
   </view>
   <view
     class="card lesson-card"

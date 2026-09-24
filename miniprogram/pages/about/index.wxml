@@ -2,11 +2,11 @@
   <view class="hero">
     <text class="eyebrow">ABOUT</text>
     <text class="hero-title">家庭教育讲师自学</text>
-    <text class="hero-sub">用 10 步交付法带讲师备课。系统课走智学知识库，个人教案走你粘贴的正文。</text>
+    <text class="hero-sub">用十步交付法带讲师备课。系统课走智学知识库，个人教案走你粘贴的正文。</text>
   </view>
   <view class="card">
     <view class="title">这个小程序做什么</view>
-    <view class="desc">选课或上传教案，按自我介绍到收尾走完 10 步，再出讲课逐字稿、诊断报告、说课稿和 PPT 大纲。</view>
+    <view class="desc">选课或上传教案，按自我介绍到收尾走完十步交付法，再出讲课逐字稿、诊断报告、说课稿和 PPT 大纲。</view>
   </view>
   <view class="card" wx:if="{{isAdmin}}">
     <view class="title">管理员</view>

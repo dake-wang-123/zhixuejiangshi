@@ -30,7 +30,7 @@ function clipPlan(text) {
   const raw = String(text || '').replace(/\r\n/g, '\n').trim()
   if (raw.length <= MAX_PLAN_CHARS) return { text: raw, truncated: false }
   return {
-    text: raw.slice(0, MAX_PLAN_CHARS) + '\n\n（后文已截断，智学先按前 ' + MAX_PLAN_CHARS + ' 字带你走 10 步。）',
+    text: raw.slice(0, MAX_PLAN_CHARS) + '\n\n（后文已截断，智学先按前 ' + MAX_PLAN_CHARS + ' 字带你走十步交付法。）',
     truncated: true
   }
 }

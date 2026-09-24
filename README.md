@@ -8,7 +8,7 @@
 
 | Tab | 做什么 |
 | --- | --- |
-| 课程 | 读取 Zion「课程目录」60 课；顶栏「上传个人教案」粘贴正文后进入智学 10 步 |
+| 课程 | 读取 Zion「课程目录」60 课；分类上方可折叠「上传个人教案」，粘贴正文后进入智学十步交付法 |
 | 智学 | 智学原文问答。系统课带课号进知识库；个人教案把全文放进 `user_message`，不新增行为流入参 |
 | 课件 | 独立页 `pages/ppt/index`：智学写 PPT 大纲 → 智谱 GLM PPT Agent 出片 → 写入 `ppt_record.file_url`，页面提供打开/复制下载 |
 | 我的 | 微信头像昵称、会员卡片、**学习记录**（按课看进度和成果）、收藏、帮助与关于 |
@@ -75,6 +75,7 @@ https://zion-app.functorz.com/zero/PO76RBe9KX0/api/graphql-v2
    - 去掉教案 Tab、目录顶栏个人教案见 `docs/zion-personal-plan.md`
    - 「我的」页、学习记录两层结构、会员卡片见 `docs/zion-mine-rebuild.md`
    - 智学未选课引导语、去掉顶栏「重新开始」见 `docs/zion-agent-empty.md`
+   - 目录页 60 堂课主干、个人教案降级见 `docs/zion-catalog-hierarchy.md`
 4. Coze `4100` 是令牌本身无效；`4101` 是令牌没有访问该 Bot / 接口的权限。Bot 未发布到 **Agent As API** 时，流程会提示去 coze.cn 发布。
 
 ## 课件 PPT

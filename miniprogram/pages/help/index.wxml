@@ -2,11 +2,11 @@
   <view class="hero">
     <text class="eyebrow">HELP</text>
     <text class="hero-title">帮助中心</text>
-    <text class="hero-sub">10 步没走完不能出讲稿。个人教案请粘贴正文，不要只传 Word。</text>
+    <text class="hero-sub">十步交付法没走完不能出讲稿。个人教案请粘贴正文，不要只传 Word。</text>
   </view>
   <view class="card">
     <view class="title">怎么开始一节课？</view>
-    <view class="desc">在课程目录点课号，或在顶部粘贴自己的教案。智学会按十步交付法往下问。</view>
+    <view class="desc">在课程目录点课号，或点「上传个人教案」粘贴正文。智学会按十步交付法往下问。</view>
   </view>
   <view class="card">
     <view class="title">学习记录里为什么是空的？</view>

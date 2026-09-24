@@ -2,8 +2,10 @@
   <view class="study-top {{course ? '' : 'compact'}}">
     <view class="kicker">{{lessonCode ? ('课号 ' + lessonCode) : '智学伴练'}}</view>
     <view class="title">{{displayTitle}}</view>
-    <text class="sub" wx:if="{{course.source === 'personal'}}">正在按你上传的个人教案走 10 步。点已打卡的步骤可回看或重学。</text>
-    <text class="sub" wx:elif="{{course}}">按 10 步交付往下走。点已打卡的步骤可回看或重学。</text>
+    <view class="guide-block" wx:if="{{course}}">
+      <text class="guide-line">十步交付法带你吃透课程</text>
+      <text class="guide-line">一路通关：模拟讲课 · 诊断评价 · 说课训练，产出全套逐字稿及PPT框架</text>
+    </view>
     <text class="guide" wx:else>你可以在课程目录选择一门课，或者上传个人教案，开始你的十步交付法学习旅程。</text>
     <view class="actions" wx:if="{{error}}">
       <button class="text-btn" bindtap="onRetry">再问一次</button>
@@ -33,7 +35,7 @@
       <text class="review-link" bindtap="onReplayStep">重新学习此步</text>
     </view>
     <view class="exam-gate" wx:if="{{finished}}">
-      <view class="exam-title">10步已完成</view>
+      <view class="exam-title">十步交付法已完成</view>
       <view class="exam-sub">先出讲课逐字稿，再做说课和课件。</view>
       <view class="exam-actions">
         <view class="exam-btn on" bindtap="onExam1">{{exam1Done ? '再出一份讲课逐字稿' : '实战演练 · 讲课逐字稿'}}</view>
@@ -46,7 +48,7 @@
   <view class="error" wx:if="{{error}}" style="padding: 12rpx 40rpx 0;">{{error}}</view>
   <scroll-view scroll-y class="thread" scroll-into-view="{{scrollInto}}" scroll-with-animation>
     <view class="thread-empty" wx:if="{{planning && !thread.length}}">{{hint || '正在恢复上次学习记录…'}}</view>
-    <view class="thread-empty" wx:elif="{{!thread.length && !sending}}">对话会出现在这里。选课、上传教案或输入课程标题后，按 10 步往下走。</view>
+    <view class="thread-empty" wx:elif="{{!thread.length && !sending}}">对话会出现在这里。选课、上传教案或输入课程标题后，按十步交付法往下走。</view>
     <block wx:for="{{thread}}" wx:key="id">
       <view id="{{item.anchor}}" wx:if="{{item.anchor}}"></view>
       <view id="m-{{item.id}}" class="msg msg-user" wx:if="{{item.role === 'user'}}">

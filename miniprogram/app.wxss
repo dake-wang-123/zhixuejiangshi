@@ -287,6 +287,21 @@ page {
   line-height: 1.6;
 }
 
+.study-top .guide-block {
+  margin: 16rpx 0 12rpx;
+}
+
+.study-top .guide-line {
+  display: block;
+  font-size: 28rpx;
+  color: #4B6EF5;
+  line-height: 1.6;
+}
+
+.study-top .guide-line + .guide-line {
+  margin-top: 10rpx;
+}
+
 .study-top .actions {
   margin-top: 12rpx;
   display: flex;

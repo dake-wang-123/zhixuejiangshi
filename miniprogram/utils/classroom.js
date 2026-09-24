@@ -99,7 +99,7 @@ function paint(page, session) {
     thread: thread,
     followUps: (session && session.followUps) || [],
     thinking: false,
-    hint: topic ? ('课题：' + topic) : '按 10 步交付往下走'
+    hint: topic ? ('课题：' + topic) : '按十步交付法往下走'
   })
   if (!(session && session.viewingStep)) scrollBottom(page)
   return session
@@ -513,7 +513,7 @@ function backToLive(page) {
 
 function startExam1(page) {
   if (!(page.data && page.data.finished)) {
-    wx.showToast({ title: '先把 10 步学完', icon: 'none' })
+    wx.showToast({ title: '先把十步交付法学完', icon: 'none' })
     return
   }
   askZhixue(page, exam1Prompt(), { command: 'exam1', step: 11 })

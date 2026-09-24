@@ -102,7 +102,7 @@ Page({
       if (personal) {
         this.setData({
           planning: true,
-          hint: '正在按你的个人教案开始 10 步…'
+          hint: '正在按你的个人教案开始十步交付法…'
         })
         return classroom.startCourseFlow(this, this.data.course)
       }

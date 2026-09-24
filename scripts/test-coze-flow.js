@@ -18,7 +18,10 @@ const {
   paintStepViews,
   packTurn,
   exam1Prompt,
-  exam2Prompt
+  exam2Prompt,
+  extractNextStep,
+  startStepPrompt,
+  stripGateMarkers
 } = require('../miniprogram/utils/flow.js')
 const { extractReply, chatSettled, isFlowCrash } = require('../miniprogram/utils/agent.js')
 const { friendlyError } = require('../miniprogram/utils/errors.js')
@@ -31,6 +34,16 @@ assert.strictEqual(firstLiveIndex(), 0)
 assert.strictEqual(detectProgress('【当前步骤：3】\n## 目标价值').currentStep, 3)
 assert.strictEqual(detectProgress('【步骤完成：2】').completedStep, 2)
 assert.strictEqual(detectProgress('【十步完成】').allTenDone, true)
+assert.strictEqual(extractNextStep('[下一关: 4]').nextStep, 4)
+assert.strictEqual(extractNextStep('[下一关：11]').allTenDone, true)
+assert.strictEqual(extractNextStep('恭喜你完成第三关，现在进入第四关').nextStep, 4)
+assert.strictEqual(extractNextStep('完成这一关，我们继续', 3).nextStep, 4)
+assert.strictEqual(extractNextStep('你好呀，先自我介绍').nextStep, 0)
+assert.ok(startStepPrompt(4).indexOf('请开始第4步的内容') >= 0)
+assert.strictEqual(stripGateMarkers('正文\n[下一关: 5]').indexOf('下一关') < 0, true)
+const gated = applyProgress({ currentStep: 3, completedSteps: [1, 2] }, detectProgress('恭喜完成第三关\n[下一关: 4]'), 'reply')
+assert.strictEqual(gated.currentStep, 4)
+assert.ok(gated.completedSteps.indexOf(3) >= 0)
 const moved = applyProgress({ currentStep: 2, completedSteps: [1] }, detectProgress('【当前步骤：3】【步骤完成：2】'), 'reply')
 assert.deepStrictEqual(moved.completedSteps, [1, 2])
 assert.strictEqual(moved.currentStep, 3)

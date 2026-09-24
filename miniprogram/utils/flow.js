@@ -2,7 +2,7 @@ const { shortTitle } = require('./study.js')
 const { matchCanonical } = require('./coze-catalog.js')
 const { packPersonalStart, sourceOf } = require('./personal-plan.js')
 
-const FLOW_VERSION = 12
+const FLOW_VERSION = 13
 const OPEN_SESSION_ID = 'open'
 const PENDING_TOPIC_KEY = 'zhixue_pending_topic'
 const PENDING_LESSON_KEY = 'zhixue_pending_lesson'
@@ -50,21 +50,91 @@ function listFlowSteps() {
   }))
 }
 
-function detectProgress(text) {
+const CN_GATE = {
+  一: 1, 二: 2, 两: 2, 三: 3, 四: 4, 五: 5, 六: 6, 七: 7, 八: 8, 九: 9, 十: 10
+}
+
+function parseGateNum(raw) {
+  const token = String(raw || '').trim()
+  if (!token) return 0
+  if (/^\d{1,2}$/.test(token)) return clampStep(token, 12)
+  if (CN_GATE[token]) return CN_GATE[token]
+  return 0
+}
+
+function stripGateMarkers(text) {
+  return String(text || '')
+    .replace(/\[\s*下一关\s*[:：]\s*[^\]]+\]/g, '')
+    .replace(/\[\s*当前关\s*[:：]\s*[^\]]+\]/g, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
+}
+
+function extractNextStep(text, currentStep) {
   const src = String(text || '')
+  const current = clampStep(currentStep || 1, 10)
   const result = {
-    currentStep: 0,
+    nextStep: 0,
     completedStep: 0,
-    allTenDone: /【十步完成】/.test(src) || /10\s*步已完成/.test(src),
+    cleared: false,
+    allTenDone: /【十步完成】/.test(src) || /10\s*步已完成/.test(src)
+  }
+  const marker = src.match(/\[\s*下一关\s*[:：]\s*(\d{1,2}|[一二三四五六七八九十两])\s*\]/)
+  if (marker) {
+    result.nextStep = parseGateNum(marker[1])
+    result.cleared = true
+    if (result.nextStep >= 2) result.completedStep = Math.min(10, result.nextStep - 1)
+    if (result.nextStep >= 11) result.allTenDone = true
+  }
+  if (!result.nextStep) {
+    const enter = src.match(/进入第\s*(\d{1,2}|[一二三四五六七八九十两])\s*[关步]/)
+    const done = src.match(/(?:恭喜.{0,12})?完成第\s*(\d{1,2}|[一二三四五六七八九十两])\s*[关步]/)
+    if (enter) result.nextStep = parseGateNum(enter[1])
+    else if (done) result.nextStep = Math.min(11, parseGateNum(done[1]) + 1)
+    if (result.nextStep) {
+      result.cleared = true
+      if (done) result.completedStep = parseGateNum(done[1])
+      else if (result.nextStep >= 2) result.completedStep = result.nextStep - 1
+    }
+  }
+  const taggedDone = src.match(/【步骤完成[:：]\s*(\d{1,2})\s*】/)
+  if (taggedDone) {
+    result.completedStep = clampStep(taggedDone[1], 10)
+    result.cleared = true
+    if (!result.nextStep) result.nextStep = Math.min(11, result.completedStep + 1)
+  }
+  const taggedCur = src.match(/【当前步骤[:：]\s*(\d{1,2})\s*】/)
+    || src.match(/(?:^|\n)\s*current_step\s*=\s*(\d{1,2})/)
+  if (taggedCur && !result.nextStep) result.nextStep = clampStep(taggedCur[1], 12)
+  if (!result.nextStep && /完成这一关|进入下一关|开始下一关|我们进入下一/.test(src)) {
+    result.nextStep = Math.min(10, current + 1)
+    result.completedStep = current
+    result.cleared = true
+  }
+  if (result.allTenDone && !result.nextStep) result.nextStep = 11
+  if (result.nextStep >= 11) result.allTenDone = true
+  return result
+}
+
+function startStepPrompt(n) {
+  const meta = stepMeta(n)
+  return '请开始第' + meta.n + '步的内容。本步是「' + meta.title + '」。只讲这一步并提问，不要跳步，不要写【步骤完成】，不要写[下一关]。第一行写【当前步骤：' + meta.n + '】。'
+}
+
+function detectProgress(text, currentStep) {
+  const src = String(text || '')
+  const gate = extractNextStep(src, currentStep)
+  const result = {
+    currentStep: gate.nextStep || 0,
+    completedStep: gate.completedStep || 0,
+    allTenDone: gate.allTenDone,
     exam1Done: /【检验1完成】/.test(src),
     exam2Done: /【检验2完成】/.test(src)
   }
-  const done = src.match(/【步骤完成[:：]\s*(\d{1,2})\s*】/)
-  if (done) result.completedStep = clampStep(done[1], 10)
-  const cur = src.match(/【当前步骤[:：]\s*(\d{1,2})\s*】/)
-    || src.match(/(?:^|\n)\s*current_step\s*=\s*(\d{1,2})/)
-    || src.match(/第\s*(\d{1,2})\s*步/)
-  if (cur) result.currentStep = clampStep(cur[1], 12)
+  if (!result.currentStep) {
+    const cur = src.match(/第\s*(\d{1,2})\s*步/)
+    if (cur) result.currentStep = clampStep(cur[1], 12)
+  }
   if (!result.currentStep) {
     DELIVERY_STEPS.forEach((step) => {
       if (src.indexOf('## ' + step.title) >= 0) result.currentStep = step.n
@@ -129,7 +199,7 @@ function inferProgress(messages) {
   ;(messages || []).forEach((item) => {
     if (!item || item.hidden || item.failed) return
     const tagged = Number(item.step) || 0
-    const detected = item.role === 'assistant' ? detectProgress(item.content) : {}
+    const detected = item.role === 'assistant' ? detectProgress(item.content, state.currentStep) : {}
     if (tagged >= 11) detected.currentStep = tagged
     else if (tagged && !detected.currentStep) detected.currentStep = tagged
     state = applyProgress(state, detected, item.command || '')
@@ -329,6 +399,10 @@ module.exports = {
   topicTitleOf: topicTitleOf,
   startPrompt: startPrompt,
   detectAdvance: detectAdvance,
+  parseGateNum: parseGateNum,
+  extractNextStep: extractNextStep,
+  stripGateMarkers: stripGateMarkers,
+  startStepPrompt: startStepPrompt,
   detectProgress: detectProgress,
   applyProgress: applyProgress,
   inferProgress: inferProgress,

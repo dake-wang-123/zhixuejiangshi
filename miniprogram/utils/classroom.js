@@ -16,6 +16,8 @@ const {
   paintStepViews,
   packTurn,
   stepMeta,
+  startStepPrompt,
+  stripGateMarkers,
   replayPrompt,
   exam1Prompt,
   exam2Prompt
@@ -84,9 +86,32 @@ function paintProgress(page, session) {
   return progress
 }
 
+function maybeAutoAdvance(page, prevProgress, nextProgress, command) {
+  if (command === 'auto_next' || command === 'replay_step' || command === 'exam1' || command === 'exam2') return
+  if (nextProgress.finished || ((nextProgress.completedSteps || []).length >= 10)) return
+  const next = Number(nextProgress.currentStep) || 0
+  const prev = Number((prevProgress && prevProgress.currentStep) || 1)
+  if (next < 1 || next > 10) return
+  if (next <= prev && !((nextProgress.completedSteps || []).length > ((prevProgress && prevProgress.completedSteps) || []).length)) return
+  if (page._autoAdvanceTimer) clearTimeout(page._autoAdvanceTimer)
+  page._autoAdvanceTimer = setTimeout(() => {
+    page._autoAdvanceTimer = null
+    if (page.data.sending || page._busy) return
+    askZhixue(page, startStepPrompt(next), {
+      command: 'auto_next',
+      step: next,
+      preview: '进入第' + next + '步'
+    })
+  }, 360)
+}
+
 function paint(page, session) {
   typewriter.stop(page)
-  const thread = markAnchors(decorateThread(((session && session.messages) || []).filter((item) => !item.hidden))).map((item) => {
+  const visible = ((session && session.messages) || []).filter((item) => !item.hidden).map((item) => {
+    if (item.role !== 'assistant') return item
+    return Object.assign({}, item, { content: stripGateMarkers(item.content) })
+  })
+  const thread = markAnchors(decorateThread(visible)).map((item) => {
     if (item.role !== 'user') return item
     const next = Object.assign({}, item)
     next.preview = shortUserText(item.content)
@@ -237,6 +262,10 @@ function startWaitClock(page) {
 function stopLive(page) {
   typewriter.stop(page)
   stopWaitClock(page)
+  if (page._autoAdvanceTimer) {
+    clearTimeout(page._autoAdvanceTimer)
+    page._autoAdvanceTimer = null
+  }
   page.setData({ thinking: false })
 }
 
@@ -245,6 +274,10 @@ function askZhixue(page, text, options) {
   const prompt = String(text || '').trim()
   if (!prompt || page.data.sending || page._busy) return Promise.resolve()
   page._busy = true
+  if (page._autoAdvanceTimer) {
+    clearTimeout(page._autoAdvanceTimer)
+    page._autoAdvanceTimer = null
+  }
   stopLive(page)
   const preview = readSession(page.sessionKey()) || {}
   const progress = progressOf(preview)
@@ -283,15 +316,16 @@ function askZhixue(page, text, options) {
     if (!next || next === typed) return
     typed = next
     stopWaitClock(page)
-    typewriter.play(page, pending, next, {
+    typewriter.play(page, pending, stripGateMarkers(next), {
       id: 'coze-live-' + (result.chatId || 'turn'),
       followUps: [],
       step: step
     })
   }).then((result) => {
     const finalText = String((result && result.reply) || typed)
-    const detected = detectProgress(finalText)
-    const nextProgress = applyProgress(progressOf(preview), detected, command)
+    const prevProgress = progressOf(preview)
+    const detected = detectProgress(finalText, prevProgress.currentStep)
+    const nextProgress = applyProgress(prevProgress, detected, command)
     if (command === 'exam1' && finalText) nextProgress.exam1Done = true
     if (command === 'exam2' && finalText) nextProgress.exam2Done = true
     persist(page, {
@@ -309,7 +343,7 @@ function askZhixue(page, text, options) {
       currentIndex: Math.max(0, nextProgress.currentStep - 1)
     }, { skipPaint: true })
     stopWaitClock(page)
-    return typewriter.play(page, pending, finalText, {
+    return typewriter.play(page, pending, stripGateMarkers(finalText), {
       id: 'coze-live-' + ((result && result.chatId) || 'turn'),
       followUps: (result && result.followUps) || [],
       step: nextProgress.currentStep
@@ -321,6 +355,7 @@ function askZhixue(page, text, options) {
       if (typeof page.saveProgress === 'function') {
         page.saveProgress(nextProgress.completedSteps.length, 10)
       }
+      maybeAutoAdvance(page, prevProgress, nextProgress, command)
       return backupTurn(page, prompt, result).then(() => backupResults(page, command, result))
     })
   }).catch((err) => {

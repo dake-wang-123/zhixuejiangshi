@@ -79,6 +79,7 @@ https://zion-app.functorz.com/zero/PO76RBe9KX0/api/graphql-v2
    - 智学去掉标题输入、「我的」去掉归档、引导语统一蓝色见 `docs/zion-ui-subtract.md`
    - 选课 / 学习页引导文案见 `docs/zion-guide-copy.md`
    - 课程首页去掉重复「60 堂系统课」见 `docs/zion-catalog-eyebrow.md`
+   - 十步 1–10 关自动推进与 `[下一关: N]` 见 `docs/zion-auto-advance.md`
 4. Coze `4100` 是令牌本身无效；`4101` 是令牌没有访问该 Bot / 接口的权限。Bot 未发布到 **Agent As API** 时，流程会提示去 coze.cn 发布。
 
 ## 课件 PPT

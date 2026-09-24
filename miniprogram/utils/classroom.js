@@ -8,7 +8,16 @@ const {
 } = require('./session.js')
 const {
   startPrompt,
-  OPEN_GUIDE_PROMPT
+  OPEN_GUIDE_PROMPT,
+  detectProgress,
+  applyProgress,
+  inferProgress,
+  paintStepViews,
+  packTurn,
+  stepMeta,
+  replayPrompt,
+  exam1Prompt,
+  exam2Prompt
 } = require('./flow.js')
 const history = require('./learn-history.js')
 const typewriter = require('./typewriter.js')
@@ -20,18 +29,71 @@ const THINK_HINTS = [
   '马上把引导问题发给你…'
 ]
 
+function markAnchors(thread) {
+  const seen = {}
+  return (thread || []).map((item) => {
+    const next = Object.assign({}, item)
+    const step = Number(item.step) || 0
+    if (step && !seen[step]) {
+      seen[step] = true
+      next.anchor = 's-' + step
+    }
+    return next
+  })
+}
+
+function progressOf(session) {
+  const inferred = inferProgress((session && session.messages) || [])
+  const localDone = ((session && session.completedSteps) || []).length
+  const progress = localDone >= inferred.completedSteps.length
+    ? applyProgress(session || {}, {}, '')
+    : inferred
+  if (session && session.currentStep) progress.currentStep = session.currentStep
+  if (session && session.completedSteps && session.completedSteps.length >= progress.completedSteps.length) {
+    progress.completedSteps = session.completedSteps
+    progress.finished = session.completedSteps.length >= 10
+  }
+  if (session && session.exam1Done) progress.exam1Done = true
+  if (session && session.exam2Done) progress.exam2Done = true
+  return progress
+}
+
+function paintProgress(page, session) {
+  const progress = progressOf(session)
+  const steps = paintStepViews(progress)
+  const current = progress.currentStep || 1
+  const meta = stepMeta(current)
+  page.setData({
+    steps: steps,
+    currentStep: current,
+    currentIndex: Math.max(0, current - 1),
+    completedCount: (progress.completedSteps || []).length,
+    finished: !!(progress.finished || (progress.completedSteps || []).length >= 10),
+    exam1Done: !!progress.exam1Done,
+    exam2Done: !!progress.exam2Done,
+    exam2Ready: !!progress.exam2Done,
+    viewingStep: (session && session.viewingStep) || 0,
+    viewingTitle: (session && session.viewingStep) ? stepMeta(session.viewingStep).title : '',
+    currentLabel: progress.finished && current >= 11
+      ? meta.title
+      : ('第' + Math.min(10, current) + '步 · ' + (current <= 10 ? meta.title : '检验'))
+  })
+  return progress
+}
+
 function paint(page, session) {
   typewriter.stop(page)
-  const thread = decorateThread(((session && session.messages) || []).filter((item) => !item.hidden))
+  const thread = markAnchors(decorateThread(((session && session.messages) || []).filter((item) => !item.hidden)))
   const topic = (session && session.topicTitle) || ''
+  const progress = paintProgress(page, session)
   page.setData({
     conversationId: (session && session.conversationId) || '',
     thread: thread,
     followUps: (session && session.followUps) || [],
     thinking: false,
-    hint: topic ? ('课题：' + topic) : '问答由智学原文给出'
+    hint: topic ? ('课题：' + topic) : '按 10 步交付往下走'
   })
-  scrollBottom(page)
+  if (!(session && session.viewingStep)) scrollBottom(page)
   return session
 }
 
@@ -43,6 +105,7 @@ function persist(page, patch, options) {
     conversationId: session.conversationId || ''
   })
   if (!(options && options.skipPaint)) paint(page, session)
+  else paintProgress(page, session)
   return session
 }
 
@@ -110,14 +173,16 @@ function scrollBottom(page) {
   page.setData({ scrollInto: last ? 'm-' + last.id : 'thread-end' })
 }
 
-function mergeLiveThread(base, result) {
+function mergeLiveThread(base, result, step) {
   const items = (result && result.items) || []
   const chatId = (result && result.chatId) || ''
+  const n = Number(step) || 0
   const bubbles = items.map((item, index) => ({
     id: 'coze-' + (item.id || chatId || 'live') + '-' + index,
     role: 'assistant',
     hidden: false,
-    content: item.content
+    content: item.content,
+    step: n || undefined
   }))
   return base.concat(bubbles)
 }
@@ -152,29 +217,36 @@ function stopLive(page) {
   page.setData({ thinking: false })
 }
 
-function askZhixue(page, text) {
+function askZhixue(page, text, options) {
+  const opts = options || {}
   const prompt = String(text || '').trim()
   if (!prompt || page.data.sending || page._busy) return Promise.resolve()
   page._busy = true
   stopLive(page)
   const preview = readSession(page.sessionKey()) || {}
+  const progress = progressOf(preview)
+  const command = opts.command || 'reply'
+  const step = opts.step || progress.currentStep || 1
+  const packed = packTurn(prompt, Object.assign({}, progress, { currentStep: step }), command)
   const userMsg = {
     id: Date.now(),
     role: 'user',
     hidden: false,
-    content: prompt
+    content: prompt,
+    step: step,
+    command: command
   }
   const base = (preview.messages || []).filter((item) => item.role === 'user' || item.role === 'assistant')
   const pending = base.concat([userMsg])
-  persist(page, { messages: pending, followUps: [] })
-  page.setData({ sending: true, error: '', draft: '', planning: false, followUps: [] })
+  persist(page, { messages: pending, followUps: [], viewingStep: 0, currentStep: step })
+  page.setData({ sending: true, error: '', draft: '', planning: false, followUps: [], viewingStep: 0 })
   startWaitClock(page)
   const account = getApp().globalData.account || {}
   const userId = page.cozeUserId(account)
   let typed = ''
-  return chatWithCoze(prompt, userId, preview.conversationId || '', getApp().getToken(), function onTick(result) {
+  return chatWithCoze(packed, userId, preview.conversationId || '', getApp().getToken(), function onTick(result) {
     persist(page, {
-      messages: mergeLiveThread(pending, result),
+      messages: mergeLiveThread(pending, result, step),
       followUps: result.followUps || [],
       conversationId: result.conversationId || preview.conversationId || '',
       chatId: result.chatId || preview.chatId || ''
@@ -185,25 +257,41 @@ function askZhixue(page, text) {
     stopWaitClock(page)
     typewriter.play(page, pending, next, {
       id: 'coze-live-' + (result.chatId || 'turn'),
-      followUps: []
+      followUps: [],
+      step: step
     })
   }).then((result) => {
+    const finalText = String((result && result.reply) || typed)
+    const detected = detectProgress(finalText)
+    const nextProgress = applyProgress(progressOf(preview), detected, command)
+    if (command === 'exam1' && finalText) nextProgress.exam1Done = true
+    if (command === 'exam2' && finalText) nextProgress.exam2Done = true
     persist(page, {
-      messages: mergeLiveThread(pending, result),
+      messages: mergeLiveThread(pending, result, nextProgress.currentStep || step),
       followUps: result.followUps || [],
       conversationId: result.conversationId || preview.conversationId || '',
-      chatId: result.chatId || preview.chatId || ''
+      chatId: result.chatId || preview.chatId || '',
+      currentStep: nextProgress.currentStep,
+      completedSteps: nextProgress.completedSteps,
+      exam1Done: nextProgress.exam1Done,
+      exam2Done: nextProgress.exam2Done,
+      finished: nextProgress.finished,
+      steps: paintStepViews(nextProgress),
+      completedCount: nextProgress.completedSteps.length,
+      currentIndex: Math.max(0, nextProgress.currentStep - 1)
     }, { skipPaint: true })
-    const finalText = String((result && result.reply) || typed)
     stopWaitClock(page)
     return typewriter.play(page, pending, finalText, {
       id: 'coze-live-' + ((result && result.chatId) || 'turn'),
-      followUps: (result && result.followUps) || []
+      followUps: (result && result.followUps) || [],
+      step: nextProgress.currentStep
     }).then(() => {
+      const latest = readSession(page.sessionKey())
+      paint(page, latest)
       page.setData({ sending: false, thinking: false })
       page._busy = false
       if (typeof page.saveProgress === 'function') {
-        page.saveProgress(1, 1)
+        page.saveProgress(nextProgress.completedSteps.length, 10)
       }
       return backupTurn(page, prompt, result)
     })
@@ -329,6 +417,96 @@ function onRetry(page, fallbackPrompt) {
   askZhixue(page, lastUser || fallbackPrompt)
 }
 
+function scrollToStep(page, step) {
+  const thread = page.data.thread || []
+  const hit = thread.filter((item) => Number(item.step) === Number(step))[0]
+  page.setData({
+    viewingStep: step,
+    viewingTitle: stepMeta(step).title,
+    scrollInto: hit ? (hit.anchor || ('m-' + hit.id)) : 'thread-end'
+  })
+  persist(page, { viewingStep: step }, { skipPaint: true })
+}
+
+function onStepTap(page, index) {
+  const steps = page.data.steps || []
+  const item = steps[Number(index)]
+  if (!item) return
+  if (item.status === 'todo') {
+    wx.showToast({ title: '还没学到第' + item.n + '步', icon: 'none' })
+    return
+  }
+  if (item.status === 'current') {
+    persist(page, { viewingStep: 0 }, { skipPaint: true })
+    page.setData({ viewingStep: 0, viewingTitle: '' })
+    scrollBottom(page)
+    return
+  }
+  const items = ['查看本步对话']
+  items.push('重新学习此步')
+  wx.showActionSheet({
+    itemList: items,
+    success: (res) => {
+      const name = items[res.tapIndex]
+      if (name === '查看本步对话') scrollToStep(page, item.n)
+      if (name === '重新学习此步') replayStep(page, item.n)
+    }
+  })
+}
+
+function replayStep(page, step) {
+  const n = Number(step) || 1
+  persist(page, { currentStep: n, viewingStep: 0 }, { skipPaint: true })
+  page.setData({ viewingStep: 0, currentStep: n })
+  askZhixue(page, replayPrompt(n), { command: 'replay_step', step: n })
+}
+
+function backToLive(page) {
+  persist(page, { viewingStep: 0 }, { skipPaint: true })
+  page.setData({ viewingStep: 0, viewingTitle: '' })
+  scrollBottom(page)
+}
+
+function startExam1(page) {
+  if (!(page.data && page.data.finished)) {
+    wx.showToast({ title: '先把 10 步学完', icon: 'none' })
+    return
+  }
+  askZhixue(page, exam1Prompt(), { command: 'exam1', step: 11 })
+}
+
+function startExam2(page) {
+  if (!(page.data && page.data.exam1Done)) {
+    wx.showToast({ title: '请先完成实战演练', icon: 'none' })
+    return
+  }
+  askZhixue(page, exam2Prompt(), { command: 'exam2', step: 12 })
+}
+
+function makePpt(page) {
+  const session = readSession(page.sessionKey()) || {}
+  const messages = session.messages || []
+  let script = ''
+  for (let i = messages.length - 1; i >= 0; i--) {
+    if (messages[i].role === 'assistant' && !messages[i].failed && (messages[i].step === 12 || messages[i].command === 'exam2' || /说课|PPT/.test(messages[i].content || ''))) {
+      script = messages[i].content
+      break
+    }
+  }
+  if (!script) {
+    wx.showToast({ title: '还没有说课稿，请先点说课训练', icon: 'none' })
+    return
+  }
+  try {
+    wx.setStorageSync('pptSeed', script)
+  } catch (e) {}
+  const title = (page.data && page.data.displayTitle) || '家庭教育课件'
+  const courseId = (page.data && page.data.course && page.data.course.id) || ''
+  wx.navigateTo({
+    url: '/pages/ppt/index?title=' + encodeURIComponent(title) + (courseId ? ('&courseId=' + courseId) : '')
+  })
+}
+
 module.exports = {
   paint: paint,
   persist: persist,
@@ -340,5 +518,11 @@ module.exports = {
   onPlus: onPlus,
   onFollow: onFollow,
   onRetry: onRetry,
+  onStepTap: onStepTap,
+  replayStep: replayStep,
+  backToLive: backToLive,
+  startExam1: startExam1,
+  startExam2: startExam2,
+  makePpt: makePpt,
   stopLive: stopLive
 }

@@ -26,7 +26,13 @@ Page({
     liveIndex: 0,
     completedCount: 0,
     finished: false,
-    currentStep: null,
+    currentStep: 1,
+    viewingStep: 0,
+    viewingTitle: '',
+    exam1Done: false,
+    exam2Done: false,
+    exam2Ready: false,
+    currentLabel: '',
     thread: [],
     followUps: [],
     draft: '',
@@ -166,6 +172,15 @@ Page({
         error: '',
         followUps: [],
         thread: [],
+        steps: [],
+        currentStep: 1,
+        currentIndex: 0,
+        completedCount: 0,
+        finished: false,
+        viewingStep: 0,
+        exam1Done: false,
+        exam2Done: false,
+        exam2Ready: false,
         hint: '',
         thinking: false,
         thinkHint: '',
@@ -174,6 +189,24 @@ Page({
       classroom.startCourseFlow(page, page.data.course)
     }
     classroom.clearHistory(this).then(afterClear, afterClear)
+  },
+  onStepChange(e) {
+    classroom.onStepTap(this, e.detail.index)
+  },
+  onBackLive() {
+    classroom.backToLive(this)
+  },
+  onReplayStep() {
+    classroom.replayStep(this, this.data.viewingStep || this.data.currentStep)
+  },
+  onExam1() {
+    classroom.startExam1(this)
+  },
+  onExam2() {
+    classroom.startExam2(this)
+  },
+  onMakePpt() {
+    classroom.makePpt(this)
   },
   friendlyError(err) {
     return friendlyError(err, '加载失败')

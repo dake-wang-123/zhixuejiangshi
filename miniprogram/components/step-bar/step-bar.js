@@ -14,8 +14,8 @@ Component({
       const item = list[current] || {}
       this.setData({
         currentLabel: finished
-          ? '已学完'
-          : ((item.group ? item.group + ' · ' : '') + (item.title || ('第 ' + (current + 1) + ' 环节')))
+          ? '10步已完成'
+          : ((item.title ? ('第' + (item.n || current + 1) + '步 · ' + item.title) : ('第' + (current + 1) + '步')))
       })
     }
   },

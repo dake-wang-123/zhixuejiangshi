@@ -1,31 +1,20 @@
 <view class="step-bar">
   <view class="meta">
     <text class="meta-strong">{{currentLabel}}</text>
-    <text class="meta-muted">{{completedCount}} 环节完成</text>
+    <text class="meta-muted">{{completedCount}}/10 已打卡</text>
   </view>
-  <view class="segments">
+  <scroll-view scroll-x class="nodes" enable-flex scroll-into-view="node-{{current}}" scroll-with-animation>
     <view
-      class="seg {{index < completedCount ? 'is-done' : 'is-todo'}} {{index === current ? 'is-current' : ''}}"
-      wx:for="{{steps}}"
-      wx:key="key"
-      data-index="{{index}}"
-      bindtap="onTap"
-    ></view>
-  </view>
-  <scroll-view scroll-x class="nodes" enable-flex>
-    <view
-      class="node {{index === current ? 'is-current' : ''}} {{index < completedCount ? 'is-done' : 'is-todo'}}"
+      id="node-{{index}}"
+      class="node is-{{item.status}}"
+      hover-class="node-on"
       wx:for="{{steps}}"
       wx:key="key"
       data-index="{{index}}"
       bindtap="onTap"
     >
-      <view class="dot">{{item.mark || index + 1}}</view>
+      <view class="dot">{{item.done ? '✓' : item.mark}}</view>
       <text class="label">{{item.shortTitle}}</text>
     </view>
   </scroll-view>
-  <view class="legend">
-    <view class="lg"><view class="lg-dot red"></view><text>未完成</text></view>
-    <view class="lg"><view class="lg-dot green"></view><text>已完成，可回看</text></view>
-  </view>
 </view>

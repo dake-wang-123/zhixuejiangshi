@@ -57,7 +57,8 @@ function play(page, pending, fullText, options) {
         role: 'assistant',
         hidden: false,
         streaming: !done,
-        content: text.slice(0, shown)
+        content: text.slice(0, shown),
+        step: opts.step || pending[pending.length - 1] && pending[pending.length - 1].step
       }])
       page.setData({
         thread: decorateThread(live),

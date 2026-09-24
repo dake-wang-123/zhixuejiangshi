@@ -2,8 +2,8 @@
   <view class="study-top">
     <view class="kicker">{{lessonCode ? ('课号 ' + lessonCode) : '智学伴练'}}</view>
     <view class="title">{{displayTitle}}</view>
-    <text class="sub" wx:if="{{course}}">已把课程标题发给智学。下面是智能体自己的问答。</text>
-    <text class="sub" wx:else>未选课时先给引导语。也可从课程目录点课，或输入课题原题。</text>
+    <text class="sub" wx:if="{{course}}">按 10 步交付往下走。点已打卡的步骤可回看或重学。</text>
+    <text class="sub" wx:else>未选课时先给引导语。点课或输入课题后，按 10 步走。</text>
     <view class="actions">
       <button class="text-btn" bindtap="onClear">重新开始</button>
       <button class="text-btn" bindtap="onRetry" wx:if="{{error}}">再问一次</button>
@@ -19,17 +19,40 @@
       />
       <button class="btn mini" size="mini" bindtap="onStartTopic">用这题开始</button>
     </view>
+    <step-bar
+      wx:if="{{steps.length}}"
+      steps="{{steps}}"
+      current="{{currentIndex}}"
+      completedCount="{{completedCount}}"
+      finished="{{finished}}"
+      bind:change="onStepChange"
+    ></step-bar>
+    <view class="review-bar" wx:if="{{viewingStep}}">
+      <text class="review-copy">回看第{{viewingStep}}步 · {{viewingTitle}}</text>
+      <text class="review-link" bindtap="onBackLive">回到最新</text>
+      <text class="review-link" bindtap="onReplayStep">重新学习此步</text>
+    </view>
+    <view class="exam-gate" wx:if="{{finished}}">
+      <view class="exam-title">10步已完成</view>
+      <view class="exam-sub">先出讲课逐字稿，再做说课和课件。</view>
+      <view class="exam-actions">
+        <view class="exam-btn on" bindtap="onExam1">{{exam1Done ? '再出一份讲课逐字稿' : '实战演练 · 讲课逐字稿'}}</view>
+        <view class="exam-btn {{exam1Done ? 'on' : 'off'}}" bindtap="onExam2">说课训练 · 逐字稿+PPT</view>
+      </view>
+      <view class="exam-btn ghost" wx:if="{{exam2Ready}}" bindtap="onMakePpt">用说课稿生成 PPT</view>
+    </view>
   </view>
   <view class="error" wx:if="{{error}}" style="padding: 12rpx 40rpx 0;">{{error}}</view>
   <scroll-view scroll-y class="thread" scroll-into-view="{{scrollInto}}" scroll-with-animation>
     <view class="thread-empty" wx:if="{{planning && !thread.length}}">{{hint || '正在恢复上次学习记录…'}}</view>
     <view class="thread-empty" wx:elif="{{!thread.length && !sending}}">还没有本课的学习记录。未选课时智学会先给引导语；选了课会按该课题继续。</view>
     <block wx:for="{{thread}}" wx:key="id">
+      <view id="{{item.anchor}}" wx:if="{{item.anchor}}"></view>
       <view id="m-{{item.id}}" class="msg msg-user" wx:if="{{item.role === 'user'}}">
         <view class="msg-user-bubble">{{item.content}}</view>
       </view>
       <view id="m-{{item.id}}" class="msg msg-ai" wx:else>
-        <view class="msg-ai-meta">智学</view>
+        <view class="msg-ai-meta">智学<text wx:if="{{item.step && item.step <= 10}}"> · 第{{item.step}}步</text></view>
         <view class="ai-article" wx:if="{{item.blocks.length}}">
           <block wx:for="{{item.blocks}}" wx:for-item="block" wx:key="id">
             <view class="ai-block ai-{{block.kind}}">

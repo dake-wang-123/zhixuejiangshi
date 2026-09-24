@@ -1,6 +1,7 @@
 {
   "usingComponents": {
-    "ui-icon": "/components/icon/icon"
+    "ui-icon": "/components/icon/icon",
+    "step-bar": "/components/step-bar/step-bar"
   },
   "navigationBarTitleText": "智学"
 }

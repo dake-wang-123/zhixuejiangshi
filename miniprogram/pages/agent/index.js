@@ -26,7 +26,13 @@ Page({
     liveIndex: 0,
     completedCount: 0,
     finished: false,
-    currentStep: null,
+    currentStep: 1,
+    viewingStep: 0,
+    viewingTitle: '',
+    exam1Done: false,
+    exam2Done: false,
+    exam2Ready: false,
+    currentLabel: '',
     thread: [],
     followUps: [],
     draft: '',
@@ -129,6 +135,14 @@ Page({
         followUps: [],
         thread: [],
         steps: [],
+        currentStep: 1,
+        currentIndex: 0,
+        completedCount: 0,
+        finished: false,
+        viewingStep: 0,
+        exam1Done: false,
+        exam2Done: false,
+        exam2Ready: false,
         planning: false,
         displayTitle: '智学伴练',
         lessonCode: '',
@@ -141,6 +155,24 @@ Page({
       classroom.startOpenFlow(page)
     }
     classroom.clearHistory(this).then(afterClear, afterClear)
+  },
+  onStepChange(e) {
+    classroom.onStepTap(this, e.detail.index)
+  },
+  onBackLive() {
+    classroom.backToLive(this)
+  },
+  onReplayStep() {
+    classroom.replayStep(this, this.data.viewingStep || this.data.currentStep)
+  },
+  onExam1() {
+    classroom.startExam1(this)
+  },
+  onExam2() {
+    classroom.startExam2(this)
+  },
+  onMakePpt() {
+    classroom.makePpt(this)
   },
   friendlyError(err) {
     return friendlyError(err, '智学调用失败')

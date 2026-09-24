@@ -1,7 +1,9 @@
 const {
   FLOW_VERSION,
   OPEN_SESSION_ID,
-  firstLiveIndex
+  firstLiveIndex,
+  inferProgress,
+  paintStepViews
 } = require('./flow.js')
 const { lessonCodeOf } = require('./learn-history.js')
 
@@ -48,10 +50,21 @@ function writeSession(courseId, patch) {
   return next
 }
 
-function blankSession(topicTitle) {
+function blankProgress() {
   return {
+    currentStep: 1,
+    completedSteps: [],
+    exam1Done: false,
+    exam2Done: false,
+    finished: false,
+    viewingStep: 0
+  }
+}
+
+function blankSession(topicTitle) {
+  return Object.assign({
     flowVersion: FLOW_VERSION,
-    steps: [],
+    steps: paintStepViews({ currentStep: 1, completedSteps: [] }),
     messages: [],
     followUps: [],
     completedCount: firstLiveIndex(),
@@ -59,7 +72,7 @@ function blankSession(topicTitle) {
     conversationId: '',
     chatId: '',
     topicTitle: topicTitle || ''
-  }
+  }, blankProgress())
 }
 
 function ensureFlowSession(courseId, topicTitle) {
@@ -71,14 +84,18 @@ function ensureFlowSession(courseId, topicTitle) {
     return existing
   }
   if (existing && (existing.messages || []).length) {
-    return writeSession(courseId, {
+    const inferred = inferProgress(existing.messages)
+    return writeSession(courseId, Object.assign({
       flowVersion: FLOW_VERSION,
       topicTitle: topicTitle || existing.topicTitle || '',
       conversationId: existing.conversationId || '',
       chatId: existing.chatId || '',
       messages: existing.messages,
-      followUps: existing.followUps || []
-    })
+      followUps: existing.followUps || [],
+      steps: paintStepViews(inferred)
+    }, inferred, {
+      viewingStep: 0
+    }))
   }
   return writeSession(courseId, blankSession(topicTitle))
 }
@@ -91,16 +108,29 @@ function hydrateSession(courseId, remote, topicTitle) {
   const conversationId = (remote && remote.conversationId) || local.conversationId || ''
   const chatId = (remote && remote.chatId) || local.chatId || ''
   const title = topicTitle || (remote && remote.topicTitle) || local.topicTitle || ''
-  return writeSession(courseId, {
+  const inferred = inferProgress(messages)
+  const localDone = (local.completedSteps || []).length
+  const progress = localDone >= inferred.completedSteps.length
+    ? {
+      currentStep: local.currentStep || inferred.currentStep,
+      completedSteps: local.completedSteps || inferred.completedSteps,
+      exam1Done: !!(local.exam1Done || inferred.exam1Done),
+      exam2Done: !!(local.exam2Done || inferred.exam2Done),
+      finished: (local.completedSteps || inferred.completedSteps).length >= 10
+    }
+    : inferred
+  return writeSession(courseId, Object.assign({
     flowVersion: FLOW_VERSION,
     messages: messages,
     followUps: (local.followUps || []).length ? local.followUps : ((remote && remote.followUps) || []),
     conversationId: conversationId,
     chatId: chatId,
     topicTitle: title,
-    completedCount: firstLiveIndex(),
-    currentIndex: firstLiveIndex()
-  })
+    completedCount: progress.completedSteps.length,
+    currentIndex: Math.max(0, (progress.currentStep || 1) - 1),
+    steps: paintStepViews(progress),
+    viewingStep: 0
+  }, progress))
 }
 
 function storedLessonCode(page) {

@@ -71,6 +71,7 @@ https://zion-app.functorz.com/zero/PO76RBe9KX0/api/graphql-v2
    - 表字段、行为流节点、列表绑定见 `docs/zion-learn-history.md`
    - `lesson_code` 报错与微信输入条见 `docs/zion-chat-composer.md`
    - 教案阅读排版与扣子强制 Markdown 提示词见 `docs/zion-readable-lesson.md`
+   - 10 步进度条、回溯与两段检验见 `docs/zion-ten-steps.md`
 4. Coze `4100` 是令牌本身无效；`4101` 是令牌没有访问该 Bot / 接口的权限。Bot 未发布到 **Agent As API** 时，流程会提示去 coze.cn 发布。
 
 ## 课件 PPT

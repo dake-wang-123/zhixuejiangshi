@@ -1,12 +1,188 @@
 const { shortTitle } = require('./study.js')
 const { matchCanonical } = require('./coze-catalog.js')
 
-const FLOW_VERSION = 11
+const FLOW_VERSION = 12
 const OPEN_SESSION_ID = 'open'
 const PENDING_TOPIC_KEY = 'zhixue_pending_topic'
 const PENDING_LESSON_KEY = 'zhixue_pending_lesson'
 const TOPIC_DRAFT_KEY = 'zhixue_topic_draft'
 const OPEN_GUIDE_PROMPT = '你好'
+
+const DELIVERY_STEPS = [
+  { n: 1, key: 'intro', title: '自我介绍', short: '介绍' },
+  { n: 2, key: 'break', title: '破题', short: '破题' },
+  { n: 3, key: 'value', title: '目标价值', short: '价值' },
+  { n: 4, key: 'empathy', title: '同理家长', short: '同理' },
+  { n: 5, key: 'align', title: '对齐认知', short: '对齐' },
+  { n: 6, key: 'method', title: '方法与策略', short: '方法' },
+  { n: 7, key: 'case', title: '案例萃取', short: '案例' },
+  { n: 8, key: 'interact', title: '互动设计', short: '互动' },
+  { n: 9, key: 'pitfall', title: '误区与答疑', short: '误区' },
+  { n: 10, key: 'close', title: '总结收尾', short: '收尾' }
+]
+
+function clampStep(n, max) {
+  const v = Number(n)
+  if (!isFinite(v)) return 0
+  return Math.max(1, Math.min(max || 12, Math.round(v)))
+}
+
+function stepMeta(n) {
+  const index = clampStep(n, 12) - 1
+  if (index === 10) return { n: 11, key: 'drill', title: '实战演练', short: '讲稿' }
+  if (index === 11) return { n: 12, key: 'talk', title: '说课训练', short: '说课' }
+  return DELIVERY_STEPS[index] || DELIVERY_STEPS[0]
+}
+
+function listFlowSteps() {
+  return DELIVERY_STEPS.map((item, index) => ({
+    key: item.key,
+    mark: String(item.n),
+    title: item.title,
+    shortTitle: item.short,
+    goal: item.title,
+    detail: item.title,
+    group: '10步交付',
+    kind: 'guide',
+    index: index,
+    n: item.n
+  }))
+}
+
+function detectProgress(text) {
+  const src = String(text || '')
+  const result = {
+    currentStep: 0,
+    completedStep: 0,
+    allTenDone: /【十步完成】/.test(src) || /10\s*步已完成/.test(src),
+    exam1Done: /【检验1完成】/.test(src),
+    exam2Done: /【检验2完成】/.test(src)
+  }
+  const done = src.match(/【步骤完成[:：]\s*(\d{1,2})\s*】/)
+  if (done) result.completedStep = clampStep(done[1], 10)
+  const cur = src.match(/【当前步骤[:：]\s*(\d{1,2})\s*】/)
+    || src.match(/(?:^|\n)\s*current_step\s*=\s*(\d{1,2})/)
+    || src.match(/第\s*(\d{1,2})\s*步/)
+  if (cur) result.currentStep = clampStep(cur[1], 12)
+  if (!result.currentStep) {
+    DELIVERY_STEPS.forEach((step) => {
+      if (src.indexOf('## ' + step.title) >= 0) result.currentStep = step.n
+    })
+  }
+  if (/【检验1】|command=exam1/.test(src)) result.currentStep = 11
+  if (/【检验2】|command=exam2/.test(src)) result.currentStep = 12
+  if (result.allTenDone && !result.currentStep) result.currentStep = 11
+  return result
+}
+
+function applyProgress(prev, detected, command) {
+  const done = {}
+  ;((prev && prev.completedSteps) || []).forEach((n) => { done[n] = true })
+  let current = (prev && prev.currentStep) || 1
+  const hit = detected || {}
+  if (hit.completedStep) {
+    done[hit.completedStep] = true
+    current = Math.min(11, hit.completedStep + 1)
+  }
+  if (hit.currentStep && hit.currentStep <= 10) {
+    current = hit.currentStep
+    for (let i = 1; i < current; i++) done[i] = true
+  }
+  if (hit.allTenDone) {
+    for (let i = 1; i <= 10; i++) done[i] = true
+    current = Math.max(current, 11)
+  }
+  let exam1Done = !!(prev && prev.exam1Done) || !!hit.exam1Done
+  let exam2Done = !!(prev && prev.exam2Done) || !!hit.exam2Done
+  if (command === 'exam1') {
+    current = 11
+    for (let i = 1; i <= 10; i++) done[i] = true
+    if (hit.exam1Done) exam1Done = true
+  }
+  if (command === 'exam2') {
+    current = 12
+    if (hit.exam2Done) exam2Done = true
+  }
+  if (hit.currentStep >= 11) current = hit.currentStep
+  const completedSteps = []
+  for (let i = 1; i <= 10; i++) {
+    if (done[i]) completedSteps.push(i)
+  }
+  return {
+    currentStep: current,
+    completedSteps: completedSteps,
+    exam1Done: exam1Done,
+    exam2Done: exam2Done,
+    finished: completedSteps.length >= 10
+  }
+}
+
+function inferProgress(messages) {
+  let state = {
+    currentStep: 1,
+    completedSteps: [],
+    exam1Done: false,
+    exam2Done: false,
+    finished: false
+  }
+  ;(messages || []).forEach((item) => {
+    if (!item || item.hidden || item.failed) return
+    const tagged = Number(item.step) || 0
+    const detected = item.role === 'assistant' ? detectProgress(item.content) : {}
+    if (tagged >= 11) detected.currentStep = tagged
+    else if (tagged && !detected.currentStep) detected.currentStep = tagged
+    state = applyProgress(state, detected, item.command || '')
+  })
+  return state
+}
+
+function paintStepViews(progress) {
+  const current = (progress && progress.currentStep) || 1
+  const done = {}
+  ;((progress && progress.completedSteps) || []).forEach((n) => { done[n] = true })
+  return DELIVERY_STEPS.map((item, index) => {
+    const isDone = !!done[item.n]
+    const isCurrent = item.n === current && current <= 10
+    return {
+      key: item.key,
+      n: item.n,
+      mark: String(item.n),
+      title: item.title,
+      shortTitle: item.short,
+      index: index,
+      status: isDone ? 'done' : (isCurrent ? 'current' : 'todo'),
+      done: isDone,
+      current: isCurrent
+    }
+  })
+}
+
+function packTurn(text, progress, command) {
+  const step = (progress && progress.currentStep) || 1
+  const meta = stepMeta(step)
+  return [
+    '【进度上下文】',
+    'current_step=' + step,
+    'step_name=' + meta.title,
+    'completed=' + ((progress && progress.completedSteps) || []).join(','),
+    'command=' + (command || 'reply'),
+    '---',
+    String(text || '')
+  ].join('\n')
+}
+
+function replayPrompt(step) {
+  const meta = stepMeta(step)
+  return '请回到第' + meta.n + '步「' + meta.title + '」重新引导。不要跳到后面的步骤。按排版规范输出本步目标、核心逻辑、场景话术、下一步提问，并在开头写【当前步骤：' + meta.n + '】。'
+}
+
+function exam1Prompt() {
+  return '请进入检验1：实战演练。根据本课题已学的10步，输出完整「讲课逐字稿」。开头写【当前步骤：11】【检验1】，结束写【检验1完成】。'
+}
+
+function exam2Prompt() {
+  return '请进入检验2：说课训练。输出「说课逐字稿」，并给出可直接做成课件的 PPT 大纲（每页标题+要点）。开头写【当前步骤：12】【检验2】，结束写【检验2完成】。'
+}
 
 function normalizeStep(item, index) {
   const title = String((item && (item.title || item.name || item.环节 || item.标题)) || '').trim()
@@ -87,10 +263,6 @@ function mergeSteps(current, incoming) {
   return next
 }
 
-function listFlowSteps() {
-  return []
-}
-
 function firstLiveIndex() {
   return 0
 }
@@ -110,12 +282,10 @@ function startPrompt(course, fallback) {
 }
 
 function detectAdvance(text, steps, completedCount) {
-  const list = steps || []
-  const current = Math.max(0, Number(completedCount) || 0)
-  const next = list[current + 1]
-  if (!next || !next.title) return current
-  if (String(text || '').indexOf(next.title) >= 0) return current + 1
-  return current
+  const hit = detectProgress(text)
+  if (hit.completedStep) return hit.completedStep
+  if (hit.currentStep) return Math.max(0, hit.currentStep - 1)
+  return Math.max(0, Number(completedCount) || 0)
 }
 
 module.exports = {
@@ -125,11 +295,21 @@ module.exports = {
   PENDING_LESSON_KEY: PENDING_LESSON_KEY,
   TOPIC_DRAFT_KEY: TOPIC_DRAFT_KEY,
   OPEN_GUIDE_PROMPT: OPEN_GUIDE_PROMPT,
+  DELIVERY_STEPS: DELIVERY_STEPS,
   parseListedSteps: parseListedSteps,
   mergeSteps: mergeSteps,
   listFlowSteps: listFlowSteps,
   firstLiveIndex: firstLiveIndex,
   topicTitleOf: topicTitleOf,
   startPrompt: startPrompt,
-  detectAdvance: detectAdvance
+  detectAdvance: detectAdvance,
+  detectProgress: detectProgress,
+  applyProgress: applyProgress,
+  inferProgress: inferProgress,
+  paintStepViews: paintStepViews,
+  packTurn: packTurn,
+  stepMeta: stepMeta,
+  replayPrompt: replayPrompt,
+  exam1Prompt: exam1Prompt,
+  exam2Prompt: exam2Prompt
 }

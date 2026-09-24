@@ -298,6 +298,79 @@ page {
   border: none;
 }
 
+.review-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-top: 16rpx;
+  padding: 12rpx 16rpx;
+  background: #F3F5FF;
+  border-radius: 12rpx;
+}
+
+.review-copy {
+  flex: 1;
+  font-size: 24rpx;
+  color: #333333;
+  line-height: 1.6;
+}
+
+.review-link {
+  margin-left: 16rpx;
+  font-size: 24rpx;
+  color: #4B6EF5;
+}
+
+.exam-gate {
+  margin-top: 16rpx;
+  padding: 16rpx 18rpx;
+  background: #EEF1FE;
+  border-radius: 16rpx;
+}
+
+.exam-title {
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #333333;
+  line-height: 1.6;
+}
+
+.exam-sub {
+  margin-top: 4rpx;
+  font-size: 24rpx;
+  color: #999999;
+  line-height: 1.6;
+}
+
+.exam-actions {
+  margin-top: 12rpx;
+}
+
+.exam-btn {
+  margin-top: 12rpx;
+  padding: 16rpx 20rpx;
+  border-radius: 12rpx;
+  font-size: 28rpx;
+  text-align: center;
+  line-height: 1.6;
+}
+
+.exam-btn.on {
+  background: #4B6EF5;
+  color: #FFFFFF;
+}
+
+.exam-btn.off {
+  background: #E5E5E5;
+  color: #999999;
+}
+
+.exam-btn.ghost {
+  background: #FFFFFF;
+  color: #4B6EF5;
+  border: 1rpx solid #4B6EF5;
+}
+
 .topic-box {
   margin-top: 16rpx;
 }

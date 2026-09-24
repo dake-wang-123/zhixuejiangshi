@@ -7,13 +7,46 @@ const {
   alignWithCoze,
   listCategories
 } = require('../miniprogram/utils/coze-catalog.js')
-const { startPrompt, listFlowSteps, firstLiveIndex, OPEN_GUIDE_PROMPT } = require('../miniprogram/utils/flow.js')
+const {
+  startPrompt,
+  listFlowSteps,
+  firstLiveIndex,
+  OPEN_GUIDE_PROMPT,
+  detectProgress,
+  applyProgress,
+  inferProgress,
+  paintStepViews,
+  packTurn,
+  exam1Prompt,
+  exam2Prompt
+} = require('../miniprogram/utils/flow.js')
 const { extractReply, chatSettled, isFlowCrash } = require('../miniprogram/utils/agent.js')
 const { friendlyError } = require('../miniprogram/utils/errors.js')
 const { buildCozeCatalog } = require('../miniprogram/utils/catalog.js')
 
-assert.strictEqual(listFlowSteps().length, 0)
+assert.strictEqual(listFlowSteps().length, 10)
+assert.strictEqual(listFlowSteps()[0].title, '自我介绍')
+assert.strictEqual(listFlowSteps()[9].title, '总结收尾')
 assert.strictEqual(firstLiveIndex(), 0)
+assert.strictEqual(detectProgress('【当前步骤：3】\n## 目标价值').currentStep, 3)
+assert.strictEqual(detectProgress('【步骤完成：2】').completedStep, 2)
+assert.strictEqual(detectProgress('【十步完成】').allTenDone, true)
+const moved = applyProgress({ currentStep: 2, completedSteps: [1] }, detectProgress('【当前步骤：3】【步骤完成：2】'), 'reply')
+assert.deepStrictEqual(moved.completedSteps, [1, 2])
+assert.strictEqual(moved.currentStep, 3)
+const views = paintStepViews(moved)
+assert.strictEqual(views[1].status, 'done')
+assert.strictEqual(views[2].status, 'current')
+assert.strictEqual(views[3].status, 'todo')
+assert.ok(packTurn('我是讲师', moved, 'reply').indexOf('current_step=3') >= 0)
+assert.ok(exam1Prompt().indexOf('讲课逐字稿') >= 0)
+assert.ok(exam2Prompt().indexOf('PPT') >= 0)
+const inferred = inferProgress([
+  { role: 'assistant', content: '【当前步骤：1】自我介绍', step: 1 },
+  { role: 'assistant', content: '【当前步骤：2】【步骤完成：1】破题', step: 2 }
+])
+assert.strictEqual(inferred.currentStep, 2)
+assert.ok(inferred.completedSteps.indexOf(1) >= 0)
 
 const listed = parseCozeCatalog([
   '## 0-3岁课程',

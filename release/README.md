@@ -7,3 +7,5 @@
 AppID：`wx0277d4abe92dd8a3`
 
 不要把 zip 当微信项目打开。Windows「全部提取」后还要再点进内层文件夹。
+
+本包已含课号 / 会话隔离：换课会清空上一课的 `conversation_id`，只把讲师原文发给扣子，不再拼接 `current_step`。

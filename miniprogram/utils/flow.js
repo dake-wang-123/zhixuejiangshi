@@ -2,7 +2,7 @@ const { shortTitle } = require('./study.js')
 const { matchCanonical } = require('./coze-catalog.js')
 const { packPersonalStart, sourceOf } = require('./personal-plan.js')
 
-const FLOW_VERSION = 13
+const FLOW_VERSION = 14
 const OPEN_SESSION_ID = 'open'
 const PENDING_TOPIC_KEY = 'zhixue_pending_topic'
 const PENDING_LESSON_KEY = 'zhixue_pending_lesson'
@@ -66,8 +66,28 @@ function stripGateMarkers(text) {
   return String(text || '')
     .replace(/\[\s*下一关\s*[:：]\s*[^\]]+\]/g, '')
     .replace(/\[\s*当前关\s*[:：]\s*[^\]]+\]/g, '')
+    .replace(/\[\s*等待确认\s*[:：]\s*[^\]]+\]/g, '')
+    .replace(/\[\s*检验进度\s*[:：]\s*[^\]]+\]/g, '')
+    .replace(/\[\s*全部通关\s*\]/g, '')
     .replace(/\n{3,}/g, '\n\n')
     .trim()
+}
+
+function extractInspect(text) {
+  const src = String(text || '')
+  return {
+    waitExam1: /\[\s*等待确认\s*[:：]\s*检验\s*\]/.test(src) || /是否进入(?:实战)?检验环节/.test(src),
+    waitExam2: /\[\s*等待确认\s*[:：]\s*检验2\s*\]/.test(src) || /是否进入检验2|是否进入说课/.test(src),
+    inspect1: /\[\s*检验进度\s*[:：]\s*1\s*\/\s*2\s*\]/.test(src),
+    inspect2: /\[\s*检验进度\s*[:：]\s*2\s*\/\s*2\s*\]/.test(src),
+    exam1Done: /【检验1完成】/.test(src),
+    exam2Done: /【检验2完成】/.test(src),
+    allClear: /\[\s*全部通关\s*\]/.test(src)
+  }
+}
+
+function isConfirmText(text) {
+  return /^(好的?|是的?|确认(进入)?|开始(检验)?|进入检验|进入实战|继续)$/.test(String(text || '').trim())
 }
 
 function extractNextStep(text, currentStep) {
@@ -124,12 +144,18 @@ function startStepPrompt(n) {
 function detectProgress(text, currentStep) {
   const src = String(text || '')
   const gate = extractNextStep(src, currentStep)
+  const inspect = extractInspect(src)
   const result = {
     currentStep: gate.nextStep || 0,
     completedStep: gate.completedStep || 0,
-    allTenDone: gate.allTenDone,
-    exam1Done: /【检验1完成】/.test(src),
-    exam2Done: /【检验2完成】/.test(src)
+    allTenDone: gate.allTenDone || inspect.waitExam1,
+    exam1Done: inspect.exam1Done,
+    exam2Done: inspect.exam2Done,
+    waitExam1: inspect.waitExam1,
+    waitExam2: inspect.waitExam2,
+    inspect1: inspect.inspect1,
+    inspect2: inspect.inspect2,
+    allClear: inspect.allClear
   }
   if (!result.currentStep) {
     const cur = src.match(/第\s*(\d{1,2})\s*步/)
@@ -142,7 +168,7 @@ function detectProgress(text, currentStep) {
   }
   if (/【检验1】|command=exam1/.test(src)) result.currentStep = 11
   if (/【检验2】|command=exam2/.test(src)) result.currentStep = 12
-  if (result.allTenDone && !result.currentStep) result.currentStep = 11
+  if (result.allTenDone && !result.currentStep) result.currentStep = 10
   return result
 }
 
@@ -161,30 +187,61 @@ function applyProgress(prev, detected, command) {
   }
   if (hit.allTenDone) {
     for (let i = 1; i <= 10; i++) done[i] = true
-    current = Math.max(current, 11)
   }
   let exam1Done = !!(prev && prev.exam1Done) || !!hit.exam1Done
   let exam2Done = !!(prev && prev.exam2Done) || !!hit.exam2Done
-  if (command === 'exam1') {
+  let currentPhase = (prev && prev.currentPhase) || 'learning'
+  let inspectionStep = Number((prev && prev.inspectionStep) || 0)
+  let inspectWait = (prev && prev.inspectWait) || ''
+  const inspecting = currentPhase === 'inspection' || command === 'exam1' || command === 'exam2'
+  if (command === 'exam1' || hit.inspect1) {
+    currentPhase = 'inspection'
+    inspectionStep = 1
+    inspectWait = ''
     current = 11
     for (let i = 1; i <= 10; i++) done[i] = true
     if (hit.exam1Done) exam1Done = true
   }
-  if (command === 'exam2') {
+  if (command === 'exam2' || hit.inspect2) {
+    currentPhase = 'inspection'
+    inspectionStep = 2
+    inspectWait = ''
     current = 12
     if (hit.exam2Done) exam2Done = true
   }
-  if (hit.currentStep >= 11) current = hit.currentStep
+  if (hit.exam1Done) {
+    exam1Done = true
+    currentPhase = 'inspection'
+    inspectionStep = Math.max(inspectionStep, 1)
+    if (!exam2Done) inspectWait = 'exam2'
+  }
+  if (hit.exam2Done || hit.allClear) {
+    exam2Done = true
+    inspectWait = ''
+    currentPhase = 'inspection'
+    inspectionStep = 2
+  }
+  if (hit.waitExam1 && !exam1Done) inspectWait = 'exam1'
+  if (hit.waitExam2 && exam1Done && !exam2Done) inspectWait = 'exam2'
   const completedSteps = []
   for (let i = 1; i <= 10; i++) {
     if (done[i]) completedSteps.push(i)
   }
+  const finished = completedSteps.length >= 10
+  if (finished && !inspecting && currentPhase !== 'inspection') {
+    current = 10
+    if (!exam1Done) inspectWait = inspectWait || 'exam1'
+  }
+  if (inspecting && hit.currentStep >= 11) current = hit.currentStep
   return {
     currentStep: current,
     completedSteps: completedSteps,
     exam1Done: exam1Done,
     exam2Done: exam2Done,
-    finished: completedSteps.length >= 10
+    finished: finished,
+    currentPhase: currentPhase,
+    inspectionStep: inspectionStep,
+    inspectWait: inspectWait
   }
 }
 
@@ -194,7 +251,10 @@ function inferProgress(messages) {
     completedSteps: [],
     exam1Done: false,
     exam2Done: false,
-    finished: false
+    finished: false,
+    currentPhase: 'learning',
+    inspectionStep: 0,
+    inspectWait: ''
   }
   ;(messages || []).forEach((item) => {
     if (!item || item.hidden || item.failed) return
@@ -252,6 +312,14 @@ function packTurn(text, progress, command, extra) {
 function replayPrompt(step) {
   const meta = stepMeta(step)
   return '请回到第' + meta.n + '步「' + meta.title + '」重新引导。不要跳到后面的步骤。按排版规范输出本步目标、核心逻辑、场景话术、下一步提问，并在开头写【当前步骤：' + meta.n + '】。'
+}
+
+function exam1ConfirmPrompt() {
+  return '讲师已确认，请开始检验1的内容。\n' + exam1Prompt()
+}
+
+function exam2ConfirmPrompt() {
+  return '讲师已确认，请开始检验2的内容。\n' + exam2Prompt()
 }
 
 function exam1Prompt() {
@@ -401,8 +469,12 @@ module.exports = {
   detectAdvance: detectAdvance,
   parseGateNum: parseGateNum,
   extractNextStep: extractNextStep,
+  extractInspect: extractInspect,
+  isConfirmText: isConfirmText,
   stripGateMarkers: stripGateMarkers,
   startStepPrompt: startStepPrompt,
+  exam1ConfirmPrompt: exam1ConfirmPrompt,
+  exam2ConfirmPrompt: exam2ConfirmPrompt,
   detectProgress: detectProgress,
   applyProgress: applyProgress,
   inferProgress: inferProgress,

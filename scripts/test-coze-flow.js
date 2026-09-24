@@ -20,6 +20,8 @@ const {
   exam1Prompt,
   exam2Prompt,
   extractNextStep,
+  extractInspect,
+  isConfirmText,
   startStepPrompt,
   stripGateMarkers
 } = require('../miniprogram/utils/flow.js')
@@ -44,6 +46,14 @@ assert.strictEqual(stripGateMarkers('正文\n[下一关: 5]').indexOf('下一关
 const gated = applyProgress({ currentStep: 3, completedSteps: [1, 2] }, detectProgress('恭喜完成第三关\n[下一关: 4]'), 'reply')
 assert.strictEqual(gated.currentStep, 4)
 assert.ok(gated.completedSteps.indexOf(3) >= 0)
+const tenDone = applyProgress({ currentStep: 10, completedSteps: [1, 2, 3, 4, 5, 6, 7, 8, 9] }, detectProgress('【步骤完成：10】【十步完成】\n[等待确认: 检验]'), 'reply')
+assert.strictEqual(tenDone.finished, true)
+assert.strictEqual(tenDone.currentStep, 10)
+assert.strictEqual(tenDone.inspectWait, 'exam1')
+assert.strictEqual(tenDone.currentPhase, 'learning')
+assert.strictEqual(extractInspect('[等待确认: 检验2]').waitExam2, true)
+assert.strictEqual(isConfirmText('好的'), true)
+assert.strictEqual(isConfirmText('随便聊聊'), false)
 const moved = applyProgress({ currentStep: 2, completedSteps: [1] }, detectProgress('【当前步骤：3】【步骤完成：2】'), 'reply')
 assert.deepStrictEqual(moved.completedSteps, [1, 2])
 assert.strictEqual(moved.currentStep, 3)

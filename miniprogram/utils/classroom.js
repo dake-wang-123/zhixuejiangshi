@@ -19,8 +19,9 @@ const {
   startStepPrompt,
   stripGateMarkers,
   replayPrompt,
-  exam1Prompt,
-  exam2Prompt
+  exam1ConfirmPrompt,
+  exam2ConfirmPrompt,
+  isConfirmText
 } = require('./flow.js')
 const history = require('./learn-history.js')
 const results = require('./learn-results.js')
@@ -60,6 +61,9 @@ function progressOf(session) {
   }
   if (session && session.exam1Done) progress.exam1Done = true
   if (session && session.exam2Done) progress.exam2Done = true
+  if (session && session.currentPhase) progress.currentPhase = session.currentPhase
+  if (session && session.inspectionStep) progress.inspectionStep = session.inspectionStep
+  if (session && session.inspectWait) progress.inspectWait = session.inspectWait
   return progress
 }
 
@@ -77,6 +81,10 @@ function paintProgress(page, session) {
     exam1Done: !!progress.exam1Done,
     exam2Done: !!progress.exam2Done,
     exam2Ready: !!progress.exam2Done,
+    currentPhase: progress.currentPhase || 'learning',
+    inspectionStep: progress.inspectionStep || 0,
+    inspectWait: progress.inspectWait || '',
+    allClear: !!progress.exam2Done,
     viewingStep: (session && session.viewingStep) || 0,
     viewingTitle: (session && session.viewingStep) ? stepMeta(session.viewingStep).title : '',
     currentLabel: progress.finished && current >= 11
@@ -89,9 +97,11 @@ function paintProgress(page, session) {
 function maybeAutoAdvance(page, prevProgress, nextProgress, command) {
   if (command === 'auto_next' || command === 'replay_step' || command === 'exam1' || command === 'exam2') return
   if (nextProgress.finished || ((nextProgress.completedSteps || []).length >= 10)) return
+  if (nextProgress.inspectWait || nextProgress.currentPhase === 'inspection') return
   const next = Number(nextProgress.currentStep) || 0
   const prev = Number((prevProgress && prevProgress.currentStep) || 1)
   if (next < 1 || next > 10) return
+  if (prev >= 10) return
   if (next <= prev && !((nextProgress.completedSteps || []).length > ((prevProgress && prevProgress.completedSteps) || []).length)) return
   if (page._autoAdvanceTimer) clearTimeout(page._autoAdvanceTimer)
   page._autoAdvanceTimer = setTimeout(() => {
@@ -338,6 +348,9 @@ function askZhixue(page, text, options) {
       exam1Done: nextProgress.exam1Done,
       exam2Done: nextProgress.exam2Done,
       finished: nextProgress.finished,
+      currentPhase: nextProgress.currentPhase,
+      inspectionStep: nextProgress.inspectionStep,
+      inspectWait: nextProgress.inspectWait,
       steps: paintStepViews(nextProgress),
       completedCount: nextProgress.completedSteps.length,
       currentIndex: Math.max(0, nextProgress.currentStep - 1)
@@ -474,6 +487,17 @@ function onPlus(page) {
 function onSend(page) {
   const text = (page.data.draft || '').trim()
   if (!text || page.data.sending) return
+  const wait = page.data && page.data.inspectWait
+  if (wait === 'exam1' && isConfirmText(text)) {
+    page.setData({ draft: '' })
+    startExam1(page)
+    return
+  }
+  if (wait === 'exam2' && isConfirmText(text)) {
+    page.setData({ draft: '' })
+    startExam2(page)
+    return
+  }
   askZhixue(page, text)
 }
 
@@ -551,7 +575,14 @@ function startExam1(page) {
     wx.showToast({ title: '先把十步交付法学完', icon: 'none' })
     return
   }
-  askZhixue(page, exam1Prompt(), { command: 'exam1', step: 11 })
+  persist(page, {
+    currentPhase: 'inspection',
+    inspectionStep: 1,
+    inspectWait: '',
+    currentStep: 11
+  }, { skipPaint: true })
+  page.setData({ currentPhase: 'inspection', inspectionStep: 1, inspectWait: '' })
+  askZhixue(page, exam1ConfirmPrompt(), { command: 'exam1', step: 11, preview: '确认进入检验1' })
 }
 
 function startExam2(page) {
@@ -559,7 +590,14 @@ function startExam2(page) {
     wx.showToast({ title: '请先完成实战演练', icon: 'none' })
     return
   }
-  askZhixue(page, exam2Prompt(), { command: 'exam2', step: 12 })
+  persist(page, {
+    currentPhase: 'inspection',
+    inspectionStep: 2,
+    inspectWait: '',
+    currentStep: 12
+  }, { skipPaint: true })
+  page.setData({ currentPhase: 'inspection', inspectionStep: 2, inspectWait: '' })
+  askZhixue(page, exam2ConfirmPrompt(), { command: 'exam2', step: 12, preview: '确认进入检验2' })
 }
 
 function makePpt(page) {

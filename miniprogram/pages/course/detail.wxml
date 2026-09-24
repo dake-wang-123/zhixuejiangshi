@@ -15,25 +15,35 @@
         <button class="text-btn" bindtap="onRetry" wx:if="{{error}}">再问一次</button>
       </view>
       <step-bar
-        wx:if="{{steps.length}}"
+        wx:if="{{currentPhase !== 'inspection' && steps.length}}"
         steps="{{steps}}"
         current="{{currentIndex}}"
         completedCount="{{completedCount}}"
         finished="{{finished}}"
         bind:change="onStepChange"
       ></step-bar>
+      <view class="inspect-bar" wx:if="{{currentPhase === 'inspection'}}">
+        <view class="inspect-node {{inspectionStep === 1 ? 'on' : ''}} {{exam1Done ? 'done' : ''}}">检验1 讲课</view>
+        <view class="inspect-node {{inspectionStep === 2 ? 'on' : ''}} {{exam2Done ? 'done' : ''}}">检验2 说课</view>
+      </view>
       <view class="review-bar" wx:if="{{viewingStep}}">
         <text class="review-copy">回看第{{viewingStep}}步 · {{viewingTitle}}</text>
         <text class="review-link" bindtap="onBackLive">回到最新</text>
         <text class="review-link" bindtap="onReplayStep">重新学习此步</text>
       </view>
-      <view class="exam-gate" wx:if="{{finished}}">
-        <view class="exam-title">十步交付法已完成</view>
-        <view class="exam-sub">先出讲课逐字稿，再做说课和课件。</view>
-        <view class="exam-actions">
-          <view class="exam-btn on" bindtap="onExam1">{{exam1Done ? '再出一份讲课逐字稿' : '实战演练 · 讲课逐字稿'}}</view>
-          <view class="exam-btn {{exam1Done ? 'on' : 'off'}}" bindtap="onExam2">说课训练 · 逐字稿+PPT</view>
-        </view>
+      <view class="exam-gate" wx:if="{{inspectWait === 'exam1'}}">
+        <view class="exam-title">恭喜你已完成十步交付法！</view>
+        <view class="exam-sub">是否进入实战检验环节？点确认，或回复「好的 / 开始」。</view>
+        <view class="exam-btn on" bindtap="onExam1">确认进入</view>
+      </view>
+      <view class="exam-gate" wx:elif="{{inspectWait === 'exam2'}}">
+        <view class="exam-title">检验1已完成</view>
+        <view class="exam-sub">是否进入检验2（说课训练）？点确认，或回复「好的 / 开始」。</view>
+        <view class="exam-btn on" bindtap="onExam2">确认进入检验2</view>
+      </view>
+      <view class="exam-gate" wx:elif="{{allClear}}">
+        <view class="exam-title">全部通关</view>
+        <view class="exam-sub">讲课逐字稿、诊断报告、说课稿和 PPT 大纲都已写入学习成果。</view>
         <view class="exam-btn ghost" wx:if="{{exam2Ready}}" bindtap="onMakePpt">用说课稿生成 PPT</view>
       </view>
     </view>

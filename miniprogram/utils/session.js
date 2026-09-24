@@ -57,7 +57,10 @@ function blankProgress() {
     exam1Done: false,
     exam2Done: false,
     finished: false,
-    viewingStep: 0
+    viewingStep: 0,
+    currentPhase: 'learning',
+    inspectionStep: 0,
+    inspectWait: ''
   }
 }
 

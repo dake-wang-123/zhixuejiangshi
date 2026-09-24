@@ -140,6 +140,14 @@
   line-height: 1.6;
 }
 
+.row-guide {
+  display: block;
+  margin-top: 6rpx;
+  font-size: 28rpx;
+  color: #4B6EF5;
+  line-height: 1.6;
+}
+
 .row-meta {
   margin-right: 8rpx;
   font-size: 24rpx;

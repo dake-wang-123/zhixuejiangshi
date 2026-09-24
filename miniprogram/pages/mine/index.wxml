@@ -35,8 +35,7 @@
       </view>
       <view class="grow">
         <text class="row-title">学习记录</text>
-        <text class="row-sub" wx:if="{{recordPreview}}">{{recordPreview}}</text>
-        <text class="row-sub" wx:else>还没有学过的课</text>
+        <text class="row-guide">查看已学课程和成果</text>
       </view>
       <text class="row-meta" wx:if="{{recordCount}}">{{recordCount}}</text>
       <ui-icon name="chevron" size="28" color="#C8C8C8"></ui-icon>
@@ -70,15 +69,6 @@
       </view>
       <view class="grow">
         <text class="row-title">关于我们</text>
-      </view>
-      <ui-icon name="chevron" size="28" color="#C8C8C8"></ui-icon>
-    </view>
-    <view class="row" wx:if="{{isAdmin}}" bindtap="onAdminUpload">
-      <view class="row-icon">
-        <ui-icon name="folder" size="36" color="#4B6EF5"></ui-icon>
-      </view>
-      <view class="grow">
-        <text class="row-title">课程归档上传</text>
       </view>
       <ui-icon name="chevron" size="28" color="#C8C8C8"></ui-icon>
     </view>

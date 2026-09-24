@@ -92,9 +92,6 @@ Page({
   onAbout() {
     wx.navigateTo({ url: '/pages/about/index' })
   },
-  onAdminUpload() {
-    wx.navigateTo({ url: '/pages/admin/upload' })
-  },
   onRelogin() {
     app.relLogin().then(() => this.refresh()).catch(() => this.refresh())
   }

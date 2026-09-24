@@ -52,9 +52,9 @@ page {
 .hero-sub {
   display: block;
   margin-top: 16rpx;
-  font-size: 24rpx;
-  color: #999999;
-  line-height: 1.7;
+  font-size: 28rpx;
+  color: #4B6EF5;
+  line-height: 1.6;
 }
 
 .card {
@@ -274,16 +274,16 @@ page {
 .study-top .sub {
   display: block;
   margin-top: 8rpx;
-  font-size: 24rpx;
-  color: #999999;
-  line-height: 1.7;
+  font-size: 28rpx;
+  color: #4B6EF5;
+  line-height: 1.6;
 }
 
 .study-top .guide {
   display: block;
   margin: 16rpx 0 8rpx;
   font-size: 28rpx;
-  color: #666666;
+  color: #4B6EF5;
   line-height: 1.6;
 }
 

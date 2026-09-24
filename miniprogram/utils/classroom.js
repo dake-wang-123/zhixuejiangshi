@@ -15,14 +15,15 @@ const {
   inferProgress,
   paintStepViews,
   packTurn,
+  rawUserMessage,
   stepMeta,
-  startStepPrompt,
   stripGateMarkers,
   replayPrompt,
   exam1ConfirmPrompt,
   exam2ConfirmPrompt,
   isConfirmText
 } = require('./flow.js')
+const isolation = require('./isolation.js')
 const history = require('./learn-history.js')
 const results = require('./learn-results.js')
 const typewriter = require('./typewriter.js')
@@ -94,25 +95,57 @@ function paintProgress(page, session) {
   return progress
 }
 
-function maybeAutoAdvance(page, prevProgress, nextProgress, command) {
-  if (command === 'auto_next' || command === 'replay_step' || command === 'exam1' || command === 'exam2') return
-  if (nextProgress.finished || ((nextProgress.completedSteps || []).length >= 10)) return
-  if (nextProgress.inspectWait || nextProgress.currentPhase === 'inspection') return
-  const next = Number(nextProgress.currentStep) || 0
-  const prev = Number((prevProgress && prevProgress.currentStep) || 1)
-  if (next < 1 || next > 10) return
-  if (prev >= 10) return
-  if (next <= prev && !((nextProgress.completedSteps || []).length > ((prevProgress && prevProgress.completedSteps) || []).length)) return
-  if (page._autoAdvanceTimer) clearTimeout(page._autoAdvanceTimer)
-  page._autoAdvanceTimer = setTimeout(() => {
-    page._autoAdvanceTimer = null
-    if (page.data.sending || page._busy) return
-    askZhixue(page, startStepPrompt(next), {
-      command: 'auto_next',
-      step: next,
-      preview: '进入第' + next + '步'
-    })
-  }, 360)
+function abortTurn(page) {
+  isolation.nextTurnId(page)
+  page._busy = false
+  stopLive(page)
+  if (typeof page.setData === 'function') {
+    page.setData({ sending: false, thinking: false })
+  }
+}
+
+function applyLesson(page, incoming) {
+  const title = String((incoming && (incoming.title || incoming.displayTitle || incoming.topicTitle)) || '').trim()
+  const lessonCode = String((incoming && (incoming.lessonCode || incoming.lesson_code)) || '').trim()
+  const source = (incoming && incoming.source) || sourceOf(incoming, lessonCode)
+  const course = {
+    title: title,
+    displayTitle: title,
+    lessonCode: lessonCode,
+    source: source,
+    planText: (incoming && (incoming.planText || incoming.text)) || ''
+  }
+  const patch = {
+    course: course,
+    displayTitle: title || '智学伴练',
+    lessonCode: lessonCode,
+    thread: [],
+    followUps: [],
+    conversationId: '',
+    currentStep: 1,
+    currentIndex: 0,
+    completedCount: 0,
+    finished: false,
+    exam1Done: false,
+    exam2Done: false,
+    exam2Ready: false,
+    currentPhase: 'learning',
+    inspectionStep: 0,
+    inspectWait: '',
+    allClear: false,
+    viewingStep: 0,
+    viewingTitle: '',
+    error: '',
+    sending: false,
+    thinking: false,
+    planning: true,
+    steps: paintStepViews({ currentStep: 1, completedSteps: [] }),
+    currentLabel: '第1步 · 自我介绍',
+    hint: lessonCode ? ('正在进入 ' + lessonCode) : '正在进入课题'
+  }
+  Object.assign(page.data, patch)
+  page.setData(patch)
+  return course
 }
 
 function paint(page, session) {
@@ -124,7 +157,8 @@ function paint(page, session) {
   const thread = markAnchors(decorateThread(visible)).map((item) => {
     if (item.role !== 'user') return item
     const next = Object.assign({}, item)
-    next.preview = shortUserText(item.content)
+    next.content = rawUserMessage(item.content)
+    next.preview = shortUserText(next.content)
     return next
   })
   const topic = (session && session.topicTitle) || ''
@@ -141,13 +175,26 @@ function paint(page, session) {
 }
 
 function persist(page, patch, options) {
-  const session = writeSession(page.sessionKey(), patch)
+  const opts = options || {}
+  const sessionKey = opts.sessionKey || page.sessionKey()
+  const lessonCode = opts.lessonCode || storedLessonCode(page)
+  const next = Object.assign({}, patch || {})
+  if (next.conversationId !== undefined) {
+    next.conversationId = isolation.conversationForLesson(lessonCode, next.conversationId)
+  }
+  const session = writeSession(sessionKey, next)
+  if (session && session.conversationId) {
+    isolation.bindConversation(lessonCode, session.conversationId)
+  }
   history.rememberScope({
-    lessonCode: storedLessonCode(page),
+    lessonCode: lessonCode,
     topicTitle: session.topicTitle || (page.data && page.data.displayTitle) || '',
     conversationId: session.conversationId || ''
   })
-  if (!(options && options.skipPaint)) paint(page, session)
+  if (typeof page.sessionKey === 'function' && page.sessionKey() !== sessionKey) {
+    return session
+  }
+  if (!opts.skipPaint) paint(page, session)
   else paintProgress(page, session)
   return session
 }
@@ -165,19 +212,19 @@ function restoreRemote(page, topicTitle) {
     history.rememberScope({
       lessonCode: lessonCode,
       topicTitle: session.topicTitle,
-      conversationId: session.conversationId
+      conversationId: isolation.conversationForLesson(lessonCode, session.conversationId)
     })
     return session
   }).catch(() => hydrateSession(page.sessionKey(), null, topicTitle))
 }
 
-function backupTurn(page, userText, result) {
+function backupTurn(page, userText, result, boundLesson) {
   const account = getApp().globalData.account || {}
   const token = getApp().getToken()
   if (!account.id || !token || !result) return Promise.resolve()
-  const cid = result.conversationId || ''
+  const cid = isolation.conversationForLesson(boundLesson || storedLessonCode(page), result.conversationId)
   const hid = result.chatId || ''
-  const lessonCode = storedLessonCode(page)
+  const lessonCode = boundLesson || storedLessonCode(page)
   const topic = (page.data && (page.data.displayTitle || (page.data.course && page.data.course.title))) || ''
   const rows = []
   if (userText && String(userText).indexOf('__POLL_CHAT__|') !== 0) {
@@ -281,23 +328,19 @@ function stopLive(page) {
 
 function askZhixue(page, text, options) {
   const opts = options || {}
-  const prompt = String(text || '').trim()
+  const prompt = rawUserMessage(String(text || '').trim())
   if (!prompt || page.data.sending || page._busy) return Promise.resolve()
   page._busy = true
-  if (page._autoAdvanceTimer) {
-    clearTimeout(page._autoAdvanceTimer)
-    page._autoAdvanceTimer = null
-  }
   stopLive(page)
-  const preview = readSession(page.sessionKey()) || {}
+  const turnId = isolation.nextTurnId(page)
+  const sessionKey = page.sessionKey()
+  const lessonCode = storedLessonCode(page)
+  const preview = readSession(sessionKey) || {}
   const progress = progressOf(preview)
   const command = opts.command || 'reply'
   const step = opts.step || progress.currentStep || 1
-  const source = preview.source || sourceOf(page.data && page.data.course, page.data && page.data.lessonCode)
-  const packed = packTurn(prompt, Object.assign({}, progress, { currentStep: step, source: source }), command, {
-    source: source,
-    planTitle: preview.topicTitle || (page.data && page.data.displayTitle) || ''
-  })
+  const boundCid = isolation.conversationForLesson(lessonCode, preview.conversationId)
+  const packed = packTurn(prompt)
   const userMsg = {
     id: Date.now(),
     role: 'user',
@@ -309,19 +352,26 @@ function askZhixue(page, text, options) {
   }
   const base = (preview.messages || []).filter((item) => item.role === 'user' || item.role === 'assistant')
   const pending = base.concat([userMsg])
-  persist(page, { messages: pending, followUps: [], viewingStep: 0, currentStep: step })
+  persist(page, {
+    messages: pending,
+    followUps: [],
+    viewingStep: 0,
+    currentStep: step,
+    conversationId: boundCid
+  }, { sessionKey: sessionKey, lessonCode: lessonCode })
   page.setData({ sending: true, error: '', draft: '', planning: false, followUps: [], viewingStep: 0 })
   startWaitClock(page)
   const account = getApp().globalData.account || {}
   const userId = page.cozeUserId(account)
   let typed = ''
-  return chatWithCoze(packed, userId, preview.conversationId || '', getApp().getToken(), function onTick(result) {
+  return chatWithCoze(packed, userId, boundCid, getApp().getToken(), function onTick(result) {
+    if (!isolation.isLiveTurn(page, turnId, sessionKey)) return
     persist(page, {
       messages: mergeLiveThread(pending, result, step),
       followUps: result.followUps || [],
-      conversationId: result.conversationId || preview.conversationId || '',
+      conversationId: isolation.conversationForLesson(lessonCode, result.conversationId || boundCid),
       chatId: result.chatId || preview.chatId || ''
-    }, { skipPaint: true })
+    }, { skipPaint: true, sessionKey: sessionKey, lessonCode: lessonCode })
     const next = String((result && result.reply) || '')
     if (!next || next === typed) return
     typed = next
@@ -332,6 +382,10 @@ function askZhixue(page, text, options) {
       step: step
     })
   }).then((result) => {
+    if (!isolation.isLiveTurn(page, turnId, sessionKey)) {
+      page._busy = false
+      return
+    }
     const finalText = String((result && result.reply) || typed)
     const prevProgress = progressOf(preview)
     const detected = detectProgress(finalText, prevProgress.currentStep)
@@ -341,8 +395,8 @@ function askZhixue(page, text, options) {
     persist(page, {
       messages: mergeLiveThread(pending, result, nextProgress.currentStep || step),
       followUps: result.followUps || [],
-      conversationId: result.conversationId || preview.conversationId || '',
-      chatId: result.chatId || preview.chatId || '',
+      conversationId: isolation.conversationForLesson(lessonCode, (result && result.conversationId) || boundCid),
+      chatId: (result && result.chatId) || preview.chatId || '',
       currentStep: nextProgress.currentStep,
       completedSteps: nextProgress.completedSteps,
       exam1Done: nextProgress.exam1Done,
@@ -354,26 +408,33 @@ function askZhixue(page, text, options) {
       steps: paintStepViews(nextProgress),
       completedCount: nextProgress.completedSteps.length,
       currentIndex: Math.max(0, nextProgress.currentStep - 1)
-    }, { skipPaint: true })
+    }, { skipPaint: true, sessionKey: sessionKey, lessonCode: lessonCode })
     stopWaitClock(page)
     return typewriter.play(page, pending, stripGateMarkers(finalText), {
       id: 'coze-live-' + ((result && result.chatId) || 'turn'),
       followUps: (result && result.followUps) || [],
       step: nextProgress.currentStep
     }).then(() => {
-      const latest = readSession(page.sessionKey())
+      if (!isolation.isLiveTurn(page, turnId, sessionKey)) {
+        page._busy = false
+        return
+      }
+      const latest = readSession(sessionKey)
       paint(page, latest)
       page.setData({ sending: false, thinking: false })
       page._busy = false
       if (typeof page.saveProgress === 'function') {
         page.saveProgress(nextProgress.completedSteps.length, 10)
       }
-      maybeAutoAdvance(page, prevProgress, nextProgress, command)
-      return backupTurn(page, prompt, result).then(() => backupResults(page, command, result))
+      return backupTurn(page, prompt, result, lessonCode).then(() => backupResults(page, command, result))
     })
   }).catch((err) => {
+    if (!isolation.isLiveTurn(page, turnId, sessionKey)) {
+      page._busy = false
+      return
+    }
     stopLive(page)
-    const latest = readSession(page.sessionKey()) || {}
+    const latest = readSession(sessionKey) || {}
     persist(page, {
       messages: (latest.messages || pending).concat([{
         id: Date.now() + 1,
@@ -382,7 +443,7 @@ function askZhixue(page, text, options) {
         failed: true,
         content: page.friendlyError(err)
       }])
-    })
+    }, { sessionKey: sessionKey, lessonCode: lessonCode })
     page.setData({ sending: false, error: page.friendlyError(err) })
     page._busy = false
   })
@@ -392,7 +453,26 @@ function startCourseFlow(page, course) {
   const topic = topicTitleOf(course)
   const opener = startPrompt(course)
   const source = sourceOf(course)
+  const lessonCode = String((course && (course.lessonCode || course.lesson_code)) || page.data.lessonCode || '').trim()
+  if (typeof page.setData === 'function' && (lessonCode || topic)) {
+    const next = {
+      lessonCode: lessonCode || page.data.lessonCode || '',
+      displayTitle: topic || page.data.displayTitle,
+      course: Object.assign({}, course, {
+        title: topic || (course && course.title) || '',
+        displayTitle: topic || (course && course.displayTitle) || '',
+        lessonCode: lessonCode || (course && course.lessonCode) || '',
+        source: source
+      })
+    }
+    Object.assign(page.data, next)
+    page.setData(next)
+  }
   return restoreRemote(page, topic).then((existing) => {
+    const cid = isolation.conversationForLesson(storedLessonCode(page), existing && existing.conversationId)
+    if (existing && cid !== (existing.conversationId || '')) {
+      existing = persist(page, { conversationId: cid }, { skipPaint: true })
+    }
     if (existing && (existing.messages || []).length && hasAssistant(existing.messages)) {
       paint(page, existing)
       page.setData({ planning: false, hint: topic ? ('课题：' + topic) : '已恢复上次学习记录' })
@@ -405,9 +485,9 @@ function startCourseFlow(page, course) {
     persist(page, {
       topicTitle: topic,
       source: source,
-      planText: (course && course.planText) || existing.planText || '',
-      conversationId: existing.conversationId || '',
-      chatId: existing.chatId || ''
+      planText: (course && course.planText) || (existing && existing.planText) || '',
+      conversationId: cid,
+      chatId: (existing && existing.chatId) || ''
     }, { skipPaint: true })
     page.setData({ planning: true })
     return askZhixue(page, opener, {
@@ -420,49 +500,37 @@ function startCourseFlow(page, course) {
 
 function startOpenFlow(page, topicTitle) {
   if (topicTitle) {
-    return startCourseFlow(page, { title: topicTitle, displayTitle: topicTitle })
+    return startCourseFlow(page, {
+      title: topicTitle,
+      displayTitle: topicTitle,
+      lessonCode: (page.data && page.data.lessonCode) || '',
+      source: sourceOf(page.data && page.data.course, page.data && page.data.lessonCode),
+      planText: (page.data && page.data.course && page.data.course.planText) || ''
+    })
+  }
+  const lessonCode = storedLessonCode(page)
+  if (lessonCode && lessonCode !== 'open') {
+    const course = (page.data && page.data.course) || {
+      title: (page.data && page.data.displayTitle) || lessonCode,
+      displayTitle: (page.data && page.data.displayTitle) || lessonCode,
+      lessonCode: lessonCode
+    }
+    return startCourseFlow(page, course)
   }
   const existing = readSession(page.sessionKey())
   if (existing && hasAssistant(existing.messages)) {
     paint(page, existing)
     return Promise.resolve(existing)
   }
-  const token = getApp().getToken()
-  const last = history.readLastScope()
-  const loadLast = token ? history.lastRow(token).catch(() => null) : Promise.resolve(null)
-  return loadLast.then((row) => {
-    const lessonCode = (row && (row.lesson_code || row.课号)) || (last && last.lessonCode) || ''
-    const title = (row && (row.topic || row.topic_title || row.课题)) || (last && last.topicTitle) || ''
-    if (lessonCode && lessonCode !== 'open') {
-      const existing = readSession(page.sessionKey()) || {}
-      const course = {
-        title: title || lessonCode,
-        displayTitle: title || lessonCode,
-        lessonCode: lessonCode,
-        source: existing.source || sourceOf(null, lessonCode),
-        planText: existing.planText || ''
-      }
-      if (typeof page.setData === 'function') {
-        page.setData({
-          lessonCode: lessonCode,
-          displayTitle: title || lessonCode,
-          course: course
-        })
-      }
-      return startCourseFlow(page, course)
-    }
-    if (title) {
-      return startCourseFlow(page, { title: title, displayTitle: title })
-    }
-    page.setData({ planning: true, hint: '正在向智学取引导语…' })
-    return askZhixue(page, OPEN_GUIDE_PROMPT)
-  })
+  page.setData({ planning: true, hint: '正在向智学取引导语…' })
+  return askZhixue(page, OPEN_GUIDE_PROMPT)
 }
 
 function clearHistory(page) {
   const token = getApp().getToken()
   const lessonCode = storedLessonCode(page)
   const title = (page.data && page.data.displayTitle) || ''
+  isolation.unbindLesson(lessonCode)
   return history.clearLesson(lessonCode, title, token).catch(() => 0)
 }
 
@@ -513,7 +581,7 @@ function onRetry(page, fallbackPrompt) {
   let lastUser = ''
   for (let i = messages.length - 1; i >= 0; i--) {
     if (messages[i].role === 'user' && !messages[i].hidden) {
-      lastUser = messages[i].content
+      lastUser = rawUserMessage(messages[i].content)
       break
     }
   }
@@ -628,6 +696,8 @@ module.exports = {
   paint: paint,
   persist: persist,
   askZhixue: askZhixue,
+  abortTurn: abortTurn,
+  applyLesson: applyLesson,
   startCourseFlow: startCourseFlow,
   startOpenFlow: startOpenFlow,
   clearHistory: clearHistory,

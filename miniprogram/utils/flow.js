@@ -2,7 +2,7 @@ const { shortTitle } = require('./study.js')
 const { matchCanonical } = require('./coze-catalog.js')
 const { packPersonalStart, sourceOf } = require('./personal-plan.js')
 
-const FLOW_VERSION = 14
+const FLOW_VERSION = 15
 const OPEN_SESSION_ID = 'open'
 const PENDING_TOPIC_KEY = 'zhixue_pending_topic'
 const PENDING_LESSON_KEY = 'zhixue_pending_lesson'
@@ -90,9 +90,8 @@ function isConfirmText(text) {
   return /^(好的?|是的?|确认(进入)?|开始(检验)?|进入检验|进入实战|继续)$/.test(String(text || '').trim())
 }
 
-function extractNextStep(text, currentStep) {
+function extractNextStep(text) {
   const src = String(text || '')
-  const current = clampStep(currentStep || 1, 10)
   const result = {
     nextStep: 0,
     completedStep: 0,
@@ -106,17 +105,6 @@ function extractNextStep(text, currentStep) {
     if (result.nextStep >= 2) result.completedStep = Math.min(10, result.nextStep - 1)
     if (result.nextStep >= 11) result.allTenDone = true
   }
-  if (!result.nextStep) {
-    const enter = src.match(/进入第\s*(\d{1,2}|[一二三四五六七八九十两])\s*[关步]/)
-    const done = src.match(/(?:恭喜.{0,12})?完成第\s*(\d{1,2}|[一二三四五六七八九十两])\s*[关步]/)
-    if (enter) result.nextStep = parseGateNum(enter[1])
-    else if (done) result.nextStep = Math.min(11, parseGateNum(done[1]) + 1)
-    if (result.nextStep) {
-      result.cleared = true
-      if (done) result.completedStep = parseGateNum(done[1])
-      else if (result.nextStep >= 2) result.completedStep = result.nextStep - 1
-    }
-  }
   const taggedDone = src.match(/【步骤完成[:：]\s*(\d{1,2})\s*】/)
   if (taggedDone) {
     result.completedStep = clampStep(taggedDone[1], 10)
@@ -124,13 +112,7 @@ function extractNextStep(text, currentStep) {
     if (!result.nextStep) result.nextStep = Math.min(11, result.completedStep + 1)
   }
   const taggedCur = src.match(/【当前步骤[:：]\s*(\d{1,2})\s*】/)
-    || src.match(/(?:^|\n)\s*current_step\s*=\s*(\d{1,2})/)
   if (taggedCur && !result.nextStep) result.nextStep = clampStep(taggedCur[1], 12)
-  if (!result.nextStep && /完成这一关|进入下一关|开始下一关|我们进入下一/.test(src)) {
-    result.nextStep = Math.min(10, current + 1)
-    result.completedStep = current
-    result.cleared = true
-  }
   if (result.allTenDone && !result.nextStep) result.nextStep = 11
   if (result.nextStep >= 11) result.allTenDone = true
   return result
@@ -156,15 +138,6 @@ function detectProgress(text, currentStep) {
     inspect1: inspect.inspect1,
     inspect2: inspect.inspect2,
     allClear: inspect.allClear
-  }
-  if (!result.currentStep) {
-    const cur = src.match(/第\s*(\d{1,2})\s*步/)
-    if (cur) result.currentStep = clampStep(cur[1], 12)
-  }
-  if (!result.currentStep) {
-    DELIVERY_STEPS.forEach((step) => {
-      if (src.indexOf('## ' + step.title) >= 0) result.currentStep = step.n
-    })
   }
   if (/【检验1】|command=exam1/.test(src)) result.currentStep = 11
   if (/【检验2】|command=exam2/.test(src)) result.currentStep = 12
@@ -288,25 +261,17 @@ function paintStepViews(progress) {
   })
 }
 
-function packTurn(text, progress, command, extra) {
-  const step = (progress && progress.currentStep) || 1
-  const meta = stepMeta(step)
-  const source = (extra && extra.source) || (progress && progress.source) || 'catalog'
-  const lines = [
-    '【进度上下文】',
-    'current_step=' + step,
-    'step_name=' + meta.title,
-    'completed=' + ((progress && progress.completedSteps) || []).join(','),
-    'command=' + (command || 'reply'),
-    'source=' + source,
-    'lesson_kind=' + (source === 'personal' ? 'personal' : 'builtin')
-  ]
-  if (source === 'personal' && extra && extra.planTitle) {
-    lines.push('plan_title=' + extra.planTitle)
+function rawUserMessage(text) {
+  const src = String(text || '')
+  if (src.indexOf('【进度上下文】') === 0) {
+    const idx = src.indexOf('\n---\n')
+    if (idx >= 0) return src.slice(idx + 5)
   }
-  lines.push('---')
-  lines.push(String(text || ''))
-  return lines.join('\n')
+  return src
+}
+
+function packTurn(text) {
+  return rawUserMessage(text)
 }
 
 function replayPrompt(step) {
@@ -479,6 +444,7 @@ module.exports = {
   applyProgress: applyProgress,
   inferProgress: inferProgress,
   paintStepViews: paintStepViews,
+  rawUserMessage: rawUserMessage,
   packTurn: packTurn,
   stepMeta: stepMeta,
   replayPrompt: replayPrompt,

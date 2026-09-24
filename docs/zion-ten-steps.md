@@ -51,34 +51,26 @@ Zion 画布对照：用「横向滚动 / 列表」绑 `steps`。
 | 已打卡 | 动作表：查看本步对话 / 重新学习此步 |
 
 查看：`scroll-into-view` 滚到该步第一条消息（锚点 `s-N`）。  
-重学：给扣子发 `command=replay_step`，`current_step=N`。
+重学：发「请回到第 N 步重新引导」，不要夹带其他课的会话。
 
 ---
 
 ## 第二部分：上下文传递与状态更新
 
-**不要**给「智学对话」行为流再加 `current_step` 入参，否则会再次触发 `UnknownValueException`。步号写进 `user_message` 文本。
+**不要**给「智学对话」行为流再加 `current_step` 入参，否则会再次触发 `UnknownValueException`。步号也不要写进 `user_message`。
 
 ### 进学习页
 
 1. 目录页把 `lesson_code` + `title` 写入本地 / 页面变量。  
 2. 学习页初始化：`current_step=1`，`completedSteps=[]`，`steps` 渲染 10 个灰点，第一步为当前。  
 3. 若有历史对话，按消息里的 `【当前步骤：N】` / `【步骤完成：N】` / `【十步完成】` 回放进度。  
-4. 把课题原题发给扣子，正文前带进度块。
+4. 把课题原题原样发给扣子，不要带进度块。
 
-### 每次发送（打包给扣子）
+### 每次发送（只搬原文）
 
-```
-【进度上下文】
-current_step=3
-step_name=目标价值
-completed=1,2
-command=reply
-source=catalog 或 personal
-lesson_kind=builtin 或 personal
----
-讲师这一轮的原文
-```
+不要再拼 `【进度上下文】` / `current_step=` / `请开始第X步`。那是脱轨的主因。
+
+`user_message` = 输入框原文。开场只发课题原题。进度条跟扣子自己写的 `【当前步骤：N】` 走，Zion 不做评判。隔离细则见 `docs/zion-isolation.md`。
 
 `source=catalog`：用知识库系统课。`source=personal`：只用用户粘贴的【个人教案】，不要换成目录课。个人教案全文只在第一轮 `user_message` 里，不要给行为流加新入参。
 
@@ -92,11 +84,10 @@ lesson_kind=builtin 或 personal
 
 | 标记 | 前端动作 |
 | --- | --- |
-| `[下一关: N]` | 优先。N≤10 自动开下一关；N≥11 通关，不再自动请求 |
-| `恭喜…完成第X关 / 进入第Y关` | 动态正则抽数字，不要写 10 个 if |
+| `[下一关: N]` | 优先。只更新进度条，不要再自动发「请开始第 N 步」 |
 | `【当前步骤：N】` | `current_step=N`，1…N-1 视为已打卡 |
 | `【步骤完成：N】` | N 打勾，当前变为 N+1 |
-| `【十步完成】` | 10 个全亮，解锁实战演练，停止自动请求 |
+| `【十步完成】` | 10 个全亮，解锁实战演练 |
 | `【检验1完成】` | `exam1Done=true`，解锁说课 |
 | `【检验2完成】` | `exam2Done=true`，出现「生成 PPT」 |
 
@@ -136,23 +127,15 @@ lesson_kind=builtin 或 personal
 12 说课训练：输出说课逐字稿 + PPT 大纲
 
 一、如何知道自己在哪一步
-每一轮用户消息开头可能有：
-【进度上下文】
-current_step=数字
-step_name=步骤名
-completed=已打卡序号
-command=reply 或 replay_step 或 exam1 或 exam2
-source=catalog 或 personal
-lesson_kind=builtin 或 personal
-
-以 current_step 为准。没有这段时，从第 1 步开始。
+Zion 不再发送【进度上下文】或 current_step。你必须根据 **本会话历史** 判断当前步。
+没有历史：从第 1 步「自我介绍」开始。
+有历史：继续你上次停住的那一步，禁止每一轮都从第 1 步重来，禁止跳到其他课题。
 source=personal 或正文含【个人教案】：只依据用户粘贴的教案，禁止改用知识库系统课。
-source=catalog：用知识库里对应课题。
-command=replay_step：立刻回到 current_step 重新引导，不要跳。
-command=exam1 / exam2：见下文，不要再讲 10 步里的新内容。
+用户说「重新学习第 N 步」或点了重学：立刻回到第 N 步重新引导，不要跳。
+用户确认进入检验：见下文，不要再讲 10 步里的新内容。
 
 二、每一步怎么带
-只处理 current_step 这一步。用户还没回答你的「下一步提问」之前，禁止写【步骤完成】，禁止进入下一步。
+只处理当前这一步。用户还没回答你的「下一步提问」之前，禁止写【步骤完成】，禁止进入下一步。
 用户认真回答了本步问题，你确认他过关后，在回复里写：
 【步骤完成：N】
 【当前步骤：N+1】
@@ -209,7 +192,7 @@ command=exam1 / exam2：见下文，不要再讲 10 步里的新内容。
 
 六、禁止
 - 禁止一轮讲完 10 步。
-- 禁止在 current_step=3 时讲解第 6 步方法。
+- 禁止在第 3 步时讲解第 6 步方法。
 - 禁止没有【十步完成】就输出讲课逐字稿。
 - 禁止把进度上下文向讲师复读一遍。
 ```

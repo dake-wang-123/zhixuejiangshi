@@ -79,7 +79,8 @@ https://zion-app.functorz.com/zero/PO76RBe9KX0/api/graphql-v2
    - 智学去掉标题输入、「我的」去掉归档、引导语统一蓝色见 `docs/zion-ui-subtract.md`
    - 选课 / 学习页引导文案见 `docs/zion-guide-copy.md`
    - 课程首页去掉重复「60 堂系统课」见 `docs/zion-catalog-eyebrow.md`
-   - 十步 1–10 关自动推进与 `[下一关: N]` 见 `docs/zion-auto-advance.md`
+   - 十步进度条只跟扣子标记走，不再自动发「请开始第 X 步」，见 `docs/zion-auto-advance.md`
+   - 串台 / 脱轨：课号、会话、原文隔离见 `docs/zion-isolation.md`
    - 第10步后确认再进检验见 `docs/zion-inspect-confirm.md`
 4. Coze `4100` 是令牌本身无效；`4101` 是令牌没有访问该 Bot / 接口的权限。Bot 未发布到 **Agent As API** 时，流程会提示去 coze.cn 发布。
 
@@ -109,7 +110,7 @@ https://zion-app.functorz.com/zero/PO76RBe9KX0/api/graphql-v2
 - 教案不是独立表，而是课程的 `original_file` + `ai_analysis`。讲师上传 `source_type = 讲师上传`，解析中为 `解析中`，解析完为 `待审核`。
 - 上架课由管理员把 `status` 改为 `已上架`。登录用户可读「已上架 **或** 自己上传」的课程；课程 Tab 客户端再筛一层已上架。
 - 再次通跑智学：未选课发「你好」，智能体引导从课程目录选课或上传教案，再走它自己的问答。知识库目前列不出 60 课清单。管理员在「关于我们」解锁后上传 TXT/MD/JSON 目录或「分类-课题」文件名：先抽出标题分类，再按智学内置目录宽松对齐原题（如「听懂婴语」对齐「听懂“婴语”：读懂宝宝的哭声与信号」）。对上的用智能体原题归档；对不上的仍入库，点课把抽出的标题发给智学。Word/PDF 读不到正文，请靠文件名或粘贴目录。
-- 智学页只呈现 Coze 自己的问答。同一课反复进入会带上上次的 `conversation_id`，10 步引导不会丢。用户回答原样回传。输入框旁点麦克风说话，再点一次结束。语音识别会尝试微信「同声传译」插件；为避免未开通插件时模拟器启动失败，`app.json` 里不预置 `plugins`。若要启用转文字：微信公众平台 → 设置 → 第三方设置 → 添加「同声传译」，再在 `app.json` 加上该插件。用户隐私保护指引需声明麦克风。
+- 智学页只呈现 Coze 自己的问答。`conversation_id` 与 `lesson_code` 一对一绑定，换课必须新建或取回该课自己的会话，禁止把 A 课历史带进 B 课。同一课反复进入会带上该课上次的 `conversation_id`。用户回答原样回传，不再拼接 `current_step` 或「请开始第 X 步」。输入框旁点麦克风说话，再点一次结束。语音识别会尝试微信「同声传译」插件；为避免未开通插件时模拟器启动失败，`app.json` 里不预置 `plugins`。若要启用转文字：微信公众平台 → 设置 → 第三方设置 → 添加「同声传译」，再在 `app.json` 加上该插件。用户隐私保护指引需声明麦克风。
 - 测试时小程序启动即用管理员账号 `zhixue-admin` 登录（`config.devAdmin`）。归档上传在「关于我们」。关掉 `devAdmin.enabled` 后仍走微信静默登录。
 - 登录用户可插入自己的课程、学习记录、用户资料、反馈；匿名角色没有任何表权限，也不能调用 Actionflow / TPA / ZAI。
 - 课程分类字段在 GraphQL 里是关系对象 `category_id { id name }`，不是标量外键。

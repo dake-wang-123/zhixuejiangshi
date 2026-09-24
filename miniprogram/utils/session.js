@@ -6,8 +6,9 @@ const {
   paintStepViews
 } = require('./flow.js')
 const { lessonCodeOf } = require('./learn-history.js')
+const isolation = require('./isolation.js')
 
-const SESSION_KEY = 'zhixue_sessions_v10'
+const SESSION_KEY = 'zhixue_sessions_v11'
 const FOLLOW_MARK = '__FOLLOW_UPS__'
 
 function conversationScope(opts) {
@@ -35,7 +36,11 @@ function loadAll() {
 
 function readSession(courseId) {
   if (!courseId) return null
-  return loadAll()[String(courseId)] || null
+  const row = loadAll()[String(courseId)] || null
+  if (!row) return null
+  const cid = isolation.conversationForLesson(courseId, row.conversationId)
+  if (cid === (row.conversationId || '')) return row
+  return Object.assign({}, row, { conversationId: cid })
 }
 
 function writeSession(courseId, patch) {
@@ -43,6 +48,7 @@ function writeSession(courseId, patch) {
   const all = loadAll()
   const prev = all[String(courseId)] || {}
   const next = Object.assign({}, prev, patch || {}, { updatedAt: Date.now() })
+  next.conversationId = isolation.conversationForLesson(courseId, next.conversationId)
   all[String(courseId)] = next
   if (typeof wx !== 'undefined' && wx.setStorageSync) {
     wx.setStorageSync(SESSION_KEY, all)

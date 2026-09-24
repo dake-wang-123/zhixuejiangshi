@@ -8,6 +8,7 @@ const {
   stableUserId
 } = require('../../utils/session.js')
 const { startPrompt, PENDING_TOPIC_KEY, PENDING_LESSON_KEY } = require('../../utils/flow.js')
+const isolation = require('../../utils/isolation.js')
 const { readPending, sourceOf } = require('../../utils/personal-plan.js')
 const { friendlyError } = require('../../utils/errors.js')
 
@@ -78,44 +79,47 @@ Page({
     if (personal) {
       pending = personal.title
       lessonCode = personal.lessonCode
-      this.setData({
-        displayTitle: personal.title,
-        lessonCode: personal.lessonCode,
-        course: {
-          title: personal.title,
-          displayTitle: personal.title,
-          lessonCode: personal.lessonCode,
-          source: 'personal',
-          planText: personal.text
-        }
-      })
-    } else if (pending) {
-      this.setData({
-        displayTitle: pending,
-        lessonCode: lessonCode,
-        course: {
-          title: pending,
-          displayTitle: pending,
-          lessonCode: lessonCode,
-          source: sourceOf({ lessonCode: lessonCode }, lessonCode)
-        }
-      })
     }
-    ensureFlowSession(this.sessionKey(), pending)
+    const incoming = pending ? {
+      title: pending,
+      lessonCode: lessonCode,
+      source: personal ? 'personal' : sourceOf({ lessonCode: lessonCode }, lessonCode),
+      planText: personal ? personal.text : ''
+    } : null
+    if (incoming) {
+      if (isolation.switchedLesson(this.data.lessonCode, incoming.lessonCode)) {
+        classroom.abortTurn(this)
+        classroom.applyLesson(this, incoming)
+      } else {
+        const course = {
+          title: incoming.title,
+          displayTitle: incoming.title,
+          lessonCode: incoming.lessonCode,
+          source: incoming.source,
+          planText: incoming.planText
+        }
+        Object.assign(this.data, {
+          displayTitle: incoming.title,
+          lessonCode: incoming.lessonCode,
+          course: course
+        })
+        this.setData({
+          displayTitle: incoming.title,
+          lessonCode: incoming.lessonCode,
+          course: course
+        })
+      }
+    }
+    ensureFlowSession(this.sessionKey(), pending || this.data.displayTitle)
     app.ensureLogin().then(() => {
-      if (personal) {
+      if (incoming) {
         this.setData({
           planning: true,
-          hint: '正在按你的个人教案开始十步交付法…'
+          hint: incoming.lessonCode
+            ? ('正在进入 ' + incoming.lessonCode + ' …')
+            : '正在把课题发给智学…'
         })
         return classroom.startCourseFlow(this, this.data.course)
-      }
-      if (pending) {
-        this.setData({
-          planning: true,
-          hint: lessonCode ? ('正在把 ' + lessonCode + ' 课题发给智学…') : '正在把课题发给智学…'
-        })
-        return classroom.startOpenFlow(this, pending)
       }
       return classroom.startOpenFlow(this)
     }).catch((err) => {

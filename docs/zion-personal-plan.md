@@ -69,15 +69,6 @@
 个人教案**不是**第五个入参。放进第一轮 `user_message`：
 
 ```
-【进度上下文】
-current_step=1
-step_name=自我介绍
-completed=
-command=start
-source=personal
-lesson_kind=personal
-plan_title=破解分离焦虑
----
 【个人教案】
 source=personal
 课题：破解分离焦虑
@@ -86,15 +77,15 @@ source=personal
 （粘贴的全文，超过 8000 字截断）
 ```
 
-系统课第一轮只有课题原题，并且 `source=catalog`、`lesson_kind=builtin`。扣子走知识库。
+不要再拼 `【进度上下文】` / `current_step`。系统课第一轮只发课题原题。扣子走知识库，靠本课 `conversation_id` 记进度。
 
 | 来源 | `source` | `lesson_code` | 第一轮 `user_message` |
 | --- | --- | --- | --- |
 | 目录点课 | `catalog` | `B01` | 课题原题 |
-| 个人教案 | `personal` | `P:破解分离焦虑` | 进度块 + 【个人教案】全文 |
+| 个人教案 | `personal` | `P:破解分离焦虑` | 【个人教案】全文 |
 | 未选课打招呼 | `catalog` | `open` | `你好` |
 
-后续轮次只带 `source=personal` 和 `plan_title`，不再重复贴全文。扣子靠 `conversation_id` 记住第一轮。会话丢了才用 `additional_messages` 里已落库的第一轮用户句。
+后续轮次只发讲师原文，不再重复贴全文。扣子靠本课自己的 `conversation_id` 记住第一轮。
 
 画布按钮「开始十步自学」成功后：
 

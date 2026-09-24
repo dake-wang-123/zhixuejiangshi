@@ -1,0 +1,43 @@
+<view class="page">
+  <view class="hero">
+    <view class="hero-row">
+      <view class="hero-mark">
+        <ui-icon name="file" size="40" color="#4B6EF5"></ui-icon>
+      </view>
+      <view class="grow">
+        <text class="eyebrow">RESULTS</text>
+        <text class="hero-title">我的学习成果</text>
+      </view>
+    </view>
+    <text class="hero-sub">按课程沉淀检验 1、检验 2 的成果。退出再进也不会丢，全部从学习成果表回读。</text>
+  </view>
+  <view class="error" wx:if="{{error}}">{{error}}</view>
+  <view class="empty" wx:if="{{loading}}">正在读取已生成的成果…</view>
+  <view class="empty" wx:elif="{{empty}}">
+    <view class="empty-icon">
+      <ui-icon name="file" size="48" color="#999999"></ui-icon>
+    </view>
+    还没有学习成果。先在智学里走完 10 步，再点实战演练或说课训练。
+  </view>
+  <view
+    class="card lesson-card"
+    hover-class="lesson-hover"
+    hover-stay-time="80"
+    wx:for="{{groups}}"
+    wx:key="lessonCode"
+    data-code="{{item.lessonCode}}"
+    data-title="{{item.topicTitle}}"
+    bindtap="onOpen"
+  >
+    <text class="lesson-code">{{item.lessonCode}}</text>
+    <view class="title">{{item.topicTitle}}</view>
+    <view class="chip-row">
+      <text
+        class="chip {{chip.ready ? '' : 'chip-wait'}}"
+        wx:for="{{item.chips}}"
+        wx:for-item="chip"
+        wx:key="kind"
+      >{{chip.text}}</text>
+    </view>
+  </view>
+</view>

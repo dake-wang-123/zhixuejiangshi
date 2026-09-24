@@ -1,0 +1,26 @@
+.grow { flex: 1; min-width: 0; }
+
+.lesson-card {
+  padding: 32rpx;
+}
+
+.lesson-hover {
+  background: #F5F7FF;
+}
+
+.lesson-code {
+  display: block;
+  font-size: 24rpx;
+  color: #999999;
+  letter-spacing: 1rpx;
+  line-height: 1.6;
+}
+
+.chip-row {
+  margin-top: 16rpx;
+}
+
+.chip-wait {
+  background: #F3F4F6;
+  color: #999999;
+}

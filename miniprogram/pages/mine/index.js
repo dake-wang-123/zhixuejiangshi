@@ -2,6 +2,7 @@ const app = getApp()
 const { graphqlRequest, eqBigint } = require('../../utils/graphql.js')
 const { openPptUrl } = require('../../utils/agent.js')
 const { isAdmin, unlockAdmin } = require('../../utils/admin.js')
+const results = require('../../utils/learn-results.js')
 
 Page({
   data: {
@@ -10,6 +11,8 @@ Page({
     educationYears: '',
     membership: null,
     ppts: [],
+    resultCount: 0,
+    resultPreview: '',
     feedback: '',
     saving: false,
     sending: false,
@@ -76,7 +79,22 @@ Page({
         membership: membership,
         ppts: data.ppt_record || []
       })
+      return results.listResults(token).then((rows) => {
+        const groups = results.groupByLesson(rows)
+        const first = groups[0]
+        this.setData({
+          resultCount: groups.length,
+          resultPreview: first
+            ? (first.lessonCode + ' ' + first.topicTitle + ' · ' + first.summary)
+            : ''
+        })
+      }).catch(() => {
+        this.setData({ resultCount: 0, resultPreview: '' })
+      })
     }).catch(() => {})
+  },
+  onResults() {
+    wx.navigateTo({ url: '/pages/results/index' })
   },
   onYears(e) {
     this.setData({ educationYears: e.detail.value })

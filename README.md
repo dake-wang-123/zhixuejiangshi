@@ -12,7 +12,7 @@
 | 教案 | 上传文件到 `course.original_file`，粘贴全文后串联三个 ZAI，写回 `ai_analysis`；可把讲课稿生成课件 |
 | 智学 | 智学原文问答。未选课先给引导语，也可在本页输入课题原题；选了课把原题发给智学。每条 Coze 消息随到随画 |
 | 课件 | 独立页 `pages/ppt/index`：智学写 PPT 大纲 → 智谱 GLM PPT Agent 出片 → 写入 `ppt_record.file_url`，页面提供打开/复制下载 |
-| 我的 | 启动即管理员测试登录，可直接上传课程归档；也可维护讲师资料、会员、意见反馈 |
+| 我的 | 讲师资料、会员、**我的学习成果**（按课查看讲稿 / 诊断 / 说课 / PPT大纲）、意见反馈 |
 
 ## 本地运行
 
@@ -72,6 +72,7 @@ https://zion-app.functorz.com/zero/PO76RBe9KX0/api/graphql-v2
    - `lesson_code` 报错与微信输入条见 `docs/zion-chat-composer.md`
    - 教案阅读排版与扣子强制 Markdown 提示词见 `docs/zion-readable-lesson.md`
    - 10 步进度条、回溯与两段检验见 `docs/zion-ten-steps.md`
+   - 学习成果表、我的列表 / 详情、检验完成后写入见 `docs/zion-learn-results.md`
 4. Coze `4100` 是令牌本身无效；`4101` 是令牌没有访问该 Bot / 接口的权限。Bot 未发布到 **Agent As API** 时，流程会提示去 coze.cn 发布。
 
 ## 课件 PPT

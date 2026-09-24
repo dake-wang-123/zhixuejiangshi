@@ -20,6 +20,7 @@ const {
   exam2Prompt
 } = require('./flow.js')
 const history = require('./learn-history.js')
+const results = require('./learn-results.js')
 const typewriter = require('./typewriter.js')
 const { decorateThread } = require('./markdown.js')
 
@@ -167,6 +168,21 @@ function backupTurn(page, userText, result) {
   return history.saveRows(rows, token)
 }
 
+function backupResults(page, command, result) {
+  if (command !== 'exam1' && command !== 'exam2') return Promise.resolve()
+  const account = getApp().globalData.account || {}
+  const token = getApp().getToken()
+  const text = String((result && result.reply) || '').trim()
+  if (!account.id || !token || !text) return Promise.resolve()
+  return results.saveExam({
+    accountId: account.id,
+    lessonCode: storedLessonCode(page),
+    topicTitle: (page.data && (page.data.displayTitle || (page.data.course && page.data.course.title))) || '',
+    command: command,
+    text: text
+  }, token)
+}
+
 function scrollBottom(page) {
   const thread = page.data.thread || []
   const last = thread[thread.length - 1]
@@ -293,7 +309,7 @@ function askZhixue(page, text, options) {
       if (typeof page.saveProgress === 'function') {
         page.saveProgress(nextProgress.completedSteps.length, 10)
       }
-      return backupTurn(page, prompt, result)
+      return backupTurn(page, prompt, result).then(() => backupResults(page, command, result))
     })
   }).catch((err) => {
     stopLive(page)

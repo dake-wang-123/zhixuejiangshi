@@ -39,6 +39,7 @@
         <view class="exam-btn on" bindtap="onExam1">{{exam1Done ? '再出一份讲课逐字稿' : '实战演练 · 讲课逐字稿'}}</view>
         <view class="exam-btn {{exam1Done ? 'on' : 'off'}}" bindtap="onExam2">说课训练 · 逐字稿+PPT</view>
       </view>
+      <view class="exam-btn ghost" wx:if="{{exam1Done}}" bindtap="onViewResults">查看本课学习成果</view>
       <view class="exam-btn ghost" wx:if="{{exam2Ready}}" bindtap="onMakePpt">用说课稿生成 PPT</view>
     </view>
   </view>

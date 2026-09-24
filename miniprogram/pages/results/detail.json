@@ -1,0 +1,7 @@
+{
+  "usingComponents": {
+    "ui-icon": "/components/icon/icon"
+  },
+  "navigationBarTitleText": "成果详情",
+  "enablePullDownRefresh": true
+}

@@ -41,12 +41,21 @@
     </view>
     <view class="muted" wx:else>当前没有会员记录。上架课程里标了会员免费的，需要有效会员才能按免费价学习。</view>
   </view>
-  <view class="card">
+  <view class="card" bindtap="onResults">
+    <view class="section-head" style="margin-top: 0;">
+      <ui-icon name="file" size="32" color="#4B6EF5"></ui-icon>
+      <text class="name">我的学习成果</text>
+    </view>
+    <view class="desc" wx:if="{{resultCount}}">已沉淀 {{resultCount}} 门课</view>
+    <view class="muted" wx:if="{{resultPreview}}">{{resultPreview}}</view>
+    <view class="muted" wx:else>检验 1、检验 2 生成的讲稿、诊断、说课和 PPT 大纲会按课存在这里。</view>
+    <button class="btn" catchtap="onResults">查看学习成果</button>
+  </view>
+  <view class="card" wx:if="{{ppts.length}}">
     <view class="section-head" style="margin-top: 0;">
       <ui-icon name="slides" size="32" color="#4B6EF5"></ui-icon>
-      <text class="name">我的课件</text>
+      <text class="name">智谱课件文件</text>
     </view>
-    <view class="muted" wx:if="{{!ppts.length}}">还没有生成过 PPT。可从教案或课程详情进入。</view>
     <view wx:for="{{ppts}}" wx:key="id" class="ppt-row">
       <view class="desc">{{item.title}} · {{item.status}}</view>
       <button class="btn mini" size="mini" wx:if="{{item.file_url}}" data-url="{{item.file_url}}" bindtap="onOpenPpt">下载</button>

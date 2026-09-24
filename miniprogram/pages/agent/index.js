@@ -174,6 +174,13 @@ Page({
   onMakePpt() {
     classroom.makePpt(this)
   },
+  onViewResults() {
+    const code = this.data.lessonCode || 'open'
+    const title = this.data.displayTitle || ''
+    wx.navigateTo({
+      url: '/pages/results/detail?lessonCode=' + encodeURIComponent(code) + '&title=' + encodeURIComponent(title)
+    })
+  },
   friendlyError(err) {
     return friendlyError(err, '智学调用失败')
   }

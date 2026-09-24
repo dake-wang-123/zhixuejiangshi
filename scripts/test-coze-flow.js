@@ -40,7 +40,9 @@ assert.strictEqual(views[2].status, 'current')
 assert.strictEqual(views[3].status, 'todo')
 assert.ok(packTurn('我是讲师', moved, 'reply').indexOf('current_step=3') >= 0)
 assert.ok(exam1Prompt().indexOf('讲课逐字稿') >= 0)
-assert.ok(exam2Prompt().indexOf('PPT') >= 0)
+assert.ok(exam1Prompt().indexOf('诊断报告') >= 0)
+assert.ok(exam2Prompt().indexOf('PPT大纲') >= 0)
+assert.ok(exam2Prompt().indexOf('说课逐字稿') >= 0)
 const inferred = inferProgress([
   { role: 'assistant', content: '【当前步骤：1】自我介绍', step: 1 },
   { role: 'assistant', content: '【当前步骤：2】【步骤完成：1】破题', step: 2 }
@@ -305,6 +307,43 @@ const fakePage = {
 typewriter.play(fakePage, [{ id: 1, role: 'user', content: 'hi' }], 'ABCD')
 assert.ok(fakePage.data.thread[1].content.length >= 1)
 typewriter.stop(fakePage)
+
+const learnResults = require('../miniprogram/utils/learn-results.js')
+const exam1 = learnResults.parseExam([
+  '【检验1】',
+  '## 讲课逐字稿',
+  '家长朋友们，今天我们讲分离焦虑。',
+  '## 诊断报告',
+  '**结构完整**，开场能接住情绪。'
+].join('\n'), 'exam1')
+assert.strictEqual(exam1.length, 2)
+assert.strictEqual(exam1[0].label, '讲课逐字稿')
+assert.ok(exam1[0].content.indexOf('分离焦虑') >= 0)
+assert.strictEqual(exam1[1].label, '诊断报告')
+const exam2 = learnResults.parseExam([
+  '## 说课逐字稿',
+  '本课面向新手家长，40 分钟。',
+  '## PPT大纲',
+  '1. 封面：破解分离焦虑'
+].join('\n'), 'exam2')
+assert.strictEqual(exam2[0].kind, 'talk')
+assert.strictEqual(exam2[1].kind, 'outline')
+assert.strictEqual(learnResults.parseExam('只有一段讲稿', 'exam1')[0].label, '讲课逐字稿')
+assert.strictEqual(learnResults.resultKey(9, 'lesson:B01', '讲课逐字稿'), '9|B01|讲课逐字稿')
+const grouped = learnResults.groupByLesson([
+  { lesson_code: 'B01', topic_title: '破解分离焦虑', result_type: '讲课逐字稿', content: '稿', created_at: '2' },
+  { lesson_code: 'B01', topic_title: '破解分离焦虑', result_type: '诊断报告', content: '评', created_at: '3' },
+  { lesson_code: 'A04', topic_title: '物权意识敏感期', result_type: 'PPT大纲', content: '页', created_at: '1' }
+])
+assert.strictEqual(grouped[0].lessonCode, 'B01')
+assert.ok(grouped[0].summary.indexOf('已生成 讲课逐字稿') >= 0)
+assert.strictEqual(grouped[0].readyCount, 2)
+const tabs = learnResults.tabsFromRows([
+  { lesson_code: 'B01', result_type: 'PPT大纲', content: '- 封面', created_at: '1' }
+], '破解分离焦虑')
+assert.strictEqual(tabs[3].kind, 'outline')
+assert.strictEqual(tabs[3].ready, true)
+assert.strictEqual(tabs[0].ready, false)
 
 assert.strictEqual(isFlowCrash('com.zion.backend.support.actionflow.UnknownValueException: lesson_code is not specified in the schema'), true)
 assert.strictEqual(isFlowCrash('你好，我们开始上课'), false)

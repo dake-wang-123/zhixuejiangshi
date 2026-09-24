@@ -6,6 +6,8 @@
     "pages/ppt/index",
     "pages/agent/index",
     "pages/mine/index",
+    "pages/results/index",
+    "pages/results/detail",
     "pages/admin/upload"
   ],
   "window": {

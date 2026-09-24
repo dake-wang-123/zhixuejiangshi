@@ -1,0 +1,40 @@
+<view class="page result-page">
+  <view class="hero">
+    <text class="eyebrow">{{lessonCode || '成果'}}</text>
+    <text class="hero-title">{{topicTitle || '成果详情'}}</text>
+    <text class="hero-sub">数据来自学习成果表。退出再进会按课号重新读取，不会丢。</text>
+  </view>
+  <view class="error" wx:if="{{error}}">{{error}}</view>
+  <scroll-view scroll-x class="tabs" wx:if="{{tabs.length}}">
+    <view
+      class="tab {{active === item.kind ? 'on' : ''}} {{item.ready ? '' : 'off'}}"
+      wx:for="{{tabs}}"
+      wx:key="kind"
+      data-kind="{{item.kind}}"
+      bindtap="onTab"
+    >{{item.label}}</view>
+  </scroll-view>
+  <view class="empty" wx:if="{{loading}}">正在读取本课成果…</view>
+  <view class="empty" wx:elif="{{current && !current.ready}}">
+    <view class="empty-icon">
+      <ui-icon name="file" size="48" color="#999999"></ui-icon>
+    </view>
+    本课还没有「{{current.label}}」。回到智学，先走完 10 步再生成。
+  </view>
+  <view class="article" wx:elif="{{current && current.blocks.length}}">
+    <block wx:for="{{current.blocks}}" wx:for-item="block" wx:key="id">
+      <view class="ai-block ai-{{block.kind}}">
+        <view class="ai-kicker" wx:if="{{block.kicker}}">{{block.kicker}}</view>
+        <rich-text nodes="{{block.nodes}}"></rich-text>
+      </view>
+    </block>
+  </view>
+  <view class="card" wx:elif="{{current && current.content}}">
+    <view class="desc">{{current.content}}</view>
+  </view>
+  <view
+    class="copy-fab"
+    wx:if="{{showCopy}}"
+    bindtap="onCopyOutline"
+  >一键复制PPT大纲</view>
+</view>

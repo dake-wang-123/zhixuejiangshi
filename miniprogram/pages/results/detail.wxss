@@ -1,0 +1,48 @@
+.result-page {
+  padding-bottom: 180rpx;
+}
+
+.tabs {
+  white-space: nowrap;
+  margin: 0 0 24rpx;
+}
+
+.tab {
+  display: inline-block;
+  padding: 12rpx 24rpx;
+  margin-right: 12rpx;
+  border-radius: 999rpx;
+  background: #FFFFFF;
+  color: #333333;
+  font-size: 24rpx;
+  line-height: 1.6;
+  border: 1rpx solid #E5E5E5;
+}
+
+.tab.on {
+  background: #4B6EF5;
+  color: #FFFFFF;
+  border-color: #4B6EF5;
+}
+
+.tab.off {
+  color: #999999;
+}
+
+.article {
+  padding: 8rpx 0 40rpx;
+}
+
+.copy-fab {
+  position: fixed;
+  right: 32rpx;
+  bottom: 48rpx;
+  z-index: 20;
+  padding: 18rpx 28rpx;
+  border-radius: 999rpx;
+  background: #4B6EF5;
+  color: #FFFFFF;
+  font-size: 26rpx;
+  line-height: 1.6;
+  box-shadow: 0 8rpx 24rpx rgba(75, 110, 245, 0.28);
+}

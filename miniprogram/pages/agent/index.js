@@ -8,6 +8,7 @@ const {
   stableUserId
 } = require('../../utils/session.js')
 const { startPrompt, PENDING_TOPIC_KEY, PENDING_LESSON_KEY } = require('../../utils/flow.js')
+const { readPending, sourceOf } = require('../../utils/personal-plan.js')
 const { friendlyError } = require('../../utils/errors.js')
 
 Page({
@@ -54,11 +55,13 @@ Page({
   },
   onShow() {
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
-      this.getTabBar().setData({ selected: 2 })
+      this.getTabBar().setData({ selected: 1 })
     }
     let pending = ''
     let lessonCode = ''
+    let personal = null
     try {
+      personal = readPending()
       const packed = wx.getStorageSync(PENDING_LESSON_KEY) || null
       if (packed) {
         pending = packed.title || packed.lessonTitle || ''
@@ -68,15 +71,41 @@ Page({
       if (!pending) pending = wx.getStorageSync(PENDING_TOPIC_KEY) || ''
       if (pending) wx.removeStorageSync(PENDING_TOPIC_KEY)
     } catch (e) {}
-    if (pending) {
+    if (personal) {
+      pending = personal.title
+      lessonCode = personal.lessonCode
+      this.setData({
+        displayTitle: personal.title,
+        lessonCode: personal.lessonCode,
+        course: {
+          title: personal.title,
+          displayTitle: personal.title,
+          lessonCode: personal.lessonCode,
+          source: 'personal',
+          planText: personal.text
+        }
+      })
+    } else if (pending) {
       this.setData({
         displayTitle: pending,
         lessonCode: lessonCode,
-        course: { title: pending, displayTitle: pending, lessonCode: lessonCode }
+        course: {
+          title: pending,
+          displayTitle: pending,
+          lessonCode: lessonCode,
+          source: sourceOf({ lessonCode: lessonCode }, lessonCode)
+        }
       })
     }
     ensureFlowSession(this.sessionKey(), pending)
     app.ensureLogin().then(() => {
+      if (personal) {
+        this.setData({
+          planning: true,
+          hint: '正在按你的个人教案开始 10 步…'
+        })
+        return classroom.startCourseFlow(this, this.data.course)
+      }
       if (pending) {
         this.setData({
           planning: true,

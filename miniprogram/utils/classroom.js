@@ -8,6 +8,7 @@ const {
 } = require('./session.js')
 const {
   startPrompt,
+  topicTitleOf,
   OPEN_GUIDE_PROMPT,
   detectProgress,
   applyProgress,
@@ -23,6 +24,7 @@ const history = require('./learn-history.js')
 const results = require('./learn-results.js')
 const typewriter = require('./typewriter.js')
 const { decorateThread } = require('./markdown.js')
+const { shortUserText, sourceOf } = require('./personal-plan.js')
 
 const THINK_HINTS = [
   '智学正在翻这一课的教案…',
@@ -84,7 +86,12 @@ function paintProgress(page, session) {
 
 function paint(page, session) {
   typewriter.stop(page)
-  const thread = markAnchors(decorateThread(((session && session.messages) || []).filter((item) => !item.hidden)))
+  const thread = markAnchors(decorateThread(((session && session.messages) || []).filter((item) => !item.hidden))).map((item) => {
+    if (item.role !== 'user') return item
+    const next = Object.assign({}, item)
+    next.preview = shortUserText(item.content)
+    return next
+  })
   const topic = (session && session.topicTitle) || ''
   const progress = paintProgress(page, session)
   page.setData({
@@ -243,12 +250,17 @@ function askZhixue(page, text, options) {
   const progress = progressOf(preview)
   const command = opts.command || 'reply'
   const step = opts.step || progress.currentStep || 1
-  const packed = packTurn(prompt, Object.assign({}, progress, { currentStep: step }), command)
+  const source = preview.source || sourceOf(page.data && page.data.course, page.data && page.data.lessonCode)
+  const packed = packTurn(prompt, Object.assign({}, progress, { currentStep: step, source: source }), command, {
+    source: source,
+    planTitle: preview.topicTitle || (page.data && page.data.displayTitle) || ''
+  })
   const userMsg = {
     id: Date.now(),
     role: 'user',
     hidden: false,
     content: prompt,
+    preview: opts.preview || shortUserText(prompt),
     step: step,
     command: command
   }
@@ -329,24 +341,32 @@ function askZhixue(page, text, options) {
 }
 
 function startCourseFlow(page, course) {
-  const title = startPrompt(course)
-  return restoreRemote(page, title).then((existing) => {
+  const topic = topicTitleOf(course)
+  const opener = startPrompt(course)
+  const source = sourceOf(course)
+  return restoreRemote(page, topic).then((existing) => {
     if (existing && (existing.messages || []).length && hasAssistant(existing.messages)) {
       paint(page, existing)
-      page.setData({ planning: false, hint: title ? ('课题：' + title) : '已恢复上次学习记录' })
+      page.setData({ planning: false, hint: topic ? ('课题：' + topic) : '已恢复上次学习记录' })
       return existing
     }
-    if (!title) {
+    if (!opener) {
       page.setData({ planning: false })
       return existing
     }
     persist(page, {
-      topicTitle: title,
+      topicTitle: topic,
+      source: source,
+      planText: (course && course.planText) || existing.planText || '',
       conversationId: existing.conversationId || '',
       chatId: existing.chatId || ''
     }, { skipPaint: true })
     page.setData({ planning: true })
-    return askZhixue(page, title)
+    return askZhixue(page, opener, {
+      command: source === 'personal' ? 'start' : 'reply',
+      preview: source === 'personal' ? ('开始自学这份个人教案 · ' + topic) : '',
+      step: 1
+    })
   })
 }
 
@@ -366,14 +386,22 @@ function startOpenFlow(page, topicTitle) {
     const lessonCode = (row && (row.lesson_code || row.课号)) || (last && last.lessonCode) || ''
     const title = (row && (row.topic || row.topic_title || row.课题)) || (last && last.topicTitle) || ''
     if (lessonCode && lessonCode !== 'open') {
+      const existing = readSession(page.sessionKey()) || {}
+      const course = {
+        title: title || lessonCode,
+        displayTitle: title || lessonCode,
+        lessonCode: lessonCode,
+        source: existing.source || sourceOf(null, lessonCode),
+        planText: existing.planText || ''
+      }
       if (typeof page.setData === 'function') {
         page.setData({
           lessonCode: lessonCode,
           displayTitle: title || lessonCode,
-          course: { title: title || lessonCode, displayTitle: title || lessonCode, lessonCode: lessonCode }
+          course: course
         })
       }
-      return startCourseFlow(page, page.data.course)
+      return startCourseFlow(page, course)
     }
     if (title) {
       return startCourseFlow(page, { title: title, displayTitle: title })

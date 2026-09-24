@@ -1,5 +1,6 @@
 const { shortTitle } = require('./study.js')
 const { matchCanonical } = require('./coze-catalog.js')
+const { packPersonalStart, sourceOf } = require('./personal-plan.js')
 
 const FLOW_VERSION = 12
 const OPEN_SESSION_ID = 'open'
@@ -157,18 +158,25 @@ function paintStepViews(progress) {
   })
 }
 
-function packTurn(text, progress, command) {
+function packTurn(text, progress, command, extra) {
   const step = (progress && progress.currentStep) || 1
   const meta = stepMeta(step)
-  return [
+  const source = (extra && extra.source) || (progress && progress.source) || 'catalog'
+  const lines = [
     '【进度上下文】',
     'current_step=' + step,
     'step_name=' + meta.title,
     'completed=' + ((progress && progress.completedSteps) || []).join(','),
     'command=' + (command || 'reply'),
-    '---',
-    String(text || '')
-  ].join('\n')
+    'source=' + source,
+    'lesson_kind=' + (source === 'personal' ? 'personal' : 'builtin')
+  ]
+  if (source === 'personal' && extra && extra.planTitle) {
+    lines.push('plan_title=' + extra.planTitle)
+  }
+  lines.push('---')
+  lines.push(String(text || ''))
+  return lines.join('\n')
 }
 
 function replayPrompt(step) {
@@ -292,7 +300,11 @@ function topicTitleOf(course, fallback) {
 }
 
 function startPrompt(course, fallback) {
-  return topicTitleOf(course, fallback)
+  const title = topicTitleOf(course, fallback)
+  if (sourceOf(course) === 'personal' && course && course.planText) {
+    return packPersonalStart(title, course.planText)
+  }
+  return title
 }
 
 function detectAdvance(text, steps, completedCount) {

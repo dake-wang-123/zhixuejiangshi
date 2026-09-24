@@ -71,7 +71,9 @@ function blankSession(topicTitle) {
     currentIndex: firstLiveIndex(),
     conversationId: '',
     chatId: '',
-    topicTitle: topicTitle || ''
+    topicTitle: topicTitle || '',
+    source: 'catalog',
+    planText: ''
   }, blankProgress())
 }
 
@@ -126,6 +128,8 @@ function hydrateSession(courseId, remote, topicTitle) {
     conversationId: conversationId,
     chatId: chatId,
     topicTitle: title,
+    source: local.source || 'catalog',
+    planText: local.planText || '',
     completedCount: progress.completedSteps.length,
     currentIndex: Math.max(0, (progress.currentStep || 1) - 1),
     steps: paintStepViews(progress),

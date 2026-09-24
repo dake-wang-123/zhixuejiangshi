@@ -28,10 +28,6 @@
         "text": "课程"
       },
       {
-        "pagePath": "pages/plan/index",
-        "text": "教案"
-      },
-      {
         "pagePath": "pages/agent/index",
         "text": "智学"
       },

@@ -7,6 +7,8 @@ function lessonCodeOf(scope, fallback) {
   if (!raw || raw === 'open') return 'open'
   if (raw.indexOf('lesson:') === 0) return raw.slice(7) || 'open'
   if (raw.indexOf('topic:') === 0) return ('T:' + raw.slice(6)).slice(0, 32)
+  if (raw.indexOf('personal:') === 0) return ('P:' + raw.slice(9)).slice(0, 32)
+  if (/^P:/i.test(raw)) return raw.slice(0, 32)
   if (/^[A-G]\d{2}$/i.test(raw)) return raw.toUpperCase()
   return raw.slice(0, 32)
 }

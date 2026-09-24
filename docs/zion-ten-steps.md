@@ -74,9 +74,13 @@ current_step=3
 step_name=目标价值
 completed=1,2
 command=reply
+source=catalog 或 personal
+lesson_kind=builtin 或 personal
 ---
 讲师这一轮的原文
 ```
+
+`source=catalog`：用知识库系统课。`source=personal`：只用用户粘贴的【个人教案】，不要换成目录课。个人教案全文只在第一轮 `user_message` 里，不要给行为流加新入参。
 
 `command`：`reply` 普通回答；`replay_step` 重学；`exam1` 实战；`exam2` 说课。
 
@@ -136,8 +140,12 @@ current_step=数字
 step_name=步骤名
 completed=已打卡序号
 command=reply 或 replay_step 或 exam1 或 exam2
+source=catalog 或 personal
+lesson_kind=builtin 或 personal
 
 以 current_step 为准。没有这段时，从第 1 步开始。
+source=personal 或正文含【个人教案】：只依据用户粘贴的教案，禁止改用知识库系统课。
+source=catalog：用知识库里对应课题。
 command=replay_step：立刻回到 current_step 重新引导，不要跳。
 command=exam1 / exam2：见下文，不要再讲 10 步里的新内容。
 

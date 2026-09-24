@@ -2,8 +2,39 @@
   <view class="hero">
     <text class="eyebrow">课程目录</text>
     <text class="hero-title">选一门课开始学</text>
-    <text class="hero-sub">60 门课按年龄段分组。点标题进入智学，按智能体自己的问答上课。</text>
+    <text class="hero-sub">60 门课按年龄段分组。也可以先在上方提交自己的教案，按同一套 10 步走。</text>
     <text class="hero-meta" wx:if="{{!loading}}">{{categoryCount}} 个类别 · {{catalogCount}} 门课{{refreshing ? ' · 正在同步' : ''}}</text>
+  </view>
+  <view class="upload-card">
+    <view class="upload-head">
+      <view class="hero-mark">
+        <ui-icon name="upload" size="40" color="#4B6EF5"></ui-icon>
+      </view>
+      <view class="grow">
+        <text class="eyebrow">PERSONAL PLAN</text>
+        <text class="upload-title">上传个人教案</text>
+      </view>
+    </view>
+    <text class="upload-sub">上传你自己的教案，智能体会自动解析，并按照“十步交付法”引导你进行自学，产出你的专属讲课逐字稿。</text>
+    <button class="btn" wx:if="{{!planOpen}}" bindtap="onOpenPlan">上传教案</button>
+    <view wx:else>
+      <view class="label">教案标题</view>
+      <input class="field" placeholder="例如：破解分离焦虑" value="{{planTitle}}" bindinput="onPlanTitle" />
+      <view class="label">教案正文（推荐粘贴）</view>
+      <textarea
+        class="area plan-area"
+        placeholder="把教案全文粘贴在这里。Word / PDF 请先复制正文，不要只上传原文件。"
+        value="{{planText}}"
+        bindinput="onPlanText"
+        maxlength="12000"
+        auto-height
+      ></textarea>
+      <view class="muted">优先粘贴文本，最稳。txt / md 可以点下面从文件填入。</view>
+      <view class="muted" wx:if="{{planFileName}}">已选 {{planFileName}}</view>
+      <button class="btn btn-ghost" bindtap="onPickPlan">从文件填入文本</button>
+      <button class="btn" bindtap="onSubmitPlan" disabled="{{planSubmitting}}">开始十步自学</button>
+      <view class="upload-cancel" bindtap="onClosePlan">先看下面的系统课</view>
+    </view>
   </view>
   <view class="error" wx:if="{{error}}">{{error}}</view>
   <view class="empty" wx:if="{{loading}}">

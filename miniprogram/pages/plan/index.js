@@ -28,10 +28,7 @@ Page({
     plans: []
   },
   onShow() {
-    if (typeof this.getTabBar === 'function' && this.getTabBar()) {
-      this.getTabBar().setData({ selected: 1 })
-    }
-    this.load()
+    wx.switchTab({ url: '/pages/index/index' })
   },
   onPullDownRefresh() {
     this.load().then(() => wx.stopPullDownRefresh())

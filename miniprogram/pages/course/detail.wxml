@@ -44,7 +44,7 @@
       <block wx:for="{{thread}}" wx:key="id">
         <view id="{{item.anchor}}" wx:if="{{item.anchor}}"></view>
         <view id="m-{{item.id}}" class="msg msg-user" wx:if="{{item.role === 'user'}}">
-          <view class="msg-user-bubble">{{item.content}}</view>
+          <view class="msg-user-bubble">{{item.preview || item.content}}</view>
         </view>
         <view id="m-{{item.id}}" class="msg msg-ai" wx:else>
           <view class="msg-ai-meta">智学<text wx:if="{{item.step && item.step <= 10}}"> · 第{{item.step}}步</text></view>

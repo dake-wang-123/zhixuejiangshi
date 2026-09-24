@@ -2,8 +2,9 @@
   <view class="study-top">
     <view class="kicker">{{lessonCode ? ('课号 ' + lessonCode) : '智学伴练'}}</view>
     <view class="title">{{displayTitle}}</view>
-    <text class="sub" wx:if="{{course}}">按 10 步交付往下走。点已打卡的步骤可回看或重学。</text>
-    <text class="sub" wx:else>未选课时先给引导语。点课或输入课题后，按 10 步走。</text>
+    <text class="sub" wx:if="{{course.source === 'personal'}}">正在按你上传的个人教案走 10 步。点已打卡的步骤可回看或重学。</text>
+    <text class="sub" wx:elif="{{course}}">按 10 步交付往下走。点已打卡的步骤可回看或重学。</text>
+    <text class="sub" wx:else>未选课时先给引导语。点课、上传个人教案或输入课题后，按 10 步走。</text>
     <view class="actions">
       <button class="text-btn" bindtap="onClear">重新开始</button>
       <button class="text-btn" bindtap="onRetry" wx:if="{{error}}">再问一次</button>
@@ -50,7 +51,7 @@
     <block wx:for="{{thread}}" wx:key="id">
       <view id="{{item.anchor}}" wx:if="{{item.anchor}}"></view>
       <view id="m-{{item.id}}" class="msg msg-user" wx:if="{{item.role === 'user'}}">
-        <view class="msg-user-bubble">{{item.content}}</view>
+        <view class="msg-user-bubble">{{item.preview || item.content}}</view>
       </view>
       <view id="m-{{item.id}}" class="msg msg-ai" wx:else>
         <view class="msg-ai-meta">智学<text wx:if="{{item.step && item.step <= 10}}"> · 第{{item.step}}步</text></view>

@@ -1,90 +1,75 @@
-# Zion 只搬运：请求、进度条、换课、回包
+# Zion 只搬运：请求、展示、换课、进度条
 
-Zion 只调取和展示。十步交付法的顺序只由扣子决定。
+扣子是唯一大脑。Zion 只做两件事：转发输入框原文，原样展示扣子回包。
+
+进学习页允许自动发 **一次** 初始请求，content 只放课程标题。
 
 ---
 
-## 第一部分：越权清单（必须删）
+## 第一部分：要删 / 要改的节点
 
-| 位置 | 越权行为 | 处理 |
+画布 **页面 → 智学**，行为流 **智学对话**：
+
+| 节点 / 变量 | 问题 | 处理 |
 | --- | --- | --- |
-| `packTurn` / 行为流 `additional_messages` | 拼接 `【进度上下文】`、`current_step=` | 已改为只发原文 |
-| `startStepPrompt` / `maybeAutoAdvance` | 自动发「请开始第 X 步」 | 禁止调用，禁止自动请求 |
-| `replayPrompt` | 点进度条就发「请回到第 N 步」 | 只回看，不发请求 |
-| `exam1ConfirmPrompt` / `exam2ConfirmPrompt` | 前端替扣子写检验稿要求 | 按钮只发「确认进入」原文 |
-| `onSend` + `isConfirmText` | 输入「好的」被拦截成检验请求 | 原样发给扣子 |
-| `packPersonalStart` | 「从第1步自我介绍开始」「写【当前步骤：1】」 | 只发课题 + 教案正文 |
-| 进智学自动发「你好」 | 前端替用户开口 | 未选课就等输入 |
-| 本地 `item.step` / `session.currentStep` | 用 Zion 猜的步号覆盖扣子标记 | 只从回复提取 |
-| 正文里出现「第8步」就跳步 | 把讲义当进度 | 只认 `[当前步骤: X]` |
+| POST Body `additional_messages[0].content` | 拼了「请开始第X步」「当前是第X步」「请按流程走」 | 只绑输入框，或开场绑课题标题 |
+| Run Code 拼 `【进度上下文】` / `current_step=` | 前端替扣子报步 | 整段删除 |
+| 过关后自动再调一次行为流 | 「完成第一关 → +1 → 再 POST」 | 删除自动请求节点 |
+| 输入「好的」被动作改成检验稿 | 前端拦截用户原话 | 取消拦截，原样发送 |
+| 点进度条「重新学习此步」再请求 | 前端写引导语 | 只回看，不发 |
+| 页面变量 `current_step` 被动作 +1 | 前端推进流程 | 换课置 1 后不再改；进度条先不联动 |
+| 进智学自动发「你好」 | 替用户开口 | 未选课不发 |
+| 展示组件绑了整份历史 / 上节课缓存 | 串课 | 只绑本课本次 `reply_content` 的 `type=answer` |
 
-行为流「智学对话」入参仍只有：`user_message` / `user_id` / `conversation_id` / `bot_id`。  
-Run Code 禁止 `getArg('lesson_code')` / `getArg('current_step')`。
+入参仍然只有：`user_message` / `user_id` / `conversation_id` / `bot_id`。
 
 ---
 
-## 第二部分：正确配置
+## 第二部分：请求体
 
-### 请求体
+开场（目录点课，自动一次）：
 
 ```
-POST /v3/chat?conversation_id={仅当已有本课 Coze 数字 ID}
-{
-  "bot_id": "...",
-  "user_id": "learn-{帐户id}-{lesson_code}",
-  "stream": false,
-  "auto_save_history": true,
-  "additional_messages": [
-    { "role": "user", "content": "输入框原文", "content_type": "text" }
-  ]
-}
+additional_messages: [
+  { "role": "user", "content": "听懂婴语：读懂宝宝的哭声与信号", "content_type": "text" }
+]
 ```
 
-开场：目录点课只发课题原题；个人教案只发「课题：标题」+ 正文。不要加步号。
+`content` / `user_message` 绑定课题原题，不要加「请开始」「请按十步法」。
 
-### 进度条
+之后每一轮：
 
-页面变量 `current_step` 只读。从本轮 AI 回复提取 `[当前步骤: X]` 后赋值。
+```
+additional_messages: [
+  { "role": "user", "content": "{{输入框原文}}", "content_type": "text" }
+]
+```
 
-- `n < current_step` → 已完成
-- `n == current_step` → 进行中
-- `n > current_step` → 未开始
-
-进度条点击只回看，不改 `current_step`，不发请求。
-
-### 换课
-
-1. 停掉上一课未完成请求
-2. `lesson_code` 写成新课号
-3. `current_step = 1`
-4. `conversation_id = ''`（不要把上一课的 Coze 数字带过来）
-5. 本地槽位键 = `用户ID+课号+时间戳`，只做隔离，**不要**发给 Coze
-6. 按新课号回读 `learn_message`：有本课历史才填回本课自己的数字会话；没有就让 Coze 新建
-
-Coze 的 `conversation_id` 必须是接口返回的约 19 位数字。`用户ID+课号+时间戳` 当 Query 会报会话不存在。
+已有本课 Coze 数字会话时，Query 带 `conversation_id`。没有就不要建这个参数。  
+`user_id` 用 `learn-{帐户id}-{lesson_code}`。不要把 `用户ID+课号+时间戳` 发给 Coze。
 
 ---
 
-## 第三部分：扣子提示词片段
+## 第三部分：换课重置
 
-贴进智能体人设，要求每轮末尾带标记：
+目录列表点击 → 跳转智学：
 
-```
-你是十步交付法的唯一裁判。顺序固定，禁止跳步、禁止改课题：
-1 自我介绍 → 2 破题 → 3 目标价值 → 4 同理家长 → 5 对齐认知
-→ 6 方法与策略 → 7 案例萃取 → 8 互动设计 → 9 误区与答疑 → 10 总结收尾
+1. 停掉上一课未完成的请求  
+2. 页面变量 `lesson_code` = 当前行课号（覆盖残留）  
+3. `current_step = 1`  
+4. `conversation_id = ''`  
+5. 对话列表清空  
+6. 本地槽位键 = `用户ID + 课号 + 时间戳`（只存在本地，不进 API）  
+7. 按新课号回读「智学对话记录」  
+   - 有本课历史：填回 **本课** 自己的数字 `conversation_id`，不再自动开场  
+   - 没有：保持空，自动发一次课题标题  
 
-Zion 只转发讲师原话，不会告诉你当前第几步。你必须根据本会话历史继续，禁止每一轮从第 1 步重来。
-
-每一轮回复最后一行必须单独输出（方括号、半角冒号、数字）：
-[当前步骤: X]
-
-X 是你此刻正在带的那一步（1–10）。用户还没回答本步提问之前，X 不要加一。
-不要输出「请开始第X步」以外的前端指令。不要提到其他课号。
-```
+不要读「全表最后一条」写回页面。不要把 B01 的会话带进 C02。
 
 ---
 
-## 第四部分：提取与重置
+## 第四部分：进度条先静态
 
-原生实现：`miniprogram/utils/flow.js` 的 `extractCurrentStep`，`miniprogram/utils/isolation.js` 的换课绑定，`miniprogram/utils/classroom.js` 的 `applyLesson`。
+可以。扣子回包里如果没有稳定步骤号，不要用「第X步」闲笔去改 `current_step`。
+
+现在进度条只展示十步名称，换课重置为第 1 步外观，**不根据回包联动**。等扣子每轮固定输出 `[当前步骤: X]` 后再接只读提取。

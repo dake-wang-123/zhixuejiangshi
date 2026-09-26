@@ -10,15 +10,10 @@ const {
 const {
   startPrompt,
   topicTitleOf,
-  detectProgress,
-  applyProgress,
-  inferProgress,
   paintStepViews,
   packTurn,
   rawUserMessage,
-  extractCurrentStep,
-  stepMeta,
-  stripGateMarkers
+  stepMeta
 } = require('./flow.js')
 const isolation = require('./isolation.js')
 const history = require('./learn-history.js')
@@ -46,35 +41,16 @@ function markAnchors(thread) {
   })
 }
 
-function progressOf(session) {
-  return inferProgress((session && session.messages) || [])
-}
-
 function paintProgress(page, session) {
-  const progress = progressOf(session)
-  const steps = paintStepViews(progress)
-  const current = progress.currentStep || 1
-  const meta = stepMeta(current)
+  const current = Number((page.data && page.data.currentStep) || 1) || 1
   page.setData({
-    steps: steps,
-    currentStep: current,
+    steps: paintStepViews({ currentStep: current }),
     currentIndex: Math.max(0, current - 1),
-    completedCount: (progress.completedSteps || []).length,
-    finished: !!(progress.finished || (progress.completedSteps || []).length >= 10),
-    exam1Done: !!progress.exam1Done,
-    exam2Done: !!progress.exam2Done,
-    exam2Ready: !!progress.exam2Done,
-    currentPhase: progress.currentPhase || 'learning',
-    inspectionStep: progress.inspectionStep || 0,
-    inspectWait: progress.inspectWait || '',
-    allClear: !!progress.exam2Done,
+    inspectWait: '',
     viewingStep: (session && session.viewingStep) || 0,
     viewingTitle: (session && session.viewingStep) ? stepMeta(session.viewingStep).title : '',
-    currentLabel: progress.finished && current >= 11
-      ? meta.title
-      : ('第' + Math.min(10, current) + '步 · ' + (current <= 10 ? meta.title : '检验'))
+    currentLabel: ''
   })
-  return progress
 }
 
 function abortTurn(page) {
@@ -144,10 +120,7 @@ function applyLesson(page, incoming) {
 
 function paint(page, session) {
   typewriter.stop(page)
-  const visible = ((session && session.messages) || []).filter((item) => !item.hidden).map((item) => {
-    if (item.role !== 'assistant') return item
-    return Object.assign({}, item, { content: stripGateMarkers(item.content) })
-  })
+  const visible = ((session && session.messages) || []).filter((item) => !item.hidden)
   const thread = markAnchors(decorateThread(visible)).map((item) => {
     if (item.role !== 'user') return item
     const next = Object.assign({}, item)
@@ -279,8 +252,7 @@ function mergeLiveThread(base, result) {
     id: 'coze-' + (item.id || chatId || 'live') + '-' + index,
     role: 'assistant',
     hidden: false,
-    content: item.content,
-    step: extractCurrentStep(item.content) || undefined
+    content: item.content
   }))
   return base.concat(bubbles)
 }
@@ -363,10 +335,9 @@ function askZhixue(page, text, options) {
     if (!next || next === typed) return
     typed = next
     stopWaitClock(page)
-    typewriter.play(page, pending, stripGateMarkers(next), {
+    typewriter.play(page, pending, next, {
       id: 'coze-live-' + (result.chatId || 'turn'),
-      followUps: [],
-      step: extractCurrentStep(next)
+      followUps: []
     })
   }).then((result) => {
     if (!isolation.isLiveTurn(page, turnId, sessionKey)) {
@@ -374,29 +345,16 @@ function askZhixue(page, text, options) {
       return
     }
     const finalText = String((result && result.reply) || typed)
-    const nextProgress = applyProgress(progressOf(preview), detectProgress(finalText))
     persist(page, {
       messages: mergeLiveThread(pending, result),
       followUps: result.followUps || [],
       conversationId: isolation.conversationForLesson(lessonCode, (result && result.conversationId) || boundCid),
-      chatId: (result && result.chatId) || preview.chatId || '',
-      currentStep: nextProgress.currentStep,
-      completedSteps: nextProgress.completedSteps,
-      exam1Done: nextProgress.exam1Done,
-      exam2Done: nextProgress.exam2Done,
-      finished: nextProgress.finished,
-      currentPhase: nextProgress.currentPhase,
-      inspectionStep: nextProgress.inspectionStep,
-      inspectWait: nextProgress.inspectWait,
-      steps: paintStepViews(nextProgress),
-      completedCount: nextProgress.completedSteps.length,
-      currentIndex: Math.max(0, (nextProgress.currentStep || 1) - 1)
+      chatId: (result && result.chatId) || preview.chatId || ''
     }, { skipPaint: true, sessionKey: sessionKey, lessonCode: lessonCode })
     stopWaitClock(page)
-    return typewriter.play(page, pending, stripGateMarkers(finalText), {
+    return typewriter.play(page, pending, finalText, {
       id: 'coze-live-' + ((result && result.chatId) || 'turn'),
-      followUps: (result && result.followUps) || [],
-      step: nextProgress.currentStep
+      followUps: (result && result.followUps) || []
     }).then(() => {
       if (!isolation.isLiveTurn(page, turnId, sessionKey)) {
         page._busy = false
@@ -406,11 +364,7 @@ function askZhixue(page, text, options) {
       paint(page, latest)
       page.setData({ sending: false, thinking: false })
       page._busy = false
-      if (typeof page.saveProgress === 'function') {
-        page.saveProgress(nextProgress.completedSteps.length, 10)
-      }
-      const examCommand = nextProgress.exam2Done ? 'exam2' : (nextProgress.exam1Done ? 'exam1' : '')
-      return backupTurn(page, prompt, result, lessonCode).then(() => backupResults(page, examCommand, result))
+      return backupTurn(page, prompt, result, lessonCode)
     })
   }).catch((err) => {
     if (!isolation.isLiveTurn(page, turnId, sessionKey)) {
@@ -485,7 +439,7 @@ function startCourseFlow(page, course) {
     }, { skipPaint: true })
     page.setData({ planning: true, currentStep: 1, conversationId: '' })
     return askZhixue(page, opener, {
-      preview: source === 'personal' ? ('这份个人教案 · ' + topic) : topic
+      preview: topic
     })
   })
 }

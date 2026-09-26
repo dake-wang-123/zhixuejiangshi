@@ -2,7 +2,7 @@ const { shortTitle } = require('./study.js')
 const { matchCanonical } = require('./coze-catalog.js')
 const { packPersonalStart, sourceOf } = require('./personal-plan.js')
 
-const FLOW_VERSION = 15
+const FLOW_VERSION = 16
 const OPEN_SESSION_ID = 'open'
 const PENDING_TOPIC_KEY = 'zhixue_pending_topic'
 const PENDING_LESSON_KEY = 'zhixue_pending_lesson'
@@ -64,11 +64,15 @@ function parseGateNum(raw) {
 
 function stripGateMarkers(text) {
   return String(text || '')
+    .replace(/\[\s*当前步骤\s*[:：]\s*[^\]]+\]/g, '')
+    .replace(/【\s*当前步骤\s*[:：]\s*[^】]+】/g, '')
     .replace(/\[\s*下一关\s*[:：]\s*[^\]]+\]/g, '')
     .replace(/\[\s*当前关\s*[:：]\s*[^\]]+\]/g, '')
     .replace(/\[\s*等待确认\s*[:：]\s*[^\]]+\]/g, '')
     .replace(/\[\s*检验进度\s*[:：]\s*[^\]]+\]/g, '')
     .replace(/\[\s*全部通关\s*\]/g, '')
+    .replace(/【\s*步骤完成\s*[:：]\s*[^】]+】/g, '')
+    .replace(/【\s*十步完成\s*】/g, '')
     .replace(/\n{3,}/g, '\n\n')
     .trim()
 }
@@ -76,14 +80,21 @@ function stripGateMarkers(text) {
 function extractInspect(text) {
   const src = String(text || '')
   return {
-    waitExam1: /\[\s*等待确认\s*[:：]\s*检验\s*\]/.test(src) || /是否进入(?:实战)?检验环节/.test(src),
-    waitExam2: /\[\s*等待确认\s*[:：]\s*检验2\s*\]/.test(src) || /是否进入检验2|是否进入说课/.test(src),
+    waitExam1: /\[\s*等待确认\s*[:：]\s*检验\s*\]/.test(src),
+    waitExam2: /\[\s*等待确认\s*[:：]\s*检验2\s*\]/.test(src),
     inspect1: /\[\s*检验进度\s*[:：]\s*1\s*\/\s*2\s*\]/.test(src),
     inspect2: /\[\s*检验进度\s*[:：]\s*2\s*\/\s*2\s*\]/.test(src),
     exam1Done: /【检验1完成】/.test(src),
     exam2Done: /【检验2完成】/.test(src),
     allClear: /\[\s*全部通关\s*\]/.test(src)
   }
+}
+
+function extractCurrentStep(text) {
+  const src = String(text || '')
+  const hit = src.match(/\[\s*当前步骤\s*[:：]\s*(\d{1,2}|[一二三四五六七八九十两])\s*\]/)
+    || src.match(/【\s*当前步骤\s*[:：]\s*(\d{1,2}|[一二三四五六七八九十两])\s*】/)
+  return hit ? parseGateNum(hit[1]) : 0
 }
 
 function isConfirmText(text) {
@@ -111,8 +122,8 @@ function extractNextStep(text) {
     result.cleared = true
     if (!result.nextStep) result.nextStep = Math.min(11, result.completedStep + 1)
   }
-  const taggedCur = src.match(/【当前步骤[:：]\s*(\d{1,2})\s*】/)
-  if (taggedCur && !result.nextStep) result.nextStep = clampStep(taggedCur[1], 12)
+  const taggedCur = extractCurrentStep(src)
+  if (taggedCur && !result.nextStep) result.nextStep = taggedCur
   if (result.allTenDone && !result.nextStep) result.nextStep = 11
   if (result.nextStep >= 11) result.allTenDone = true
   return result
@@ -123,12 +134,13 @@ function startStepPrompt(n) {
   return '请开始第' + meta.n + '步的内容。本步是「' + meta.title + '」。只讲这一步并提问，不要跳步，不要写【步骤完成】，不要写[下一关]。第一行写【当前步骤：' + meta.n + '】。'
 }
 
-function detectProgress(text, currentStep) {
+function detectProgress(text) {
   const src = String(text || '')
-  const gate = extractNextStep(src, currentStep)
+  const marked = extractCurrentStep(src)
+  const gate = extractNextStep(src)
   const inspect = extractInspect(src)
   const result = {
-    currentStep: gate.nextStep || 0,
+    currentStep: marked || gate.nextStep || 0,
     completedStep: gate.completedStep || 0,
     allTenDone: gate.allTenDone || inspect.waitExam1,
     exam1Done: inspect.exam1Done,
@@ -139,13 +151,12 @@ function detectProgress(text, currentStep) {
     inspect2: inspect.inspect2,
     allClear: inspect.allClear
   }
-  if (/【检验1】|command=exam1/.test(src)) result.currentStep = 11
-  if (/【检验2】|command=exam2/.test(src)) result.currentStep = 12
+  if (marked >= 11) result.currentStep = marked
   if (result.allTenDone && !result.currentStep) result.currentStep = 10
   return result
 }
 
-function applyProgress(prev, detected, command) {
+function applyProgress(prev, detected) {
   const done = {}
   ;((prev && prev.completedSteps) || []).forEach((n) => { done[n] = true })
   let current = (prev && prev.currentStep) || 1
@@ -154,9 +165,9 @@ function applyProgress(prev, detected, command) {
     done[hit.completedStep] = true
     current = Math.min(11, hit.completedStep + 1)
   }
-  if (hit.currentStep && hit.currentStep <= 10) {
+  if (hit.currentStep) {
     current = hit.currentStep
-    for (let i = 1; i < current; i++) done[i] = true
+    for (let i = 1; i < Math.min(current, 11); i++) done[i] = true
   }
   if (hit.allTenDone) {
     for (let i = 1; i <= 10; i++) done[i] = true
@@ -166,20 +177,19 @@ function applyProgress(prev, detected, command) {
   let currentPhase = (prev && prev.currentPhase) || 'learning'
   let inspectionStep = Number((prev && prev.inspectionStep) || 0)
   let inspectWait = (prev && prev.inspectWait) || ''
-  const inspecting = currentPhase === 'inspection' || command === 'exam1' || command === 'exam2'
-  if (command === 'exam1' || hit.inspect1) {
+  if (hit.inspect1) {
     currentPhase = 'inspection'
     inspectionStep = 1
     inspectWait = ''
-    current = 11
+    current = Math.max(current, 11)
     for (let i = 1; i <= 10; i++) done[i] = true
     if (hit.exam1Done) exam1Done = true
   }
-  if (command === 'exam2' || hit.inspect2) {
+  if (hit.inspect2) {
     currentPhase = 'inspection'
     inspectionStep = 2
     inspectWait = ''
-    current = 12
+    current = Math.max(current, 12)
     if (hit.exam2Done) exam2Done = true
   }
   if (hit.exam1Done) {
@@ -197,15 +207,15 @@ function applyProgress(prev, detected, command) {
   if (hit.waitExam1 && !exam1Done) inspectWait = 'exam1'
   if (hit.waitExam2 && exam1Done && !exam2Done) inspectWait = 'exam2'
   const completedSteps = []
+  const barCurrent = current > 10 ? 11 : current
   for (let i = 1; i <= 10; i++) {
-    if (done[i]) completedSteps.push(i)
+    if (i < barCurrent || done[i]) completedSteps.push(i)
   }
   const finished = completedSteps.length >= 10
-  if (finished && !inspecting && currentPhase !== 'inspection') {
-    current = 10
+  if (finished && currentPhase !== 'inspection') {
+    current = Math.min(current, 10)
     if (!exam1Done) inspectWait = inspectWait || 'exam1'
   }
-  if (inspecting && hit.currentStep >= 11) current = hit.currentStep
   return {
     currentStep: current,
     completedSteps: completedSteps,
@@ -230,22 +240,16 @@ function inferProgress(messages) {
     inspectWait: ''
   }
   ;(messages || []).forEach((item) => {
-    if (!item || item.hidden || item.failed) return
-    const tagged = Number(item.step) || 0
-    const detected = item.role === 'assistant' ? detectProgress(item.content, state.currentStep) : {}
-    if (tagged >= 11) detected.currentStep = tagged
-    else if (tagged && !detected.currentStep) detected.currentStep = tagged
-    state = applyProgress(state, detected, item.command || '')
+    if (!item || item.hidden || item.failed || item.role !== 'assistant') return
+    state = applyProgress(state, detectProgress(item.content))
   })
   return state
 }
 
 function paintStepViews(progress) {
   const current = (progress && progress.currentStep) || 1
-  const done = {}
-  ;((progress && progress.completedSteps) || []).forEach((n) => { done[n] = true })
   return DELIVERY_STEPS.map((item, index) => {
-    const isDone = !!done[item.n]
+    const isDone = item.n < current
     const isCurrent = item.n === current && current <= 10
     return {
       key: item.key,
@@ -433,6 +437,7 @@ module.exports = {
   startPrompt: startPrompt,
   detectAdvance: detectAdvance,
   parseGateNum: parseGateNum,
+  extractCurrentStep: extractCurrentStep,
   extractNextStep: extractNextStep,
   extractInspect: extractInspect,
   isConfirmText: isConfirmText,

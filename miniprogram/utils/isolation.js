@@ -71,6 +71,12 @@ function switchedLesson(prevCode, nextCode) {
   return lessonCodeOf(prevCode, 'open') !== lessonCodeOf(nextCode, 'open')
 }
 
+function localSlotKey(account, lessonCode) {
+  const uid = (account && (account.id || account.userId)) || 'guest'
+  const code = lessonCodeOf(lessonCode, 'open')
+  return [uid, code, Date.now()].join('+')
+}
+
 function resetBindsForTest() {
   memoryBinds = {}
 }
@@ -84,5 +90,6 @@ module.exports = {
   nextTurnId: nextTurnId,
   isLiveTurn: isLiveTurn,
   switchedLesson: switchedLesson,
+  localSlotKey: localSlotKey,
   resetBindsForTest: resetBindsForTest
 }

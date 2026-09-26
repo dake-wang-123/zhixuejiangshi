@@ -81,6 +81,7 @@ https://zion-app.functorz.com/zero/PO76RBe9KX0/api/graphql-v2
    - 课程首页去掉重复「60 堂系统课」见 `docs/zion-catalog-eyebrow.md`
    - 十步进度条只跟扣子标记走，不再自动发「请开始第 X 步」，见 `docs/zion-auto-advance.md`
    - 串台 / 脱轨：课号、会话、原文隔离见 `docs/zion-isolation.md`
+   - Zion 只搬运、进度条只提取 `[当前步骤: X]` 见 `docs/zion-porter.md`
    - 第10步后确认再进检验见 `docs/zion-inspect-confirm.md`
 4. Coze `4100` 是令牌本身无效；`4101` 是令牌没有访问该 Bot / 接口的权限。Bot 未发布到 **Agent As API** 时，流程会提示去 coze.cn 发布。
 

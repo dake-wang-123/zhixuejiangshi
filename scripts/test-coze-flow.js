@@ -20,6 +20,7 @@ const {
   exam1Prompt,
   exam2Prompt,
   extractNextStep,
+  extractCurrentStep,
   extractInspect,
   isConfirmText,
   startStepPrompt,
@@ -34,6 +35,8 @@ assert.strictEqual(listFlowSteps()[0].title, '自我介绍')
 assert.strictEqual(listFlowSteps()[9].title, '总结收尾')
 assert.strictEqual(firstLiveIndex(), 0)
 assert.strictEqual(detectProgress('【当前步骤：3】\n## 目标价值').currentStep, 3)
+assert.strictEqual(extractCurrentStep('[当前步骤: 3]'), 3)
+assert.strictEqual(detectProgress('[当前步骤: 3]\n破题').currentStep, 3)
 assert.strictEqual(detectProgress('【步骤完成：2】').completedStep, 2)
 assert.strictEqual(detectProgress('【十步完成】').allTenDone, true)
 assert.strictEqual(extractNextStep('[下一关: 4]').nextStep, 4)
@@ -81,6 +84,9 @@ const notDerailed = inferProgress([
   { role: 'assistant', content: '【当前步骤：1】自我介绍。后面第8步会讲方法，C02 那一课先别看。', step: 1 }
 ])
 assert.strictEqual(notDerailed.currentStep, 1)
+assert.strictEqual(inferProgress([
+  { role: 'assistant', content: '[当前步骤: 1]自我介绍', step: 8, command: 'auto_next' }
+]).currentStep, 1)
 assert.strictEqual(detectProgress('这一课后面会讲到第8步方法，现在先自我介绍').currentStep, 0)
 assert.strictEqual(detectProgress('## 方法与策略\n先记这一句').currentStep, 0)
 
@@ -221,6 +227,8 @@ assert.strictEqual(isolation.conversationForLesson('B01', 'learn-user-B01'), '')
 assert.strictEqual(isolation.conversationForLesson('B01', '7370000000000001'), '7370000000000001')
 assert.strictEqual(isolation.conversationForLesson('C02', '7370000000000001'), '')
 assert.strictEqual(isolation.conversationForLesson('B01', '7370000000000001'), '7370000000000001')
+const slot = isolation.localSlotKey({ id: '9' }, 'B01')
+assert.ok(slot.indexOf('9+B01+') === 0)
 isolation.unbindLesson('B01')
 assert.strictEqual(isolation.conversationForLesson('C02', '7370000000000001'), '7370000000000001')
 const livePage = { _turnId: 0, sessionKey: function () { return 'lesson:B01' } }
@@ -374,14 +382,16 @@ assert.strictEqual(personalPlan.sourceOf({ source: 'personal' }), 'personal')
 assert.strictEqual(personalPlan.sourceOf({ lessonCode: 'B01' }, 'B01'), 'catalog')
 assert.strictEqual(personalPlan.inferTitle('# 物权意识敏感期\n正文'), '物权意识敏感期')
 const personalStart = personalPlan.packPersonalStart('破解分离焦虑', '家长一走孩子就哭。')
-assert.ok(personalStart.indexOf('【个人教案】') >= 0)
-assert.ok(personalStart.indexOf('## 个人教案正文') >= 0)
+assert.ok(personalStart.indexOf('课题：破解分离焦虑') >= 0)
 assert.ok(personalStart.indexOf('家长一走孩子就哭') >= 0)
-assert.ok(personalPlan.shortUserText(personalStart).indexOf('开始自学这份个人教案') >= 0)
+assert.ok(personalStart.indexOf('第1步') < 0)
+assert.ok(personalStart.indexOf('当前步骤') < 0)
+assert.ok(personalPlan.shortUserText(personalStart).indexOf('这份个人教案') >= 0)
 const clipped = personalPlan.clipPlan(Array(9000).join('甲'))
 assert.strictEqual(clipped.truncated, true)
 assert.ok(clipped.text.indexOf('截断') >= 0)
-assert.ok(startPrompt({ title: '破解分离焦虑', source: 'personal', planText: '全文' }).indexOf('个人教案正文') >= 0)
+assert.ok(startPrompt({ title: '破解分离焦虑', source: 'personal', planText: '全文' }).indexOf('全文') >= 0)
+assert.ok(startPrompt({ title: '破解分离焦虑', source: 'personal', planText: '全文' }).indexOf('第1步') < 0)
 assert.strictEqual(startPrompt({ title: '破解分离焦虑' }), '破解分离焦虑')
 
 const accountView = require('../miniprogram/utils/account-view.js')

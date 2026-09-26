@@ -157,7 +157,7 @@ function visibleItems(items) {
     const typ = item.type || 'answer'
     const content = String(item.content || '').trim()
     if (!content || isDebugJson(content) || isHiddenType(typ)) return
-    if (typ === 'follow_up') return
+    if (typ !== 'answer') return
     if (item.role && item.role !== 'assistant') return
     list.push({
       role: 'assistant',

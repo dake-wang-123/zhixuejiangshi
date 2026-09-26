@@ -2,6 +2,7 @@ const { chatWithCoze } = require('./agent.js')
 const {
   readSession,
   writeSession,
+  blankSession,
   hasAssistant,
   hydrateSession,
   storedLessonCode
@@ -9,19 +10,15 @@ const {
 const {
   startPrompt,
   topicTitleOf,
-  OPEN_GUIDE_PROMPT,
   detectProgress,
   applyProgress,
   inferProgress,
   paintStepViews,
   packTurn,
   rawUserMessage,
+  extractCurrentStep,
   stepMeta,
-  stripGateMarkers,
-  replayPrompt,
-  exam1ConfirmPrompt,
-  exam2ConfirmPrompt,
-  isConfirmText
+  stripGateMarkers
 } = require('./flow.js')
 const isolation = require('./isolation.js')
 const history = require('./learn-history.js')
@@ -50,22 +47,7 @@ function markAnchors(thread) {
 }
 
 function progressOf(session) {
-  const inferred = inferProgress((session && session.messages) || [])
-  const localDone = ((session && session.completedSteps) || []).length
-  const progress = localDone >= inferred.completedSteps.length
-    ? applyProgress(session || {}, {}, '')
-    : inferred
-  if (session && session.currentStep) progress.currentStep = session.currentStep
-  if (session && session.completedSteps && session.completedSteps.length >= progress.completedSteps.length) {
-    progress.completedSteps = session.completedSteps
-    progress.finished = session.completedSteps.length >= 10
-  }
-  if (session && session.exam1Done) progress.exam1Done = true
-  if (session && session.exam2Done) progress.exam2Done = true
-  if (session && session.currentPhase) progress.currentPhase = session.currentPhase
-  if (session && session.inspectionStep) progress.inspectionStep = session.inspectionStep
-  if (session && session.inspectWait) progress.inspectWait = session.inspectWait
-  return progress
+  return inferProgress((session && session.messages) || [])
 }
 
 function paintProgress(page, session) {
@@ -145,6 +127,18 @@ function applyLesson(page, incoming) {
   }
   Object.assign(page.data, patch)
   page.setData(patch)
+  if (typeof page.sessionKey === 'function') {
+    writeSession(page.sessionKey(), Object.assign(blankSession(title), {
+      source: source,
+      planText: course.planText || '',
+      conversationId: '',
+      chatId: '',
+      localSlotKey: isolation.localSlotKey(
+        (typeof getApp === 'function' && getApp().globalData && getApp().globalData.account) || {},
+        lessonCode
+      )
+    }))
+  }
   return course
 }
 
@@ -278,16 +272,15 @@ function scrollBottom(page) {
   page.setData({ scrollInto: last ? 'm-' + last.id : 'thread-end' })
 }
 
-function mergeLiveThread(base, result, step) {
+function mergeLiveThread(base, result) {
   const items = (result && result.items) || []
   const chatId = (result && result.chatId) || ''
-  const n = Number(step) || 0
   const bubbles = items.map((item, index) => ({
     id: 'coze-' + (item.id || chatId || 'live') + '-' + index,
     role: 'assistant',
     hidden: false,
     content: item.content,
-    step: n || undefined
+    step: extractCurrentStep(item.content) || undefined
   }))
   return base.concat(bubbles)
 }
@@ -336,9 +329,6 @@ function askZhixue(page, text, options) {
   const sessionKey = page.sessionKey()
   const lessonCode = storedLessonCode(page)
   const preview = readSession(sessionKey) || {}
-  const progress = progressOf(preview)
-  const command = opts.command || 'reply'
-  const step = opts.step || progress.currentStep || 1
   const boundCid = isolation.conversationForLesson(lessonCode, preview.conversationId)
   const packed = packTurn(prompt)
   const userMsg = {
@@ -346,9 +336,7 @@ function askZhixue(page, text, options) {
     role: 'user',
     hidden: false,
     content: prompt,
-    preview: opts.preview || shortUserText(prompt),
-    step: step,
-    command: command
+    preview: opts.preview || shortUserText(prompt)
   }
   const base = (preview.messages || []).filter((item) => item.role === 'user' || item.role === 'assistant')
   const pending = base.concat([userMsg])
@@ -356,7 +344,6 @@ function askZhixue(page, text, options) {
     messages: pending,
     followUps: [],
     viewingStep: 0,
-    currentStep: step,
     conversationId: boundCid
   }, { sessionKey: sessionKey, lessonCode: lessonCode })
   page.setData({ sending: true, error: '', draft: '', planning: false, followUps: [], viewingStep: 0 })
@@ -367,7 +354,7 @@ function askZhixue(page, text, options) {
   return chatWithCoze(packed, userId, boundCid, getApp().getToken(), function onTick(result) {
     if (!isolation.isLiveTurn(page, turnId, sessionKey)) return
     persist(page, {
-      messages: mergeLiveThread(pending, result, step),
+      messages: mergeLiveThread(pending, result),
       followUps: result.followUps || [],
       conversationId: isolation.conversationForLesson(lessonCode, result.conversationId || boundCid),
       chatId: result.chatId || preview.chatId || ''
@@ -379,7 +366,7 @@ function askZhixue(page, text, options) {
     typewriter.play(page, pending, stripGateMarkers(next), {
       id: 'coze-live-' + (result.chatId || 'turn'),
       followUps: [],
-      step: step
+      step: extractCurrentStep(next)
     })
   }).then((result) => {
     if (!isolation.isLiveTurn(page, turnId, sessionKey)) {
@@ -387,13 +374,9 @@ function askZhixue(page, text, options) {
       return
     }
     const finalText = String((result && result.reply) || typed)
-    const prevProgress = progressOf(preview)
-    const detected = detectProgress(finalText, prevProgress.currentStep)
-    const nextProgress = applyProgress(prevProgress, detected, command)
-    if (command === 'exam1' && finalText) nextProgress.exam1Done = true
-    if (command === 'exam2' && finalText) nextProgress.exam2Done = true
+    const nextProgress = applyProgress(progressOf(preview), detectProgress(finalText))
     persist(page, {
-      messages: mergeLiveThread(pending, result, nextProgress.currentStep || step),
+      messages: mergeLiveThread(pending, result),
       followUps: result.followUps || [],
       conversationId: isolation.conversationForLesson(lessonCode, (result && result.conversationId) || boundCid),
       chatId: (result && result.chatId) || preview.chatId || '',
@@ -407,7 +390,7 @@ function askZhixue(page, text, options) {
       inspectWait: nextProgress.inspectWait,
       steps: paintStepViews(nextProgress),
       completedCount: nextProgress.completedSteps.length,
-      currentIndex: Math.max(0, nextProgress.currentStep - 1)
+      currentIndex: Math.max(0, (nextProgress.currentStep || 1) - 1)
     }, { skipPaint: true, sessionKey: sessionKey, lessonCode: lessonCode })
     stopWaitClock(page)
     return typewriter.play(page, pending, stripGateMarkers(finalText), {
@@ -426,7 +409,8 @@ function askZhixue(page, text, options) {
       if (typeof page.saveProgress === 'function') {
         page.saveProgress(nextProgress.completedSteps.length, 10)
       }
-      return backupTurn(page, prompt, result, lessonCode).then(() => backupResults(page, command, result))
+      const examCommand = nextProgress.exam2Done ? 'exam2' : (nextProgress.exam1Done ? 'exam1' : '')
+      return backupTurn(page, prompt, result, lessonCode).then(() => backupResults(page, examCommand, result))
     })
   }).catch((err) => {
     if (!isolation.isLiveTurn(page, turnId, sessionKey)) {
@@ -469,11 +453,18 @@ function startCourseFlow(page, course) {
     page.setData(next)
   }
   return restoreRemote(page, topic).then((existing) => {
-    const cid = isolation.conversationForLesson(storedLessonCode(page), existing && existing.conversationId)
+    const hasHistory = !!(existing && (existing.messages || []).length && hasAssistant(existing.messages))
+    const cid = hasHistory
+      ? isolation.conversationForLesson(storedLessonCode(page), existing && existing.conversationId)
+      : ''
+    const account = (typeof getApp === 'function' && getApp().globalData && getApp().globalData.account) || {}
     if (existing && cid !== (existing.conversationId || '')) {
-      existing = persist(page, { conversationId: cid }, { skipPaint: true })
+      existing = persist(page, {
+        conversationId: cid,
+        localSlotKey: isolation.localSlotKey(account, storedLessonCode(page))
+      }, { skipPaint: true })
     }
-    if (existing && (existing.messages || []).length && hasAssistant(existing.messages)) {
+    if (hasHistory) {
       paint(page, existing)
       page.setData({ planning: false, hint: topic ? ('课题：' + topic) : '已恢复上次学习记录' })
       return existing
@@ -486,14 +477,15 @@ function startCourseFlow(page, course) {
       topicTitle: topic,
       source: source,
       planText: (course && course.planText) || (existing && existing.planText) || '',
-      conversationId: cid,
-      chatId: (existing && existing.chatId) || ''
+      conversationId: '',
+      chatId: '',
+      currentStep: 1,
+      completedSteps: [],
+      localSlotKey: isolation.localSlotKey(account, storedLessonCode(page))
     }, { skipPaint: true })
-    page.setData({ planning: true })
+    page.setData({ planning: true, currentStep: 1, conversationId: '' })
     return askZhixue(page, opener, {
-      command: source === 'personal' ? 'start' : 'reply',
-      preview: source === 'personal' ? ('开始自学这份个人教案 · ' + topic) : '',
-      step: 1
+      preview: source === 'personal' ? ('这份个人教案 · ' + topic) : topic
     })
   })
 }
@@ -522,8 +514,11 @@ function startOpenFlow(page, topicTitle) {
     paint(page, existing)
     return Promise.resolve(existing)
   }
-  page.setData({ planning: true, hint: '正在向智学取引导语…' })
-  return askZhixue(page, OPEN_GUIDE_PROMPT)
+  page.setData({
+    planning: false,
+    hint: '从课程目录点一门课，或在输入框里直接回复智学。'
+  })
+  return Promise.resolve(existing)
 }
 
 function clearHistory(page) {
@@ -555,17 +550,6 @@ function onPlus(page) {
 function onSend(page) {
   const text = (page.data.draft || '').trim()
   if (!text || page.data.sending) return
-  const wait = page.data && page.data.inspectWait
-  if (wait === 'exam1' && isConfirmText(text)) {
-    page.setData({ draft: '' })
-    startExam1(page)
-    return
-  }
-  if (wait === 'exam2' && isConfirmText(text)) {
-    page.setData({ draft: '' })
-    startExam2(page)
-    return
-  }
   askZhixue(page, text)
 }
 
@@ -626,10 +610,8 @@ function onStepTap(page, index) {
 }
 
 function replayStep(page, step) {
-  const n = Number(step) || 1
-  persist(page, { currentStep: n, viewingStep: 0 }, { skipPaint: true })
-  page.setData({ viewingStep: 0, currentStep: n })
-  askZhixue(page, replayPrompt(n), { command: 'replay_step', step: n })
+  scrollToStep(page, step)
+  wx.showToast({ title: '在输入框里直接告诉智学即可', icon: 'none' })
 }
 
 function backToLive(page) {
@@ -639,33 +621,11 @@ function backToLive(page) {
 }
 
 function startExam1(page) {
-  if (!(page.data && page.data.finished)) {
-    wx.showToast({ title: '先把十步交付法学完', icon: 'none' })
-    return
-  }
-  persist(page, {
-    currentPhase: 'inspection',
-    inspectionStep: 1,
-    inspectWait: '',
-    currentStep: 11
-  }, { skipPaint: true })
-  page.setData({ currentPhase: 'inspection', inspectionStep: 1, inspectWait: '' })
-  askZhixue(page, exam1ConfirmPrompt(), { command: 'exam1', step: 11, preview: '确认进入检验1' })
+  askZhixue(page, '确认进入')
 }
 
 function startExam2(page) {
-  if (!(page.data && page.data.exam1Done)) {
-    wx.showToast({ title: '请先完成实战演练', icon: 'none' })
-    return
-  }
-  persist(page, {
-    currentPhase: 'inspection',
-    inspectionStep: 2,
-    inspectWait: '',
-    currentStep: 12
-  }, { skipPaint: true })
-  page.setData({ currentPhase: 'inspection', inspectionStep: 2, inspectWait: '' })
-  askZhixue(page, exam2ConfirmPrompt(), { command: 'exam2', step: 12, preview: '确认进入检验2' })
+  askZhixue(page, '确认进入检验2')
 }
 
 function makePpt(page) {

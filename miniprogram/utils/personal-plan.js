@@ -39,23 +39,17 @@ function packPersonalStart(title, text) {
   const clipped = clipPlan(text)
   const topic = String(title || inferTitle(clipped.text) || '个人教案').trim()
   return [
-    '【个人教案】',
-    'source=personal',
     '课题：' + topic,
-    '请只依据下面这份讲师自己的教案，按十步交付法从第1步「自我介绍」开始引导。不要改用知识库里的系统课，不要换成目录里的其他课题。',
     '',
-    '## 个人教案正文',
-    clipped.text,
-    '',
-    '开头写【当前步骤：1】。'
+    clipped.text
   ].join('\n')
 }
 
 function shortUserText(text) {
   const src = String(text || '')
-  if (src.indexOf('【个人教案】') >= 0 || src.indexOf('## 个人教案正文') >= 0) {
+  if (src.indexOf('【个人教案】') >= 0 || src.indexOf('## 个人教案正文') >= 0 || /^课题[:：]/.test(src)) {
     const title = ((src.match(/课题[:：]\s*(.+)/) || [])[1] || '').trim().split('\n')[0]
-    return title ? ('开始自学这份个人教案 · ' + title) : '开始自学这份个人教案'
+    return title ? ('这份个人教案 · ' + title) : '这份个人教案'
   }
   return src
 }

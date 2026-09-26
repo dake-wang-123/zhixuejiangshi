@@ -119,17 +119,7 @@ function hydrateSession(courseId, remote, topicTitle) {
   const conversationId = (remote && remote.conversationId) || local.conversationId || ''
   const chatId = (remote && remote.chatId) || local.chatId || ''
   const title = topicTitle || (remote && remote.topicTitle) || local.topicTitle || ''
-  const inferred = inferProgress(messages)
-  const localDone = (local.completedSteps || []).length
-  const progress = localDone >= inferred.completedSteps.length
-    ? {
-      currentStep: local.currentStep || inferred.currentStep,
-      completedSteps: local.completedSteps || inferred.completedSteps,
-      exam1Done: !!(local.exam1Done || inferred.exam1Done),
-      exam2Done: !!(local.exam2Done || inferred.exam2Done),
-      finished: (local.completedSteps || inferred.completedSteps).length >= 10
-    }
-    : inferred
+  const progress = inferProgress(messages)
   return writeSession(courseId, Object.assign({
     flowVersion: FLOW_VERSION,
     messages: messages,
